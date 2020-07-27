@@ -2,17 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PulseCore_GlobalValue_Manager : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
+
+namespace PulseEngine.Core
+{
+    /// <summary>
+    /// Le Manager Global du Pulse Engine.
+    /// </summary>
+    public static class PulseCore_GlobalValue_Manager
     {
-        
+        #region Attributs ###############################################################
+
+        /// <summary>
+        /// Le repertoire ou seront stockes et d'ou seront charges les Assets du jeu in game et dans l'editeur. il sera Addressable.
+        /// </summary>
+        public static string Path_GAMERESSOURCES = "";
+
+
+        #endregion
+
+        #region Methods #################################################################
+
+        #endregion
     }
 }
