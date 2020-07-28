@@ -24,18 +24,11 @@ namespace PulseEngine.Module.Localisator.AssetEditor
 
         public override void OnInspectorGUI()
         {
+            base.OnInspectorGUI();
             EditorGUILayout.LabelField("Language", EditorStyles.boldLabel);
             EditorGUILayout.LabelField(localisationAsset.LibraryLanguage.ToString());
             EditorGUILayout.LabelField("Data Type", EditorStyles.boldLabel);
             EditorGUILayout.LabelField(localisationAsset.LibraryDataType.ToString());
-            EditorGUILayout.LabelField("Data List : ", EditorStyles.boldLabel);
-            if (localisationAsset.LocalizedDatas.Count > 0)
-            {
-                for (int i = 0; i < localisationAsset.LocalizedDatas.Count; i++)
-                    EditorGUILayout.LabelField(localisationAsset.LocalizedDatas[i].Trad_ID.ToString());
-            }
-            else
-                EditorGUILayout.LabelField("''None''");
         }
     }
 }

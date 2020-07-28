@@ -13,7 +13,50 @@ namespace PulseEditor
     /// </summary>
     public class PulseEngine_Core_BaseEditor : EditorWindow
     {
-        #region Propietes ##########################################################################
+        #region EditorEnums #########################################################################
+
+        /// <summary>
+        /// Les differents modes dans lesquels une fenetre d'editeur peut etre ouverte.
+        /// </summary>
+        protected enum EditorMode
+        {
+            Normal, Selector, ItemEdition, Preview, Node, Group
+        }
+
+        #endregion
+
+        #region Editor Events & Arguments ######################################################################
+
+        /// <summary>
+        /// Les argeuments d'un evenement d'editeur.
+        /// </summary>
+        protected class EditorEventArgs: EventArgs
+        {
+            public int Scope;
+            public int dataType;
+            public int ID;
+            public int Zone;
+            public int Language;
+        }
+
+        /// <summary>
+        /// L'evenement emit a la selection et validation d'un element en mode Selection.
+        /// </summary>
+        public EventHandler onSelectionEvent;
+
+        #endregion
+
+
+        #region Atrributs ##########################################################################
+
+        /// <summary>
+        /// Le mode dans lequel la fenetre a ete ouverte.
+        /// </summary>
+        protected EditorMode windowOpenMode;
+
+        #endregion
+
+        #region Proprietes ##########################################################################
 
         /// <summary>
         /// La taille par defaut des fenetre de l'editeur.
@@ -24,6 +67,11 @@ namespace PulseEditor
         /// Les panels crees accompagne de leur vector de position de scroll
         /// </summary>
         private Dictionary<int, Vector2> PanelsScrools = new Dictionary<int, Vector2>();
+
+        /// <summary>
+        /// Les Listes crees accompagne de leur vector de position de scroll
+        /// </summary>
+        private Dictionary<int, Vector2> ListsScrolls = new Dictionary<int, Vector2>();
 
         #endregion
 
@@ -48,6 +96,69 @@ namespace PulseEditor
         }
 
         /// <summary>
+        /// Panel, generalement en bas de fenetre conteneant le plus souvent les bouttons 'save' et 'cancel'
+        /// </summary>
+        /// <param name="actionButtons"></param>
+        protected void SaveCancelPanel(params KeyValuePair<string,Action>[] actionButtons)
+        {
+            GroupGUI(() =>
+            {
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < actionButtons.Length; i++)
+                {
+                    if (GUILayout.Button(actionButtons[i].Key)) { if (actionButtons[i].Value != null) actionButtons[i].Value.Invoke(); }
+                }
+                GUILayout.EndHorizontal();
+            });
+        }
+
+        /// <summary>
+        /// Faire une liste d'elements, et renvoyer l'element selectionne.
+        /// </summary>
+        /// <param name="listID"></param>
+        /// <param name="content"></param>
+        protected int ListItems(int listID = -1, int selected = -1, params GUIContent[] content)
+        {
+            if (listID < 0)
+                return -1;
+            Vector2 scroolPos = Vector2.zero;
+            if (ListsScrolls.ContainsKey(listID))
+                scroolPos = ListsScrolls[listID];
+            else
+                ListsScrolls.Add(listID, scroolPos);
+            scroolPos = GUILayout.BeginScrollView(scroolPos);
+            GUILayout.BeginVertical();
+            int sel = GUILayout.SelectionGrid(selected, content, 1);
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+            ListsScrolls[listID] = scroolPos;
+            return sel;
+        }
+
+        /// <summary>
+        /// Faire une Grille d'elements, et renvoyer l'element selectionne.
+        /// </summary>
+        /// <param name="listID"></param>
+        /// <param name="content"></param>
+        protected int GridItems(int listID = -1, int selected = -1, int xSize = 2, params GUIContent[] content)
+        {
+            if (listID < 0)
+                return -1;
+            Vector2 scroolPos = Vector2.zero;
+            if (ListsScrolls.ContainsKey(listID))
+                scroolPos = ListsScrolls[listID];
+            else
+                ListsScrolls.Add(listID, scroolPos);
+            scroolPos = GUILayout.BeginScrollView(scroolPos);
+            GUILayout.BeginVertical();
+            int sel = GUILayout.SelectionGrid(selected, content, xSize);
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+            ListsScrolls[listID] = scroolPos;
+            return sel;
+        }
+
+        /// <summary>
         /// faire un panel scroolable verticalement.
         /// </summary>
         /// <param name="guiFunctions"></param>
@@ -61,18 +172,35 @@ namespace PulseEditor
                 scroolPos = PanelsScrools[panelID];
             else
                 PanelsScrools.Add(panelID, scroolPos);
-            GUILayout.BeginVertical();
             scroolPos = GUILayout.BeginScrollView(scroolPos);
+            GUILayout.BeginVertical();
             if (guiFunctions != null)
                 guiFunctions.Invoke();
-            GUILayout.EndScrollView();
             GUILayout.EndVertical();
+            GUILayout.EndScrollView();
             PanelsScrools[panelID] = scroolPos;
         }
 
         #endregion
 
         #region Methods #############################################################################
+
+        /// <summary>
+        /// Pour sauvegarder des changements effectues sur un asset clone.
+        /// </summary>
+        /// <param name="edited"></param>
+        /// <param name="loaded"></param>
+        protected void SaveAsset(UnityEngine.Object edited, UnityEngine.Object loaded)
+        {
+            EditorUtility.CopySerialized(edited, loaded);
+            AssetDatabase.SaveAssets();
+        }
+
+        protected virtual void CloseWindow()
+        {
+            onSelectionEvent = delegate { };
+            EditorUtility.UnloadUnusedAssetsImmediate();
+        }
 
         #endregion
     }
