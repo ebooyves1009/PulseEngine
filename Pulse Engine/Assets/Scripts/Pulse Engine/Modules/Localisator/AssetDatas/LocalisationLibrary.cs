@@ -18,8 +18,11 @@ namespace PulseEngine.Module.Localisator
     {
         #region Attributs #########################################################
 
-        [SerializeField]
-        private List<Localisationdata> localizedDatas = new List<Localisationdata>();
+
+        /// <summary>
+        /// La liste des datas localisees pour ce type de data, en cette langue.
+        /// </summary>
+        public List<Localisationdata> localizedDatas = new List<Localisationdata>();
 
         [HideInInspector]
         [SerializeField]
@@ -32,12 +35,6 @@ namespace PulseEngine.Module.Localisator
         #endregion
 
         #region Proprietes ##########################################################
-
-
-        /// <summary>
-        /// La liste des datas localisees pour ce type de data, en cette langue.
-        /// </summary>
-        public List<Localisationdata> LocalizedDatas { get { return localizedDatas; }set { localizedDatas = value; } }
 
         /// <summary>
         /// La langue des datas de l'asset.

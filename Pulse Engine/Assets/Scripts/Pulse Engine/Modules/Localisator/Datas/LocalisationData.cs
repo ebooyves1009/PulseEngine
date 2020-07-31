@@ -10,7 +10,7 @@ namespace PulseEngine.Module.Localisator
     /// La Data de localisation contenu dans un asset de localisation, dans une langue precise.
     /// </summary>
     [System.Serializable]
-    public class Localisationdata : ScriptableObject
+    public class Localisationdata
     {
         #region Attributes ###############################################################
 

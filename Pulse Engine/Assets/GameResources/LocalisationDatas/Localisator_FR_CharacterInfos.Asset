@@ -12,12 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a1c12f7248a02e4fa540b8297268fc7, type: 3}
   m_Name: Localisator_FR_CharacterInfos
   m_EditorClassIdentifier: 
-  localizedDatas:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  localizedDatas: []
   libraryLanguage: 0
   libraryDataType: 1

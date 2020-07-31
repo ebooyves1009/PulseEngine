@@ -54,6 +54,11 @@ namespace PulseEditor
         /// </summary>
         protected EditorMode windowOpenMode;
 
+        /// <summary>
+        /// Le nombre de charactere maximal d'une liste.
+        /// </summary>
+        protected const int LIST_MAX_CHARACTERS = 10;
+
         #endregion
 
         #region Proprietes ##########################################################################
