@@ -198,6 +198,7 @@ namespace PulseEngine.Module.Localisator.AssetEditor
                         int maxId = 0;
                         for (int i = 0; i < editedAsset.LocalizedDatas.Count; i++) {
                             var data = editedAsset.LocalizedDatas[i];
+                            Debug.Log(editedAsset.name + " , item " + i + " is " + data);
                             if (data.Trad_ID > maxId) maxId = data.Trad_ID;
                             listContent.Add(new GUIContent { text = data.Trad_ID+"-"+data.Title});
                         }
