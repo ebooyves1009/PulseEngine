@@ -12,6 +12,60 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a1c12f7248a02e4fa540b8297268fc7, type: 3}
   m_Name: Localisator_FR_CharacterInfos
   m_EditorClassIdentifier: 
-  localizedDatas: []
+  localizedDatas:
+  - trad_ID: 1
+    title: Yves Eboo
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: le petit frere de #2_1# et de #3_1#
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
+  - trad_ID: 2
+    title: Serge Eboo
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: Le grand frere de #1_1#
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
+  - trad_ID: 3
+    title: Maxime Eboo
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: 
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
   libraryLanguage: 0
   libraryDataType: 1

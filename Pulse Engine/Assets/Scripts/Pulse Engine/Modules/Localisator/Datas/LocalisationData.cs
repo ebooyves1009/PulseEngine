@@ -14,23 +14,58 @@ namespace PulseEngine.Module.Localisator
     {
         #region Attributes ###############################################################
 
+        [SerializeField]
         private int trad_ID;
+
+        [SerializeField]
         private string title;
+
+        [SerializeField]
         private string header;
+
+        [SerializeField]
         private string banner;
+
+        [SerializeField]
         private string groupName;
+
+        [SerializeField]
         private string toolTip;
+
+        [SerializeField]
         private string description;
+
+        [SerializeField]
         private string details;
+
+        [SerializeField]
         private string infos;
+
+        [SerializeField]
         private string child1;
+
+        [SerializeField]
         private string child2;
+
+        [SerializeField]
         private string child3;
+
+        [SerializeField]
         private string child4;
+
+        [SerializeField]
         private string child5;
+
+        [SerializeField]
         private string child6;
+
+        [SerializeField]
         private string footPage;
+
+        [SerializeField]
         private string conclusion;
+
+        [SerializeField]
         private string end;
 
         #endregion
@@ -45,7 +80,7 @@ namespace PulseEngine.Module.Localisator
         /// <summary>
         /// Le titre.
         /// </summary>
-        public string Title { get { return title; } set { title = value; } }
+        public string Title { get {return title;} set { title = value; } }
 
         /// <summary>
         /// L'entete.

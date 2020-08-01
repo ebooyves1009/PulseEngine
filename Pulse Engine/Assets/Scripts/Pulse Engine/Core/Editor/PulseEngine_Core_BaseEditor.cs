@@ -57,7 +57,51 @@ namespace PulseEditor
         /// <summary>
         /// Le nombre de charactere maximal d'une liste.
         /// </summary>
-        protected const int LIST_MAX_CHARACTERS = 10;
+        protected const int LIST_MAX_CHARACTERS = 20;
+
+        /// <summary>
+        /// Le nombre de charactere maximal d'une d'un champ texte.
+        /// </summary>
+        protected const int FIELD_MAX_CHARACTERS = 50;
+
+        /// <summary>
+        /// le nombre de liste a chaque refresh.
+        /// </summary>
+        private int listViewCount = 0;
+
+        /// <summary>
+        /// le nombre de panel scrollables a chaque refresh.
+        /// </summary>
+        private int scrollPanCount = 0;
+
+        /// <summary>
+        /// empeche de set les styles plusieur fois.
+        /// </summary>
+        private bool multipleStyleSetLock;
+
+        #endregion
+
+        #region Styles ##########################################################################
+
+        /// <summary>
+        /// le style des items d'une liste.
+        /// </summary>
+        protected GUIStyle style_listItem;
+
+        /// <summary>
+        /// le style des editeurs multi ligne.
+        /// </summary>
+        protected GUIStyle style_txtArea;
+
+        /// <summary>
+        /// le style des groupes.
+        /// </summary>
+        protected GUIStyle style_group;
+
+        /// <summary>
+        /// le style des labels.
+        /// </summary>
+        protected GUIStyle style_label;
 
         #endregion
 
@@ -82,15 +126,93 @@ namespace PulseEditor
 
         #region GuiMethods ##########################################################################
 
+        private void OnEnable()
+        {
+            minSize = new Vector2(600, 600);
+            Focus();
+            OnInitialize();
+        }
+
+        private void OnGUI()
+        {
+            StyleSetter();
+            listViewCount = 0;
+            scrollPanCount = 0;
+            OnRedraw();
+        }
+
+        /// <summary>
+        /// Appellee au demarrage de la fenetre, a utiliser a la place de OnEnable dans les fenetres heritantes
+        /// </summary>
+        protected virtual void OnInitialize()
+        {
+
+        }
+
+        /// <summary>
+        /// Appellee a chaque rafraichissement de la fenetre, a utiliser a la place de onGUI dans les fenetres heritantes
+        /// </summary>
+        protected virtual void OnRedraw()
+        {
+
+        }
+
+        /// <summary>
+        /// Pour initialiser les styles.
+        /// </summary>
+        private void StyleSetter()
+        {
+            if (multipleStyleSetLock)
+                return;
+            //Text Area
+            style_txtArea = new GUIStyle(GUI.skin.textArea);
+            //list field
+            style_listItem = new GUIStyle(GUI.skin.textField);
+            style_listItem.onNormal.textColor = Color.blue;
+            style_listItem.onHover.textColor = Color.blue;
+            style_listItem.onActive.textColor = Color.blue;
+            style_listItem.hover.textColor = Color.black;
+            style_listItem.normal.textColor = Color.gray;
+            style_listItem.clipping = TextClipping.Clip;
+            //groupes
+            style_group = new GUIStyle(GUI.skin.window);
+            style_group.stretchWidth = false;
+            style_group.fontStyle = FontStyle.Bold;
+            style_group.margin = new RectOffset(8, 8, 5, 8);
+            //labels
+            style_label = new GUIStyle(GUI.skin.label);
+            style_label.stretchWidth = false;
+            style_label.fixedWidth = 120;
+            style_label.fontStyle = FontStyle.Bold;
+
+            multipleStyleSetLock = true;
+        }
+
+        /// <summary>
+        /// Un champs texte a caracteres limites.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="style"></param>
+        /// <returns></returns>
+        protected string LimitText(string input)
+        {
+            string str = EditorGUILayout.TextArea(input, style_txtArea);
+            char[] cutted = new char[FIELD_MAX_CHARACTERS];
+            for (int i = 0; i < FIELD_MAX_CHARACTERS; i++)
+                if(str.Length > i)
+                    cutted[i] = str[i];
+            string ret = new string(cutted);
+            return ret;
+        }
+
         /// <summary>
         /// Faire un group d'items
         /// </summary>
         /// <param name="guiFunctions"></param>
         /// <param name="groupTitle"></param>
-        protected void GroupGUI(Action guiFunctions, string groupTitle = "")
+        protected void GroupGUI(Action guiFunctions, string groupTitle = "", int height = 0)
         {
-            GUILayout.BeginVertical("HelpBox");
-            GUILayout.Label(groupTitle, EditorStyles.boldLabel);
+            GUILayout.BeginVertical(groupTitle, style_group, height > 0 ? new[] { GUILayout.Height(height) } : null);
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical("GroupBox");
             if (guiFunctions != null)
@@ -101,12 +223,25 @@ namespace PulseEditor
         }
 
         /// <summary>
+        /// Faire un group d'items sans le style d'interieur
+        /// </summary>
+        /// <param name="guiFunctions"></param>
+        /// <param name="groupTitle"></param>
+        protected void GroupGUInoStyle(Action guiFunctions, string groupTitle = "", int height = 0)
+        {
+            GUILayout.BeginVertical(groupTitle, style_group, height > 0? new[] { GUILayout.Height(height)}: null);
+            if (guiFunctions != null)
+                guiFunctions.Invoke();
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
         /// Panel, generalement en bas de fenetre conteneant le plus souvent les bouttons 'save' et 'cancel'
         /// </summary>
         /// <param name="actionButtons"></param>
         protected void SaveCancelPanel(params KeyValuePair<string,Action>[] actionButtons)
         {
-            GroupGUI(() =>
+            GroupGUInoStyle(() =>
             {
                 GUILayout.BeginHorizontal();
                 for (int i = 0; i < actionButtons.Length; i++)
@@ -114,7 +249,7 @@ namespace PulseEditor
                     if (GUILayout.Button(actionButtons[i].Key)) { if (actionButtons[i].Value != null) actionButtons[i].Value.Invoke(); }
                 }
                 GUILayout.EndHorizontal();
-            });
+            },"",50);
         }
 
         /// <summary>
@@ -122,21 +257,20 @@ namespace PulseEditor
         /// </summary>
         /// <param name="listID"></param>
         /// <param name="content"></param>
-        protected int ListItems(int listID = -1, int selected = -1, params GUIContent[] content)
+        protected int ListItems(int selected = -1, params GUIContent[] content)
         {
-            if (listID < 0)
-                return -1;
+            listViewCount++;
             Vector2 scroolPos = Vector2.zero;
-            if (ListsScrolls.ContainsKey(listID))
-                scroolPos = ListsScrolls[listID];
+            if (ListsScrolls.ContainsKey(listViewCount))
+                scroolPos = ListsScrolls[listViewCount];
             else
-                ListsScrolls.Add(listID, scroolPos);
+                ListsScrolls.Add(listViewCount, scroolPos);
             scroolPos = GUILayout.BeginScrollView(scroolPos);
             GUILayout.BeginVertical();
-            int sel = GUILayout.SelectionGrid(selected, content, 1);
+            int sel = GUILayout.SelectionGrid(selected, content, 1, style_listItem);
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
-            ListsScrolls[listID] = scroolPos;
+            ListsScrolls[listViewCount] = scroolPos;
             return sel;
         }
 
@@ -145,21 +279,20 @@ namespace PulseEditor
         /// </summary>
         /// <param name="listID"></param>
         /// <param name="content"></param>
-        protected int GridItems(int listID = -1, int selected = -1, int xSize = 2, params GUIContent[] content)
+        protected int GridItems(int selected = -1, int xSize = 2, params GUIContent[] content)
         {
-            if (listID < 0)
-                return -1;
+            listViewCount++;
             Vector2 scroolPos = Vector2.zero;
-            if (ListsScrolls.ContainsKey(listID))
-                scroolPos = ListsScrolls[listID];
+            if (ListsScrolls.ContainsKey(listViewCount))
+                scroolPos = ListsScrolls[listViewCount];
             else
-                ListsScrolls.Add(listID, scroolPos);
+                ListsScrolls.Add(listViewCount, scroolPos);
             scroolPos = GUILayout.BeginScrollView(scroolPos);
             GUILayout.BeginVertical();
             int sel = GUILayout.SelectionGrid(selected, content, xSize);
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
-            ListsScrolls[listID] = scroolPos;
+            ListsScrolls[listViewCount] = scroolPos;
             return sel;
         }
 
@@ -168,22 +301,21 @@ namespace PulseEditor
         /// </summary>
         /// <param name="guiFunctions"></param>
         /// <param name="groupTitle"></param>
-        protected void VerticalScrollablePanel(int panelID = -1, Action guiFunctions = null)
+        protected void VerticalScrollablePanel(Action guiFunctions = null)
         {
-            if (panelID < 0)
-                return;
+            scrollPanCount++;
             Vector2 scroolPos = Vector2.zero;
-            if (PanelsScrools.ContainsKey(panelID))
-                scroolPos = PanelsScrools[panelID];
+            if (PanelsScrools.ContainsKey(scrollPanCount))
+                scroolPos = PanelsScrools[scrollPanCount];
             else
-                PanelsScrools.Add(panelID, scroolPos);
+                PanelsScrools.Add(scrollPanCount, scroolPos);
             scroolPos = GUILayout.BeginScrollView(scroolPos);
             GUILayout.BeginVertical();
             if (guiFunctions != null)
                 guiFunctions.Invoke();
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
-            PanelsScrools[panelID] = scroolPos;
+            PanelsScrools[scrollPanCount] = scroolPos;
         }
 
         #endregion
