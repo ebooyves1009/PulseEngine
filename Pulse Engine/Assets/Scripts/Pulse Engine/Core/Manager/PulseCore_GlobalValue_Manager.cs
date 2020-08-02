@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -46,9 +47,38 @@ namespace PulseEngine.Core
             None, CharacterInfos
         }
 
+        /// <summary>
+        /// Les scope designer.
+        /// </summary>
+        public enum Scopes
+        {
+            tous,
+        }
+
         #endregion
 
         #region Structures ################################################################
+
+        /// <summary>
+        /// Tampon temporel, pouvant garder utile dans les logs et animations. 
+        /// </summary>
+        public struct TimeStamp
+        {
+            /// <summary>
+            /// Le temps.
+            /// </summary>
+           public DateTime fullTime;
+            
+           /// <summary>
+           /// le temps.
+           /// </summary>
+           public float time;
+            
+            /// <summary>
+            /// la duree.
+            /// </summary>
+           public float duration;
+        }
 
         #endregion
     }
