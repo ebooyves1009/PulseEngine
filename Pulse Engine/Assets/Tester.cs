@@ -4,6 +4,11 @@ using UnityEngine;
 using PulseEngine.Module.Localisator;
 using PulseEngine.Core;
 using UnityEditor;
+using eWindow = UnityEditor.EditorGUILayout;
+using Window = UnityEngine.GUILayout;
+using System;
+using PulseEngine.Module.CharacterCreator;
+using UnityEngine.AddressableAssets;
 
 public class Tester : MonoBehaviour
 {
@@ -13,6 +18,9 @@ public class Tester : MonoBehaviour
     public Transform here;
 
     private Animator animator;
+
+    public CharactersLibrary datas;
+
 
     // Start is called before the first frame update
     void Start()
@@ -29,19 +37,33 @@ public class Tester : MonoBehaviour
         }
     }
 
-    string gotName;
-
     private void OnGUI()
     {
-        if (animator)
+        //if (animator)
+        //{
+        //    if (GUILayout.Button("kick"))
+        //    {
+        //        animator.CrossFadeInFixedTime("kick", time);
+        //        animator.SetTarget(AvatarTarget.RightFoot, 0.3f);
+        //    }
+        //    if (here)
+        //        here.position = animator.targetPosition;
+        //}
+
+        if (datas && GUILayout.Button("Create Character"))
         {
-            if (GUILayout.Button("kick"))
+            if(datas.Characterlist.Count > 0)
             {
-                animator.CrossFadeInFixedTime("kick", time);
-                animator.SetTarget(AvatarTarget.RightFoot, 0.3f);
+                var go = Instantiate(datas.Characterlist[0].Character);
+                var animator = go.GetComponent<Animator>();
+                if (!animator)
+                    animator = go.AddComponent<Animator>();
+                if (animator)
+                {
+                    animator.runtimeAnimatorController = datas.Characterlist[0].AnimatorController;
+                    animator.avatar = datas.Characterlist[0].AnimatorAvatar;
+                }
             }
-            if (here)
-                here.position = animator.targetPosition;
         }
         //if (!string.IsNullOrEmpty(gotName))
         //    GUILayout.Label(gotName);
@@ -51,78 +73,78 @@ public class Tester : MonoBehaviour
         //        await LocalisationManager.TextData(1, LocalisationManager.DatalocationField.infos , (int)PulseCore_GlobalValue_Manager.DataType.CharacterInfos, (int)PulseCore_GlobalValue_Manager.Languages.Francais);
         //}
     }
+
+}
+
+[CustomEditor(typeof(PulseEngine.Module.Anima.AnimaStateMachine))]
+public class InspectorTest : Editor
+{
+    private PulseEngine.Module.Anima.AnimaStateMachine stateMachine;
+    private UnityEditor.Animations.AnimatorState state;
+
+    private void OnEnable()
+    {
+        stateMachine = target as PulseEngine.Module.Anima.AnimaStateMachine;
+        state = Selection.activeObject as UnityEditor.Animations.AnimatorState;
+        if (state)
+        {
+            if (state.motion)
+            {
+                //Debug.Log("Motion name is " + state.motion.name);
+                if (stateMachine)
+                    stateMachine.currentClipName = state.motion.name;
+            }
+        }
+    }
+
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        
+    }
 }
 
 
 public class EditorTest : EditorWindow
 {
-    Editor preview;
-    GameObject go;
-    AnimationClip clip;
-    private float time = 0;
-    private float speed;
+    private UnityEditor.Animations.AnimatorController controller;
+    private UnityEditor.Animations.AnimatorState treeState;
+    private UnityEditor.Animations.BlendTree tree;
+    private Motion motion;
 
-    [MenuItem("Test/Win")]
+    [MenuItem("Test editor/test")]
     public static void ShowWindow()
     {
-        var window = GetWindow<EditorTest>();
-        window.Show();
+        var win = GetWindow<EditorTest>();
+        win.Show();
     }
 
     private void OnEnable()
     {
-        //previewRender = new PreviewRenderUtility();
-        var scene = GetWindow<SceneView>();
-        scene.Show();
-    }
-
-    private void OnDisable()
-    {
-        
+        controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>("Assets/control.controller");
+        if (!controller)
+        {
+            controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/control.controller");
+        }
+        controller.name = "controller1";
     }
 
     private void OnGUI()
     {
-        go = EditorGUILayout.ObjectField(go, typeof(GameObject), false) as GameObject;
-        clip = EditorGUILayout.ObjectField(clip, typeof(AnimationClip), false) as AnimationClip;
-
-        GUIStyle prevstyle = new GUIStyle();
-
-        //if (go && clip)
-        //{
-        //    if (!preview)
-        //        preview = Editor.CreateEditor(go);
-        //    speed = EditorGUILayout.FloatField("speed", speed);
-        //    EditorGUILayout.LabelField(time.ToString());
-        //    time += Time.deltaTime * speed;
-        //    time = time % clip.length;
-        //    AnimationMode.StartAnimationMode();
-        //    AnimationMode.BeginSampling();
-        //    AnimationMode.SampleAnimationClip(go, clip, time);
-        //    preview.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(300, 300), prevstyle);
-        //    AnimationMode.EndSampling();
-        //    AnimationMode.StopAnimationMode();
-        //    Repaint();
-        //}
-
-        //if (go && clip)
-        //{
-        //    speed = EditorGUILayout.FloatField("speed", speed);
-        //    Editor.DestroyImmediate(preview);
-        //    preview = Editor.CreateEditor(go);
-        //    //if (!preview || preview.target == null || preview.target != go)
-        //    //    preview = Editor.CreateEditor(go);
-        //    AnimationMode.StartAnimationMode();
-        //    AnimationMode.BeginSampling();
-        //    AnimationMode.SampleAnimationClip(go, clip, time);
-        //    //preview.DrawPreview(new Rect(10, 100, 300, 300));
-        //    preview.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(300, 300), prevstyle);
-        //    AnimationMode.EndSampling();
-        //    AnimationMode.StopAnimationMode();
-        //    preview.ReloadPreviewInstances();
-        //    time += Time.deltaTime * speed;
-        //    time = time % clip.length;
-        //    Repaint();
-        //}
+        if (!controller) return;
+        eWindow.LabelField(controller.name);
+        motion = (Motion)eWindow.ObjectField(motion,typeof(Motion), false);
+        if (Window.Button("Add Layer"))
+            controller.AddLayer("New Layer");
+        if (Window.Button("Add State"))
+            controller.AddMotion(motion);
+        if (Window.Button("Add BlendTree"))
+            treeState = controller.CreateBlendTreeInController("new tree", out tree);
+        if (tree && Window.Button("Add BlendTree child"))
+            tree.AddChild(motion);
+        if (Window.Button("Add Parameter"))
+            controller.AddParameter("New Param", AnimatorControllerParameterType.Int);
+        if (Window.Button("Save"))
+            AssetDatabase.SaveAssets();
     }
 }

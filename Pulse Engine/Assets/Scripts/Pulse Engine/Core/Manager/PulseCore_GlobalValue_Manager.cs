@@ -24,6 +24,11 @@ namespace PulseEngine.Core
         /// </summary>
         public const string Menu_EDITOR_MENU = "PulseEngine/Module/";
 
+        /// <summary>
+        /// La langue actuellement selectionnee dans le jeu.
+        /// </summary>
+        public static Languages currentLanguage;
+
 
         #endregion
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using PulseEngine.Core;
+using PulseEngine.Module.Commands;
 
 
 namespace PulseEngine.Module.Anima
@@ -22,6 +23,19 @@ namespace PulseEngine.Module.Anima
             recovering
         }
 
+        /// <summary>
+        /// Le layer sur lequel est place une animation dans l'animator.
+        /// </summary>
+        public enum AnimationLayer
+        {
+            IdleLayer,
+            LocamotionLayer,
+            InterractionLayer,
+            OffensiveLayer,
+            DefensiveLayer,
+            DamageLayer
+        }
+
         #endregion
         #region Structures ####################################################################
 
@@ -30,12 +44,8 @@ namespace PulseEngine.Module.Anima
         /// </summary>
         public struct AnimeCommand
         {
-            /// <summary>
-            /// La commande executee.
-            /// </summary>
-            //public CommandAction command;
-
-            PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
+            public CommanderManager.CommandAction command;
+            public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
         }
 
         #endregion

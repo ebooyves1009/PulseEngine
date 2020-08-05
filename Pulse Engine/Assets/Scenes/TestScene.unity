@@ -230,6 +230,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   time: 0
   here: {fileID: 0}
+  datas: {fileID: 0}
 --- !u!1 &1019001533
 GameObject:
   m_ObjectHideFlags: 0
@@ -450,6 +451,11 @@ PrefabInstance:
       propertyPath: m_ApplyRootMotion
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 947be0777a23a76438024c7e0c22a459,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 947be0777a23a76438024c7e0c22a459, type: 3}
 --- !u!4 &1593791694 stripped
@@ -478,6 +484,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   time: 0.3
   here: {fileID: 1019001534}
+  datas: {fileID: 11400000, guid: d5bdd95f0c92dec4bbfc8daae9afcfd5, type: 2}
 --- !u!1 &1790910402
 GameObject:
   m_ObjectHideFlags: 0

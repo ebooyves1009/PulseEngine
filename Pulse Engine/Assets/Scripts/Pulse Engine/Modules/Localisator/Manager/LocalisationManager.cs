@@ -5,6 +5,7 @@ using PulseEngine.Core;
 using System.Threading.Tasks;
 using UnityEngine.AddressableAssets;
 using System.Linq;
+using static PulseEngine.Module.Localisator.LocalisationManager;
 
 
 //TODO: Continuer d'implementer des fonction au fil des besoins du module, sans oublier les fonction d'access aux datas inGame.
@@ -199,5 +200,15 @@ namespace PulseEngine.Module.Localisator
             return string.Join(" ",parts);
         }
         #endregion
+    }
+
+    /// <summary>
+    /// L'interface de toute donne traductible.
+    /// </summary>
+    interface ITraductible
+    {
+        int IdTrad { get; set; }
+        PulseCore_GlobalValue_Manager.DataType TradDataType { get; set; }
+        Task<string> GetTradText(DatalocationField field);
     }
 }

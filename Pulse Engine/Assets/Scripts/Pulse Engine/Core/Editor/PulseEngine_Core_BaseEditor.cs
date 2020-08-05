@@ -103,6 +103,11 @@ namespace PulseEditor
         /// </summary>
         protected GUIStyle style_label;
 
+        /// <summary>
+        /// le style des selecteur d'objet.
+        /// </summary>
+        protected GUILayoutOption[] style_objSelect;
+
         #endregion
 
         #region Proprietes ##########################################################################
@@ -184,6 +189,8 @@ namespace PulseEditor
             style_label.stretchWidth = false;
             style_label.fixedWidth = 120;
             style_label.fontStyle = FontStyle.Bold;
+            //obj select
+            style_objSelect = new[] { GUILayout.Width(150), GUILayout.Height(150) };
 
             multipleStyleSetLock = true;
         }

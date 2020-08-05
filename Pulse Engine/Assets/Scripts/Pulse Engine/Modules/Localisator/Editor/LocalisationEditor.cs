@@ -6,10 +6,11 @@ using PulseEngine.Core;
 using PulseEditor;
 using System;
 using System.Linq;
+using PulseEngine.Module.Localisator;
 
 
 //TODO: implementer les details de la data.
-namespace PulseEngine.Module.Localisator.AssetEditor
+namespace PulseEditor.Module.Localisator
 {
     /// <summary>
     /// L'editeur de localisation.
@@ -84,14 +85,66 @@ namespace PulseEngine.Module.Localisator.AssetEditor
         }
 
         /// <summary>
-        /// Open the editor
+        /// Open the selector
         /// </summary>
-        [MenuItem(PulseCore_GlobalValue_Manager.Menu_EDITOR_MENU + "Localisator Selector")]
-        public static void OpenSelector()
+        public static void OpenSelector(Action<object,EventArgs> onSelect)
         {
             var window = GetWindow<LocalisationEditor>();
             window.windowOpenMode = EditorMode.Selector;
+            if (onSelect != null)
+            {
+                window.onSelectionEvent += (obj, arg) =>
+                {
+                    onSelect.Invoke(obj, arg);
+                };
+            }
             window.Show();
+        }
+
+        /// <summary>
+        /// Request a text on editor mode
+        /// </summary>
+        public static string[] GetTexts(int _id, PulseCore_GlobalValue_Manager.DataType dType)
+        {
+            List<string> retList = new List<string>();
+            var allAsset = new List<LocalisationLibrary>();
+            LocalisationLibrary asset = null;
+
+            foreach (PulseCore_GlobalValue_Manager.Languages langue in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.Languages)))
+            {
+                foreach (PulseCore_GlobalValue_Manager.DataType type in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.DataType)))
+                {
+                    if (type == PulseCore_GlobalValue_Manager.DataType.None)
+                        continue;
+                    if (LocalisationLibrary.Exist(langue, type))
+                    {
+                        var load = LocalisationLibrary.Load(langue, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                    else if (LocalisationLibrary.Create(langue, type))
+                    {
+                        var load = LocalisationLibrary.Load(langue, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                }
+            }
+
+            if (allAsset != null && allAsset.Count > 0 && _id > 0)
+            {
+                int index = allAsset.FindIndex(library => { return library.LibraryLanguage == PulseCore_GlobalValue_Manager.currentLanguage && library.LibraryDataType == dType; });
+                if (index >= 0)
+                    asset = allAsset[index];
+                var data = asset.LocalizedDatas.Find(dt => { return dt.Trad_ID == _id; });
+                if(data != null)
+                {
+                    retList.Add(data.Title);
+                    retList.Add(data.Description);
+                    retList.Add(data.Details);
+                }
+            }
+            return retList.ToArray();
         }
 
         /// <summary>
@@ -625,6 +678,7 @@ namespace PulseEngine.Module.Localisator.AssetEditor
             editedAsset = null;
             asset = null;
             auXasset = null;
+            onSelectionEvent = delegate { };
         }
 
         /// <summary>
@@ -672,7 +726,10 @@ namespace PulseEngine.Module.Localisator.AssetEditor
                     {
                         if (otherAsset.LocalizedDatas.FindIndex(d => { return d.Trad_ID == data.Trad_ID; }) < 0)
                         {
-                            otherAsset.LocalizedDatas.Add(new Localisationdata { Trad_ID = data.Trad_ID });
+                            Localisationdata newOne = new Localisationdata { Trad_ID = data.Trad_ID };
+                            if (editedAsset.LibraryDataType == PulseCore_GlobalValue_Manager.DataType.CharacterInfos)
+                                newOne.Title = data.Title;
+                            otherAsset.LocalizedDatas.Add(newOne);
                             EditorUtility.CopySerialized(otherAsset, auXasset);
                         }
                     }

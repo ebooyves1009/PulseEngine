@@ -17,12 +17,36 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: a19ce7e2652a19c49a90d9fde8c3e764
   m_SerializeEntries:
+  - m_GUID: 03e606987676e8f4fb5ac82092f330b8
+    m_Address: Assets/GameResources/Characters/Characters_Pnj.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 2cefe9b125ebb394fbd3cde383ad3257
+    m_Address: Assets/GameResources/Characters/Characters_SecondaryActor.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 33a4bcde58ac4c448803fcbb817674ba
+    m_Address: Assets/GameResources/Characters/Characters_PrincipalActors.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   - m_GUID: 424894c6f92be454588852ac52086cef
     m_Address: Localisator_FR_CharacterInfos
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 11400000, guid: 424894c6f92be454588852ac52086cef, type: 2}
     m_TargetAsset: {fileID: 11400000, guid: 424894c6f92be454588852ac52086cef, type: 2}
+  - m_GUID: 787a9a1698c72a0479113c4f5c60e163
+    m_Address: Assets/GameResources/Characters/Characters_InteractiveObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   - m_GUID: e6c4df6732d66bb42931751ceab11dac
     m_Address: Localisator_EN_CharacterInfos
     m_ReadOnly: 0

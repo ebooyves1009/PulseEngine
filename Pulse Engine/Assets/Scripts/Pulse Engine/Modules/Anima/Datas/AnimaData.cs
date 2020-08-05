@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using PulseEngine.Module.PhysicSpace;
 
 
 
@@ -22,6 +23,9 @@ namespace PulseEngine.Module.Anima
         private bool isHumanMotion;
 
         [SerializeField]
+        private int animLayer;
+
+        [SerializeField]
         private List<AnimaManager.AnimeCommand> eventList;
 
         [SerializeField]
@@ -31,7 +35,7 @@ namespace PulseEngine.Module.Anima
         private int physicPlace;
 
         [SerializeField]
-        private AnimationClip animClip;
+        private Motion motion;
 
         #endregion
 
@@ -48,6 +52,11 @@ namespace PulseEngine.Module.Anima
         public bool IsHumanMotion { get { return isHumanMotion; } set { isHumanMotion = value; } }
 
         /// <summary>
+        /// La calque d'animator sur lequel se trouve l'animation.
+        /// </summary>
+        public AnimaManager.AnimationLayer AnimLayer { get => (AnimaManager.AnimationLayer)animLayer; set => animLayer = (int)value; }
+
+        /// <summary>
         /// La liste des evenements au cours de l'animation.
         /// </summary>
         public List<AnimaManager.AnimeCommand> EventList { get { return eventList; } set { eventList = value; } }
@@ -60,12 +69,12 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// Le lieux physique, terre, aux air ... ou il est possible d'effectuer l'action.
         /// </summary>
-        //public int physicPlace;
+        public PhysicManager.PhysicSpace PhysicPlace { get { return (PhysicManager.PhysicSpace)physicPlace; } set { physicPlace = (int)value; } }
 
         /// <summary>
         /// L'animation lue.
         /// </summary>
-        private AnimationClip AnimClip { get { return animClip; } set { animClip = value; } }
+        private Motion AnimClip { get { return motion; } set { motion = value; } }
 
         #endregion
 
