@@ -103,6 +103,11 @@ namespace PulseEngine.Module.CombatSystem
         #endregion
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// Le sous repertoire de sauvegarde des assets d'arme.
+        /// </summary>
+        public static string AssetsPath { get => "Combat Assets"; }
+
         #endregion
         #region Methods ####################################################################
 

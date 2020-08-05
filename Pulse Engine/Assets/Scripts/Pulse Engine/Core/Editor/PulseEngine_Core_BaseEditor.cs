@@ -146,6 +146,11 @@ namespace PulseEditor
             OnRedraw();
         }
 
+        private void OnDisable()
+        {
+            CloseWindow();
+        }
+
         /// <summary>
         /// Appellee au demarrage de la fenetre, a utiliser a la place de OnEnable dans les fenetres heritantes
         /// </summary>
@@ -324,6 +329,7 @@ namespace PulseEditor
             GUILayout.EndScrollView();
             PanelsScrools[scrollPanCount] = scroolPos;
         }
+
 
         #endregion
 

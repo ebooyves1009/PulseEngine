@@ -47,6 +47,18 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
+  - m_GUID: a851844dbd6651f4f8c250f71d523846
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Weapon.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: d132ac9a683242e4aa96b69322477be0
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Weapon.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   - m_GUID: e6c4df6732d66bb42931751ceab11dac
     m_Address: Localisator_EN_CharacterInfos
     m_ReadOnly: 0

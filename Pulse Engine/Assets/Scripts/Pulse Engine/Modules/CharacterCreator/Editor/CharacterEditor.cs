@@ -7,6 +7,9 @@ using PulseEditor.Module.Localisator;
 using PulseEngine.Module.CharacterCreator;
 using UnityEditor;
 using System;
+using PulseEngine.Module.CombatSystem;
+using PulseEditor.Module.StatManager;
+using PulseEngine.Module.StatHandler;
 
 namespace PulseEditor.Module.CharacterCreator
 {
@@ -46,6 +49,7 @@ namespace PulseEditor.Module.CharacterCreator
         /// Le type de character choisi.
         /// </summary>
         private CharacterManager.CharacterType typeSelected;
+        private int indexSelectedWeapon;
 
         #endregion
         #region Visual Attributes ################################################################
@@ -264,7 +268,7 @@ namespace PulseEditor.Module.CharacterCreator
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    //Game object
+                    //Game object ---------------------------------------------------------------------------------------------------
                     GUILayout.BeginHorizontal();
                     if (data.Character)
                     {
@@ -286,6 +290,7 @@ namespace PulseEditor.Module.CharacterCreator
                     GUILayout.Space(5);
                     EditorGUILayout.LabelField("Name:", style_label);
                     GUILayout.Space(5);
+                    data.TradDataType = PulseCore_GlobalValue_Manager.DataType.CharacterInfos;
                     var texts = LocalisationEditor.GetTexts(data.IdTrad, PulseCore_GlobalValue_Manager.DataType.CharacterInfos);
                     string name = texts.Length > 0 ? texts[0] : string.Empty;
                     if (GUILayout.Button(name))
@@ -304,9 +309,46 @@ namespace PulseEditor.Module.CharacterCreator
                     GUILayout.EndVertical();
                     GUILayout.EndHorizontal();
 
+                    GUILayout.Space(5);
+                    //Stats --------------------------------------------------------------------------------------------------------------------------------
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Stats:", style_label);
+                    if(GUILayout.Button("Edit "+name+" Stats"))
+                    {
+                        StatEditor.OpenStatWindow(data.Stats, (obj)=> {
+                            var st = obj as StatData;
+                            if (st != null)
+                                data.Stats = st;
+                        }, name + "'s Stats");
+                    }
+                    GUILayout.EndHorizontal();
 
                     GUILayout.Space(5);
-                    //
+                    // Animator Avatar ---------------------------------------------------------------------------------------------------------------------
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Avatar:", style_label);
+                    data.AnimatorAvatar = EditorGUILayout.ObjectField(data.AnimatorAvatar, typeof(Avatar), false) as Avatar;
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(5);
+                    // Weapons -------------------------------------------------------------------------------------------------------------------------------
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Weaponry:", style_label);
+                    if (GUILayout.Button("Edit " + name + "'s Weaponry"))
+                    {
+                        //TODO: Open the Weapon mini editor Here.
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(5);
+                    // Animator Controller ------------------------------------------------------------------------------------------------------------------
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Edit " + name + " Runtime Controller"))
+                    {
+                        //TODO: Open the Animator controller editor Here.
+                    }
+                    GUILayout.EndHorizontal();
+
 
                     GUILayout.EndVertical();
                 }, data.ID + " Edition");

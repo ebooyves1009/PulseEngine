@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 
 
@@ -34,6 +36,32 @@ namespace PulseEngine.Core
 
         #region Methods #################################################################
 
+        /// <summary>
+        /// Copie par valeur.
+        /// </summary>
+        /// <returns></returns>
+        public static T DeepCopy<T>(T original)
+        {
+
+            if (!typeof(T).IsSerializable)
+            {
+                //throw new ArgumentException("The type must be serializable.", "source");
+                return default(T);
+            }
+
+            // Don't serialize a null object, simply return the default for that object
+            if (object.ReferenceEquals(original, null))
+            {
+                return default(T);
+            }
+
+            string sourceJson = JsonUtility.ToJson(original);
+
+            T nouvo = JsonUtility.FromJson<T>(sourceJson);
+
+            return nouvo;
+        }
+
         #endregion
 
         #region Enumerations #############################################################
@@ -49,7 +77,9 @@ namespace PulseEngine.Core
         /// Les types de data dans l'environnement.
         /// </summary>
         public enum DataType {
-            None, CharacterInfos
+            None,
+            CharacterInfos,
+            Weapon,
         }
 
         /// <summary>
