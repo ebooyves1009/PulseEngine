@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   localizedDatas:
   - trad_ID: 1
-    title: Yves Eboo
+    title: Yves Clement Eboo
     header: 
     banner: 
     groupName: 
@@ -51,6 +51,24 @@ MonoBehaviour:
     end: 
   - trad_ID: 3
     title: Maxime Eboo
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: 
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
+  - trad_ID: 4
+    title: Pulse Core test
     header: 
     banner: 
     groupName: 

@@ -71,6 +71,7 @@ namespace PulseEngine.Module.CombatSystem
             {
                 WeaponLibrary asset = ScriptableObject.CreateInstance<WeaponLibrary>();
                 asset.libraryDataType = (int)PulseCore_GlobalValue_Manager.DataType.Weapon;
+                asset.LibraryWeaponType = _weaponType;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
                 //Make a gameobject an addressable

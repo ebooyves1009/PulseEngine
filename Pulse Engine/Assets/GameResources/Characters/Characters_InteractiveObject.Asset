@@ -15,7 +15,7 @@ MonoBehaviour:
   characterlist:
   - id: 1
     idTrad: 1
-    tradDataType: 0
+    tradDataType: 1
     stats:
       sante: 0
       santeMax: 0
@@ -29,7 +29,7 @@ MonoBehaviour:
       dexterite: 0
       masse: 0
       taille: 0
-      age: 0
+      age: 18
       karma: 0
       paranormal: 0
       fierte: 0

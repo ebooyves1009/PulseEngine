@@ -37,27 +37,27 @@ namespace PulseEngine.Module.CombatSystem
         [SerializeField]
         private List<int> materiaux;
         [SerializeField]
-        private List<GameObject> weapons;
+        private List<GameObject> weapons = new List<GameObject>();
         [SerializeField]
         private StatData stat_weapon;
         [SerializeField]
         private StatData stat_owner;
         [SerializeField]
-        private List<AnimaData> handle_moves;
+        private List<AnimaData> handle_moves = new List<AnimaData>();
         [SerializeField]
-        private List<AttackData> attackDatas;
+        private List<AttackData> attackDatas = new List<AttackData>();
         [SerializeField]
-        private List<DefenseData> defenseDatas;
+        private List<DefenseData> defenseDatas = new List<DefenseData>();
         [SerializeField]
         private bool canParry;
         [SerializeField]
         private bool portable;
         [SerializeField]
-        private List<CombatSystemManager.WeaponPlace> restPlaces;
+        private List<CombatSystemManager.WeaponPlace> restPlaces = new List<CombatSystemManager.WeaponPlace>();
         [SerializeField]
-        private List<CombatSystemManager.WeaponPlace> carryPlaces;
+        private List<CombatSystemManager.WeaponPlace> carryPlaces = new List<CombatSystemManager.WeaponPlace>();
         [SerializeField]
-        private List<Vector3> projectilesOutPoints;
+        private List<Vector3> projectilesOutPoints = new List<Vector3>();
 
         #endregion
 
@@ -111,6 +111,8 @@ namespace PulseEngine.Module.CombatSystem
             get
             {
                 List<PhysicManager.PhysicMaterials> retList = new List<PhysicManager.PhysicMaterials>();
+                if (materiaux == null)
+                    materiaux = new List<int>();
                 foreach (var mat in materiaux)
                     retList.Add((PhysicManager.PhysicMaterials)mat);
                 return retList;

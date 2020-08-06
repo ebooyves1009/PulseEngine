@@ -222,9 +222,42 @@ namespace PulseEditor
         /// </summary>
         /// <param name="guiFunctions"></param>
         /// <param name="groupTitle"></param>
+        protected void GroupGUI(Action guiFunctions, int widht)
+        {
+            GUILayout.BeginVertical("", style_group, new[] { GUILayout.Width(widht) });
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical("GroupBox");
+            if (guiFunctions != null)
+                guiFunctions.Invoke();
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Faire un group d'items sans le style d'interieur
+        /// </summary>
+        /// <param name="guiFunctions"></param>
+        /// <param name="groupTitle"></param>
+        protected void GroupGUInoStyle(Action guiFunctions, int width)
+        {
+            GUILayout.BeginVertical("", style_group, new[] { GUILayout.Width(width)});
+            if (guiFunctions != null)
+                guiFunctions.Invoke();
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Faire un group d'items
+        /// </summary>
+        /// <param name="guiFunctions"></param>
+        /// <param name="groupTitle"></param>
         protected void GroupGUI(Action guiFunctions, string groupTitle = "", int height = 0)
         {
-            GUILayout.BeginVertical(groupTitle, style_group, height > 0 ? new[] { GUILayout.Height(height) } : null);
+            List<GUILayoutOption> options = new List<GUILayoutOption>();
+            if (height > 0)
+                options.Add(GUILayout.Height(height));
+            GUILayout.BeginVertical(groupTitle, style_group,  options.ToArray());
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical("GroupBox");
             if (guiFunctions != null)
@@ -241,7 +274,10 @@ namespace PulseEditor
         /// <param name="groupTitle"></param>
         protected void GroupGUInoStyle(Action guiFunctions, string groupTitle = "", int height = 0)
         {
-            GUILayout.BeginVertical(groupTitle, style_group, height > 0? new[] { GUILayout.Height(height)}: null);
+            List<GUILayoutOption> options = new List<GUILayoutOption>();
+            if (height > 0)
+                options.Add(GUILayout.Height(height));
+            GUILayout.BeginVertical(groupTitle, style_group, options.ToArray());
             if (guiFunctions != null)
                 guiFunctions.Invoke();
             GUILayout.EndVertical();
@@ -313,7 +349,7 @@ namespace PulseEditor
         /// </summary>
         /// <param name="guiFunctions"></param>
         /// <param name="groupTitle"></param>
-        protected void VerticalScrollablePanel(Action guiFunctions = null)
+        protected void ScrollablePanel(Action guiFunctions = null)
         {
             scrollPanCount++;
             Vector2 scroolPos = Vector2.zero;

@@ -70,7 +70,7 @@ namespace PulseEditor.Module.StatManager
             base.OnRedraw();
             if (data == null)
                 return;
-            VerticalScrollablePanel(() =>
+            ScrollablePanel(() =>
             {
                 GroupGUI(() =>
                 {
@@ -108,16 +108,13 @@ namespace PulseEditor.Module.StatManager
                     GUILayout.EndVertical();
                 }, "Stats");
 
-                GroupGUInoStyle(() =>
-                {
-                    SaveCancelPanel(new[] {
+                SaveCancelPanel(new[] {
                         new KeyValuePair<string, System.Action> ( "Save", () => {
                             if(onSelectionEvent != null)
                                 onSelectionEvent.Invoke(data, null);
                             Close(); } ),
                         new KeyValuePair<string, System.Action>("Cancel", () => { Close(); })
                     });
-                });
             });
         }
 

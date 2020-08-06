@@ -69,6 +69,11 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         private int hashtag_id;
 
+        /// <summary>
+        /// L'id de la data a modifier en mode modification
+        /// </summary>
+        private int dataID;
+
         #endregion
 
         #region GUIFunctions ###############################################################################
@@ -87,10 +92,11 @@ namespace PulseEditor.Module.Localisator
         /// <summary>
         /// Open the selector
         /// </summary>
-        public static void OpenSelector(Action<object,EventArgs> onSelect)
+        public static void OpenSelector(Action<object,EventArgs> onSelect, PulseCore_GlobalValue_Manager.DataType dtype)
         {
-            var window = GetWindow<LocalisationEditor>();
+            var window = GetWindow<LocalisationEditor>(true, "Localisator Selector");
             window.windowOpenMode = EditorMode.Selector;
+            window.selectedDataType = (int)dtype;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) =>
@@ -98,7 +104,19 @@ namespace PulseEditor.Module.Localisator
                     onSelect.Invoke(obj, arg);
                 };
             }
-            window.Show();
+            window.ShowAuxWindow();
+        }
+
+        /// <summary>
+        /// Open the Item selector
+        /// </summary>
+        public static void OpenModifier(int _id, PulseCore_GlobalValue_Manager.DataType dType)
+        {
+            var window = GetWindow<LocalisationEditor>(true, "Localisator Modifier");
+            window.windowOpenMode = EditorMode.ItemEdition;
+            window.selectedDataType = (int)dType;
+            window.dataID = _id;
+            window.ShowAuxWindow();
         }
 
         /// <summary>
@@ -151,41 +169,34 @@ namespace PulseEditor.Module.Localisator
         /// La tete de fenetre.
         /// </summary>
         /// <returns></returns>
-        private bool Header()
+        private bool Header(PulseCore_GlobalValue_Manager.Languages langue = PulseCore_GlobalValue_Manager.Languages.Francais , PulseCore_GlobalValue_Manager.DataType dataType = PulseCore_GlobalValue_Manager.DataType.None)
         {
-            PulseCore_GlobalValue_Manager.Languages langue = PulseCore_GlobalValue_Manager.Languages.Francais;
-            GroupGUInoStyle(() =>
+            if (windowOpenMode == EditorMode.Normal)
             {
-                selectedLangage = GUILayout.Toolbar(selectedLangage, Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.Languages)));
-                switch ((PulseCore_GlobalValue_Manager.Languages)selectedLangage)
+                langue = PulseCore_GlobalValue_Manager.Languages.Francais;
+                GroupGUInoStyle(() =>
                 {
-                    case PulseCore_GlobalValue_Manager.Languages.English:
-                        langue = PulseCore_GlobalValue_Manager.Languages.English;
-                        break;
-                    default:
-                        langue = PulseCore_GlobalValue_Manager.Languages.Francais;
-                        break;
-                }
-            }, "Language",50);
-            PulseCore_GlobalValue_Manager.DataType dataType = PulseCore_GlobalValue_Manager.DataType.None;
-            GroupGUInoStyle(() =>
-            {
-                List<string> typeNames = Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.DataType)).ToList();
-                typeNames.RemoveAt(0);
-                selectedDataType = GUILayout.Toolbar(selectedDataType - 1, typeNames.ToArray());
-                selectedDataType = Mathf.Clamp(selectedDataType, 1, selectedDataType);
-                switch ((PulseCore_GlobalValue_Manager.DataType)selectedDataType)
+                    selectedLangage = GUILayout.Toolbar(selectedLangage, Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.Languages)));
+                    switch ((PulseCore_GlobalValue_Manager.Languages)selectedLangage)
+                    {
+                        case PulseCore_GlobalValue_Manager.Languages.English:
+                            langue = PulseCore_GlobalValue_Manager.Languages.English;
+                            break;
+                        default:
+                            langue = PulseCore_GlobalValue_Manager.Languages.Francais;
+                            break;
+                    }
+                }, "Language", 50);
+                dataType = PulseCore_GlobalValue_Manager.DataType.None;
+                GroupGUInoStyle(() =>
                 {
-                    case PulseCore_GlobalValue_Manager.DataType.CharacterInfos:
-                        dataType = PulseCore_GlobalValue_Manager.DataType.CharacterInfos;
-                        break;
-                    default:
-                        dataType = PulseCore_GlobalValue_Manager.DataType.None;
-                        break;
-                }
-            }, "Type",50);
-            if (dataType == PulseCore_GlobalValue_Manager.DataType.None)
-                return false;
+                    selectedDataType = GUILayout.Toolbar(selectedDataType, Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.DataType)));
+                    //selectedDataType = Mathf.Clamp(selectedDataType, 1, selectedDataType);
+                    dataType = (PulseCore_GlobalValue_Manager.DataType)selectedDataType;
+                }, "Type", 50);
+                if (dataType == PulseCore_GlobalValue_Manager.DataType.None)
+                    return false;
+            }
             if (asset == null)
             {
                 if (allAsset.Count > 0)
@@ -239,6 +250,10 @@ namespace PulseEditor.Module.Localisator
                     });
                     break;
                 case EditorMode.ItemEdition:
+                    SaveCancelPanel(new[] {
+                        new KeyValuePair<string, Action>("Save & Close", ()=> { Save(true);}),
+                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                    });
                     break;
                 case EditorMode.Preview:
                     break;
@@ -278,7 +293,7 @@ namespace PulseEditor.Module.Localisator
             };
             if (listCompatiblesmode())
             {
-                VerticalScrollablePanel(() =>
+                ScrollablePanel(() =>
                 {
                     GroupGUI(() =>
                     {
@@ -311,6 +326,9 @@ namespace PulseEditor.Module.Localisator
                         GUILayout.EndVertical();
                     }, "Localisation Datas List");
                 });
+            }else if(windowOpenMode == EditorMode.ItemEdition)
+            {
+                selectedDataIndex = asset.LocalizedDatas.FindIndex(data => { return data.Trad_ID == dataID; });
             }
             GUILayout.Space(5);
             HashTagGenerator();
@@ -324,7 +342,7 @@ namespace PulseEditor.Module.Localisator
                 if (selectedDataIndex < editedAsset.LocalizedDatas.Count && selectedDataIndex >= 0)
                 {
                     editedData = editedAsset.LocalizedDatas[selectedDataIndex];
-                    if (windowOpenMode == EditorMode.Normal)
+                    if (windowOpenMode == EditorMode.Normal || windowOpenMode == EditorMode.ItemEdition)
                         PageDetailsEdition(editedData);
                     else if (windowOpenMode == EditorMode.Selector)
                         PageDetailsPreview(editedData);
@@ -360,7 +378,7 @@ namespace PulseEditor.Module.Localisator
             };
             if (detailsCompatiblesmode())
             {
-                VerticalScrollablePanel(() =>
+                ScrollablePanel(() =>
                 {
                     GroupGUI(() =>
                     {
@@ -487,7 +505,7 @@ namespace PulseEditor.Module.Localisator
             };
             if (detailsCompatiblesmode())
             {
-                VerticalScrollablePanel(() =>
+                ScrollablePanel(() =>
                 {
                     GroupGUI(() =>
                     {
@@ -596,7 +614,9 @@ namespace PulseEditor.Module.Localisator
         {
             if (allAsset == null || allAsset.Count <= 0)
                 return;
-            VerticalScrollablePanel(() =>
+            if (windowOpenMode != EditorMode.Normal)
+                return;
+            ScrollablePanel(() =>
             {
                 GroupGUInoStyle(() =>
                 {
@@ -635,8 +655,27 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         protected override void OnRedraw()
         {
-            if (!Header())
-                return;
+            switch (windowOpenMode)
+            {
+                case EditorMode.Normal:
+                    if (!Header())
+                        return;
+                    break;
+                case EditorMode.Selector:
+                    if (!Header(PulseCore_GlobalValue_Manager.currentLanguage, (PulseCore_GlobalValue_Manager.DataType)selectedDataType))
+                        return;
+                    break;
+                case EditorMode.ItemEdition:
+                    if (!Header(PulseCore_GlobalValue_Manager.currentLanguage, (PulseCore_GlobalValue_Manager.DataType)selectedDataType))
+                        return;
+                    break;
+                case EditorMode.Preview:
+                    break;
+                case EditorMode.Node:
+                    break;
+                case EditorMode.Group:
+                    break;
+            }
             GUILayout.Space(20);
             PageBody();
         }

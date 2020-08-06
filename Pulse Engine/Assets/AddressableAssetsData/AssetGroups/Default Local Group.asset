@@ -39,10 +39,16 @@ MonoBehaviour:
     m_Address: Localisator_FR_CharacterInfos
     m_ReadOnly: 0
     m_SerializedLabels: []
-    m_MainAsset: {fileID: 11400000, guid: 424894c6f92be454588852ac52086cef, type: 2}
-    m_TargetAsset: {fileID: 11400000, guid: 424894c6f92be454588852ac52086cef, type: 2}
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   - m_GUID: 787a9a1698c72a0479113c4f5c60e163
     m_Address: Assets/GameResources/Characters/Characters_InteractiveObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 7d402348585203a44b675421f158d6bb
+    m_Address: Assets/GameResources/Combat Assets/Weapon_shortRange.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
@@ -63,8 +69,14 @@ MonoBehaviour:
     m_Address: Localisator_EN_CharacterInfos
     m_ReadOnly: 0
     m_SerializedLabels: []
-    m_MainAsset: {fileID: 11400000, guid: e6c4df6732d66bb42931751ceab11dac, type: 2}
-    m_TargetAsset: {fileID: 11400000, guid: e6c4df6732d66bb42931751ceab11dac, type: 2}
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: ff782f8a3101114479c71acd13038fe8
+    m_Address: Assets/GameResources/Combat Assets/Weapon_LongRange.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 43b6ec973d21bbc40a121040c3f57c71, type: 2}
   m_SchemaSet:

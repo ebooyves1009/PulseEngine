@@ -12,6 +12,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a1c12f7248a02e4fa540b8297268fc7, type: 3}
   m_Name: Localisator_FR_Weapon
   m_EditorClassIdentifier: 
-  localizedDatas: []
+  localizedDatas:
+  - trad_ID: 1
+    title: Mains
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: 
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
+  - trad_ID: 2
+    title: Machette
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: 
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
   libraryLanguage: 0
   libraryDataType: 2

@@ -67,5 +67,23 @@ MonoBehaviour:
     footPage: 
     conclusion: 
     end: 
+  - trad_ID: 4
+    title: Pulse Core test
+    header: 
+    banner: 
+    groupName: 
+    toolTip: 
+    description: 
+    details: 
+    infos: 
+    child1: 
+    child2: 
+    child3: 
+    child4: 
+    child5: 
+    child6: 
+    footPage: 
+    conclusion: 
+    end: 
   libraryLanguage: 1
   libraryDataType: 1

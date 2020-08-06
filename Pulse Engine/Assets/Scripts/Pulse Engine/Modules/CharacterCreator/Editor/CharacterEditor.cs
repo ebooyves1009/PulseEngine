@@ -203,7 +203,7 @@ namespace PulseEditor.Module.CharacterCreator
             };
             if (listCompatiblesmode())
             {
-                VerticalScrollablePanel(() =>
+                ScrollablePanel(() =>
                 {
                     GroupGUI(() =>
                     {
@@ -263,7 +263,7 @@ namespace PulseEditor.Module.CharacterCreator
         {
             if (data == null)
                 return;
-            VerticalScrollablePanel(() =>
+            ScrollablePanel(() =>
             {
                 GroupGUI(() =>
                 {
@@ -288,12 +288,13 @@ namespace PulseEditor.Module.CharacterCreator
                     //Trad
                     EditorGUILayout.LabelField("Trad Id: "+data.IdTrad, style_label);
                     GUILayout.Space(5);
-                    EditorGUILayout.LabelField("Name:", style_label);
-                    GUILayout.Space(5);
                     data.TradDataType = PulseCore_GlobalValue_Manager.DataType.CharacterInfos;
                     var texts = LocalisationEditor.GetTexts(data.IdTrad, PulseCore_GlobalValue_Manager.DataType.CharacterInfos);
                     string name = texts.Length > 0 ? texts[0] : string.Empty;
-                    if (GUILayout.Button(name))
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("Name:", style_label);
+                    EditorGUILayout.LabelField(name);
+                    if (GUILayout.Button("S", new[] { GUILayout.Width(25)}))
                     {
                         LocalisationEditor.OpenSelector((obj, arg) =>
                         {
@@ -301,8 +302,13 @@ namespace PulseEditor.Module.CharacterCreator
                             if (a == null)
                                 return;
                             data.IdTrad = a.ID;
-                        });
+                        }, data.TradDataType);
                     }
+                    if (GUILayout.Button("E", new[] { GUILayout.Width(25)}))
+                    {
+                        LocalisationEditor.OpenModifier(data.IdTrad, data.TradDataType);
+                    }
+                    GUILayout.EndHorizontal();
                     EditorGUILayout.LabelField("Character:", style_label);
                     GUILayout.Space(5);
                     data.Character = EditorGUILayout.ObjectField(data.Character, typeof(GameObject), false) as GameObject;
