@@ -406,30 +406,33 @@ namespace PulseEditor.Module.CombatSystem
             });
             ScrollablePanel(() =>
             {
-                GUILayout.BeginHorizontal();
-                for (int i = 0; i < data.Weapons.Count; i++)
+                GroupGUInoStyle(() =>
                 {
-                    GroupGUI(() =>
+                    GUILayout.BeginHorizontal();
+                    for (int i = 0; i < data.Weapons.Count; i++)
                     {
-                        data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
-                        if (data.Weapons[i] == null)
+                        GroupGUI(() =>
                         {
+                            data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
+                            if (data.Weapons[i] == null)
+                            {
                             // if (weaponPartsEditors.ContainsKey(null))
                             // weaponPartsEditors.Remove(null);
                             GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
-                            GUILayout.EndArea();
-                        }
-                        else
-                        {
-                            if (!weaponPartsEditors.ContainsKey(data.Weapons[i]))
-                                weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
-                            if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
-                                weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
-                            weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
-                        }
-                    }, 180);
-                }
-                GUILayout.EndHorizontal();
+                                GUILayout.EndArea();
+                            }
+                            else
+                            {
+                                if (!weaponPartsEditors.ContainsKey(data.Weapons[i]))
+                                    weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
+                                if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
+                                    weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
+                                weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
+                            }
+                        }, 180);
+                    }
+                    GUILayout.EndHorizontal();
+                });
             });
         }
 
