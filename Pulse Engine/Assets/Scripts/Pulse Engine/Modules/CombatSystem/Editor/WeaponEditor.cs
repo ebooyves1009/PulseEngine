@@ -416,9 +416,9 @@ namespace PulseEditor.Module.CombatSystem
                             data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
                             if (data.Weapons[i] == null)
                             {
-                            // if (weaponPartsEditors.ContainsKey(null))
-                            // weaponPartsEditors.Remove(null);
-                            GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
+                                // if (weaponPartsEditors.ContainsKey(null))
+                                // weaponPartsEditors.Remove(null);
+                                GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
                                 GUILayout.EndArea();
                             }
                             else
@@ -433,6 +433,9 @@ namespace PulseEditor.Module.CombatSystem
                     }
                     GUILayout.EndHorizontal();
                 });
+            });
+            ScrollablePanel(() =>
+            {
             });
         }
 
