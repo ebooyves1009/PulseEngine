@@ -150,7 +150,8 @@ namespace PulseEditor.Module.CombatSystem
             var bkpType = weaponTypeSelected;
             GroupGUInoStyle(() =>
             {
-                int selected = GUILayout.Toolbar((int)weaponTypeSelected , Enum.GetNames(typeof(CombatSystemManager.WeaponType)));
+                int selected = (int)weaponTypeSelected;
+                selected = GUILayout.Toolbar((int)weaponTypeSelected , Enum.GetNames(typeof(CombatSystemManager.WeaponType)));
                 weaponTypeSelected = (CombatSystemManager.WeaponType)selected;
             },"Weapon Type",50);
             if (bkpType != weaponTypeSelected)
@@ -169,12 +170,7 @@ namespace PulseEditor.Module.CombatSystem
         /// </summary>
         protected void Foot()
         {
-            SaveCancelPanel(new[] {
-                        new KeyValuePair<string, System.Action> ( "Save", () => {
-                            SaveAsset(editedAsset,asset);
-                            Close(); } ),
-                        new KeyValuePair<string, System.Action>("Cancel", () => { Close(); })
-                    });
+            SaveBarPanel(editedAsset, asset);
         }
 
         /// <summary>

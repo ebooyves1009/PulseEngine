@@ -301,6 +301,42 @@ namespace PulseEditor
         }
 
         /// <summary>
+        /// Un panel classique de sauvegarde.
+        /// </summary>
+        /// <param name="_toSave"></param>
+        /// <param name="_whereSave"></param>
+        protected void SaveBarPanel(UnityEngine.Object _toSave, UnityEngine.Object _whereSave, Action SelectAction = null)
+        {
+            switch (windowOpenMode)
+            {
+                case EditorMode.Normal:
+                    SaveCancelPanel(new[] {
+                        new KeyValuePair<string, Action>("Save & Close", ()=> { SaveAsset(_toSave, _whereSave); Close(); }),
+                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                    });
+                    break;
+                case EditorMode.Selector:
+                    SaveCancelPanel(new[] {
+                        new KeyValuePair<string, Action>("Select", ()=> { if(SelectAction != null) SelectAction.Invoke(); Close(); }),
+                        new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                    });
+                    break;
+                case EditorMode.ItemEdition:
+                    SaveCancelPanel(new[] {
+                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave);}),
+                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                    });
+                    break;
+                case EditorMode.Preview:
+                    break;
+                case EditorMode.Node:
+                    break;
+                case EditorMode.Group:
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Faire une liste d'elements, et renvoyer l'element selectionne.
         /// </summary>
         /// <param name="listID"></param>
@@ -382,6 +418,9 @@ namespace PulseEditor
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// ferme la fenetre
+        /// </summary>
         protected virtual void CloseWindow()
         {
             onSelectionEvent = delegate { };

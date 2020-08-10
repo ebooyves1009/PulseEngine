@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   weaponList:
   - id: 1
-    idTrad: 2
+    idTrad: 1
     tradDataType: 2
     typeArme: 1
     portee: 1

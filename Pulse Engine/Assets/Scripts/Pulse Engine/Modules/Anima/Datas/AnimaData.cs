@@ -17,7 +17,7 @@ namespace PulseEngine.Module.Anima
         #region Attributs #########################################################
 
         [SerializeField]
-        private int animID;
+        private int id;
 
         [SerializeField]
         private bool isHumanMotion;
@@ -44,7 +44,7 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// L'id de l'animation dans la BD des anima data.
         /// </summary>
-        public int AnimID { get { return animID; } set { animID = value; } }
+        public int ID { get { return id; } set { id = value; } }
 
         /// <summary>
         /// Est ce una animation.
@@ -74,7 +74,7 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// L'animation lue.
         /// </summary>
-        private Motion AnimClip { get { return motion; } set { motion = value; } }
+        public Motion Motion { get { return motion; } set { motion = value; } }
 
         #endregion
 

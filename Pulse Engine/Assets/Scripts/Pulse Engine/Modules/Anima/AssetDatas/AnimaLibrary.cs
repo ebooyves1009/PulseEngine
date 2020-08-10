@@ -17,6 +17,8 @@ namespace PulseEngine.Module.Anima
         #region Attributs #########################################################
 
         [SerializeField]
+        private List<AnimaData> animList = new List<AnimaData>();
+        [SerializeField]
         private int animCategory;
         [SerializeField]
         private int animType;
@@ -25,6 +27,11 @@ namespace PulseEngine.Module.Anima
 
         #endregion
         #region Proprietes ##########################################################
+
+        /// <summary>
+        /// La liste des animations.
+        /// </summary>
+        public List<AnimaData> AnimList { get => animList; set => animList = value; }
 
         /// <summary>
         /// La categorie de l'animation; representant souvent le type d'anatomie de la cible.
@@ -67,6 +74,8 @@ namespace PulseEngine.Module.Anima
             {
                 AnimaLibrary asset = ScriptableObject.CreateInstance<AnimaLibrary>();
                 asset.dataType = (int)PulseCore_GlobalValue_Manager.DataType.Animations;
+                asset.AnimType = _typ;
+                asset.AnimCategory = _cat;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
                 //Make a gameobject an addressable
