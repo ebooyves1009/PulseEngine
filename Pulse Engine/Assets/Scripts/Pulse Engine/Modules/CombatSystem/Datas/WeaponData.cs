@@ -110,19 +110,11 @@ namespace PulseEngine.Module.CombatSystem
         {
             get
             {
-                List<PhysicManager.PhysicMaterials> retList = new List<PhysicManager.PhysicMaterials>();
-                if (materiaux == null)
-                    materiaux = new List<int>();
-                foreach (var mat in materiaux)
-                    retList.Add((PhysicManager.PhysicMaterials)mat);
-                return retList;
+                return materiaux.ConvertAll<PhysicManager.PhysicMaterials>(new System.Converter<int, PhysicManager.PhysicMaterials>(integer => { return (PhysicManager.PhysicMaterials)integer; }));
             }
             set
             {
-                List<int> retList = new List<int>();
-                foreach (var mat in value)
-                    retList.Add((int)mat);
-                materiaux = retList;
+                materiaux = value.ConvertAll<int>(new System.Converter<PhysicManager.PhysicMaterials, int>(physic => { return (int)physic; }));
             }
         }
 

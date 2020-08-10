@@ -382,8 +382,12 @@ namespace PulseEditor.Module.CombatSystem
                     if (data.Weapons.Count > 0 && GUILayout.Button("-"))
                     {
                         data.Weapons.RemoveAt(data.Weapons.Count - 1);
-                        if(data.Materiaux.Count > 0)
-                            data.Materiaux.RemoveAt(data.Materiaux.Count - 1);
+                        if (data.Materiaux.Count > 0)
+                        {
+                            var d = data.Materiaux;
+                            d.RemoveAt(data.Materiaux.Count - 1);
+                            data.Materiaux = d;
+                        }
                         if (data.RestPlaces.Count > 0)
                             data.RestPlaces.RemoveAt(data.RestPlaces.Count - 1);
                         if (data.CarryPlaces.Count > 0)
@@ -395,7 +399,9 @@ namespace PulseEditor.Module.CombatSystem
                     if (data.Weapons.Count < 4 && GUILayout.Button("+"))
                     {
                         data.Weapons.Add(new GameObject());
-                        data.Materiaux.Add(PhysicManager.PhysicMaterials.none);
+                        var d = data.Materiaux;
+                        d.Add(PhysicManager.PhysicMaterials.none);
+                        data.Materiaux = d;
                         data.RestPlaces.Add(new CombatSystemManager.WeaponPlace());
                         data.CarryPlaces.Add(new CombatSystemManager.WeaponPlace());
                         data.ProjectilesOutPoints.Add(new Vector3());
@@ -429,6 +435,33 @@ namespace PulseEditor.Module.CombatSystem
                                     weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
                                 weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
                             }
+                            //Materiau
+                            var d = data.Materiaux;
+                            var mat = d[i];
+                            mat = (PhysicManager.PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ",mat);
+                            d[i] = mat;
+                            if (mat != data.Materiaux[i])
+                            {
+                                data.Materiaux = d;
+                            }
+                            //Emplacement repos
+                            EditorGUILayout.LabelField("Rest Place", EditorStyles.boldLabel);
+                            var restPlace = data.RestPlaces[i];
+                            restPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.RestPlaces[i].ParentBone);
+                            restPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.RestPlaces[i].PositionOffset);
+                            restPlace.RotationOffset.eulerAngles = EditorGUILayout.Vector3Field("rotation offset: ", data.RestPlaces[i].RotationOffset.eulerAngles);
+                            data.RestPlaces[i] = restPlace;
+                            //Emplacement armee
+                            EditorGUILayout.LabelField("Carry Place", EditorStyles.boldLabel);
+                            var carryPlace = data.CarryPlaces[i];
+                            carryPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone",data.CarryPlaces[i].ParentBone);
+                            carryPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.CarryPlaces[i].PositionOffset);
+                            carryPlace.RotationOffset.eulerAngles = EditorGUILayout.Vector3Field("rotation offset: ", data.CarryPlaces[i].RotationOffset.eulerAngles);
+                            data.CarryPlaces[i] = carryPlace;
+                            //point sortie projectile
+                            EditorGUILayout.LabelField("Projectile", EditorStyles.boldLabel);
+                            data.ProjectilesOutPoints[i] = EditorGUILayout.Vector3Field("Projectile out Pt: ", data.ProjectilesOutPoints[i]);
+
                         }, 180);
                     }
                     GUILayout.EndHorizontal();
