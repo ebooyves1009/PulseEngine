@@ -36,6 +36,29 @@ namespace PulseEngine.Module.Anima
             DamageLayer
         }
 
+        /// <summary>
+        /// Le type d'animation.
+        /// </summary>
+        public enum AnimationType
+        {
+            Idle,
+            Locamotion,
+            Interraction,
+            Offensive,
+            Defensive,
+            Damage
+        }
+
+        /// <summary>
+        /// La categorie d'une animation.
+        /// </summary>
+        public enum AnimaCategory
+        {
+            humanoid,
+            quadruped,
+            generic
+        }
+
         #endregion
         #region Structures ####################################################################
 
@@ -53,6 +76,11 @@ namespace PulseEngine.Module.Anima
 
         #endregion
         #region Attributes ####################################################################
+
+        /// <summary>
+        /// Le chemin d'acces local des datas
+        /// </summary>
+        public static string AssetsPath { get => "AnimaAsset"; }
 
         #endregion
         #region Methods ####################################################################

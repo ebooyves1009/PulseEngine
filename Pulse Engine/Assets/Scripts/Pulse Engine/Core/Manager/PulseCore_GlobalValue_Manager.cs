@@ -80,6 +80,7 @@ namespace PulseEngine.Core
             None,
             CharacterInfos,
             Weapon,
+            Animations,
         }
 
         /// <summary>
