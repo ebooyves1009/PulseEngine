@@ -6,6 +6,8 @@ using PulseEngine.Core;
 using PulseEngine.Module.Anima;
 using System;
 using UnityEditor;
+using PulseEngine.Module.PhysicSpace;
+using PulseEngine.Module.Commands;
 
 namespace PulseEditor.Module.Anima
 {
@@ -36,6 +38,21 @@ namespace PulseEditor.Module.Anima
         /// </summary>
         private AnimaData dataEdited;
 
+        /// <summary>
+        /// Le temps actuel dans l'animation jouee.
+        /// </summary>
+        private float timeInCurrentAnimation = 0;
+
+        /// <summary>
+        /// La phase d'animation en cours.
+        /// </summary>
+        private AnimaManager.AnimPhase currentAnimPhase;
+
+        /// <summary>
+        /// L'event d'animation en cours.
+        /// </summary>
+        private CommanderManager.CommandAction currentAnimCommand;
+
         #endregion
         #region Visual Attributes ################################################################
 
@@ -51,9 +68,14 @@ namespace PulseEditor.Module.Anima
         private AnimaManager.AnimaCategory selectedCategory;
 
         /// <summary>
-        /// Le ypes selectionne.
+        /// Le types selectionne.
         /// </summary>
         private AnimaManager.AnimationType selectedType;
+
+        /// <summary>
+        /// la fenetre de previsualisation.
+        /// </summary>
+        private AnimaPreview preview;
 
         #endregion
         #region Fonctionnal Methods ################################################################
@@ -81,6 +103,7 @@ namespace PulseEditor.Module.Anima
             {
                 editedAsset = asset;
             }
+            preview = new AnimaPreview();
         }
 
         /// <summary>
@@ -257,7 +280,7 @@ namespace PulseEditor.Module.Anima
                     }
                     GUILayout.EndHorizontal();
                     GUILayout.EndVertical();
-                }, "Weapon Datas List");
+                }, "Anima Datas List");
                 if (selectedDataIdx >= 0 && selectedDataIdx < editedAsset.AnimList.Count)
                     dataEdited = editedAsset.AnimList[selectedDataIdx];
                 else
@@ -265,10 +288,6 @@ namespace PulseEditor.Module.Anima
             }
         }
 
-
-        Editor animTest;
-        GameObject avatar;
-        float time;
 
         /// <summary>
         /// details.
@@ -280,40 +299,149 @@ namespace PulseEditor.Module.Anima
                 return;
             GroupGUI(() =>
             {
-                data.Motion = EditorGUILayout.ObjectField(data.Motion, typeof(AnimationClip), false) as AnimationClip;
-                avatar = EditorGUILayout.ObjectField(avatar, typeof(GameObject), false) as GameObject;
-                if (animTest == null || animTest.target != avatar)
-                {
-                    animTest = null;
-                    animTest = Editor.CreateEditor(avatar);
-                }
-                if (AnimationMode.InAnimationMode())
-                {
-                    //AnimationMode.StopAnimationMode();
-                }
-                AnimationMode.StartAnimationMode();
-                if (data.Motion && animTest && animTest.target && avatar)
-                {
-                    if (AnimationMode.InAnimationMode())
-                    {
-                        //animTest = null;
-                        //animTest = Editor.CreateEditor(avatar);
-                        //AnimationMode.BeginSampling();
-                        //AnimationMode.SampleAnimationClip(avatar, data.Motion, time);
-                        //AnimationMode.EndSampling();
-                        animTest.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(300, 250), null);
-                        animTest.ReloadPreviewInstances();
-                        //animTest.ResetTarget();
-                        //animTest.MoveNextTarget();
-                        //animTest.Repaint();
-                        //time += Time.deltaTime;
-                        //time = time % data.Motion.length;
-                        time = EditorGUILayout.Slider(time, 0, data.Motion.length);
-                    }
-                    EditorGUILayout.LabelField("time: " + time, EditorStyles.boldLabel);
-                    //animTest.DrawDefaultInspector();
-                }
+                //ID
                 EditorGUILayout.LabelField("ID: " + data.ID, EditorStyles.boldLabel);
+                //Motion
+                if (preview)
+                    timeInCurrentAnimation = preview.RenderPreview(data.Motion, new Vector2(300, 250));
+                var newMotion = EditorGUILayout.ObjectField("Motion ",data.Motion, typeof(AnimationClip), false) as AnimationClip;
+                if(newMotion != data.Motion)
+                {
+                    if (EditorUtility.DisplayDialog("Warning", "By changing motion, you will lost all data configured from it.\n Proceed?", "Yes", "No"))
+                    {
+                        data.Motion = newMotion;
+                        var tmpPhase = data.PhaseAnims;
+                        tmpPhase.Clear();
+                        data.PhaseAnims = tmpPhase;
+                        var tmpEv = data.EventList;
+                        tmpEv.Clear();
+                        data.EventList = tmpEv;
+                    }
+                } 
+                GUILayout.Space(10);
+                //is human
+                EditorGUILayout.Toggle("Is Human Motion", (data.Motion ? data.Motion.isHumanMotion : false));
+                GUILayout.Space(10);
+                //Name
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Name: " , EditorStyles.boldLabel);
+                EditorGUILayout.LabelField((data.Motion? data.Motion.name : string.Empty));
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                //Name
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Animator Layer: " , EditorStyles.boldLabel);
+                data.AnimLayer = (AnimaManager.AnimationLayer)selectedType;
+                EditorGUILayout.LabelField(data.AnimLayer.ToString());
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                //Anim phases
+                GUILayout.BeginHorizontal();
+                int indexPhase = -1;
+                for (int i = 0; i < data.PhaseAnims.Count; i++) {
+                    var phase = data.PhaseAnims[i];
+                    if (phase.timeStamp.time <= timeInCurrentAnimation && timeInCurrentAnimation < (phase.timeStamp.time + phase.timeStamp.duration))
+                    {
+                        currentAnimPhase = phase.phase;
+                        indexPhase = i;
+                        break;
+                    }
+                }
+                currentAnimPhase = (AnimaManager.AnimPhase)EditorGUILayout.EnumPopup("Phase",currentAnimPhase);
+                if (GUILayout.Button( indexPhase>= 0?"Change":"Add" +" animPhase "+currentAnimPhase+" at "+timeInCurrentAnimation))
+                {
+                    if (indexPhase >= 0)
+                    {
+                        var tmpPhase = data.PhaseAnims;
+                        tmpPhase[indexPhase] = new AnimaManager.AnimePhaseTimeStamp
+                        {
+                            phase = currentAnimPhase,
+                            timeStamp = new PulseCore_GlobalValue_Manager.TimeStamp { time = timeInCurrentAnimation, duration = (data.Motion ? 1 / data.Motion.frameRate : 0.1f) }
+                        };
+                        data.PhaseAnims = tmpPhase;
+                    }
+                    else
+                    {
+                        var tmpPhase = data.PhaseAnims;
+                        tmpPhase.Add(new AnimaManager.AnimePhaseTimeStamp
+                        {
+                            phase = currentAnimPhase,
+                            timeStamp = new PulseCore_GlobalValue_Manager.TimeStamp { time = timeInCurrentAnimation, duration = (data.Motion ? 1 / data.Motion.frameRate : 0.1f) }
+                        });
+                        data.PhaseAnims = tmpPhase;
+                    }
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.Space(5);
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Current Anim Phase: ", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(currentAnimPhase.ToString());
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                //Anim Space
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Physic Place, This motion takes places in: ", EditorStyles.boldLabel);
+                data.PhysicPlace = (PhysicManager.PhysicSpace)EditorGUILayout.EnumPopup(data.PhysicPlace);
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);
+                //Anim phases
+                GUILayout.BeginHorizontal();
+                int indexEvent = -1;
+                for (int i = 0; i < data.EventList.Count; i++)
+                {
+                    var eventAt = data.EventList[i];
+                    if (eventAt.timeStamp.time <= timeInCurrentAnimation && timeInCurrentAnimation < (eventAt.timeStamp.time + eventAt.timeStamp.duration))
+                    {
+                        currentAnimCommand = eventAt.command;
+                        indexEvent = i;
+                        break;
+                    }
+                }
+
+                if (GUILayout.Button((indexEvent >= 0 ? "Customize" : "Add") + " Event " + (indexEvent < data.EventList.Count && indexEvent >= 0? ""+data.EventList[indexEvent].command.code : "at "+timeInCurrentAnimation)))
+                {
+                    if (indexEvent >= 0)
+                    {
+                        var tmpEvents = data.EventList;
+                        //tmpEvents[indexEvent] //TODO: Editor of this.
+                        data.EventList = tmpEvents;
+                    }
+                    else
+                    {
+                        var tmpEvents = data.EventList;
+                        tmpEvents.Add(new AnimaManager.AnimeCommand
+                        {
+                            command = new CommanderManager.CommandAction(),
+                            timeStamp = new PulseCore_GlobalValue_Manager.TimeStamp { time = timeInCurrentAnimation, duration = data.Motion? (1 / data.Motion.frameRate) : 0 }
+                        });
+                        data.EventList = tmpEvents;
+                    }
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.Space(5);
+                EditorGUILayout.LabelField("Events Triggereds: ", EditorStyles.boldLabel);
+                GUILayout.BeginHorizontal();
+                int k = 0;
+                for(int i = 0; i < data.EventList.Count; i++)
+                {
+                    k = i;
+                    var ev = data.EventList[k];
+                    var time = ev.timeStamp.time;
+                    var duration = ev.timeStamp.duration;
+                    Color activeCol = Color.gray;
+                    if (time <= timeInCurrentAnimation && timeInCurrentAnimation < (time + duration))
+                    {
+                        activeCol = Color.green;
+                        try
+                        {
+                            EditorGUILayout.Knob(new Vector2(50, 50), Mathf.InverseLerp(time, time + duration, timeInCurrentAnimation) * 100, 0, 100, "% of " + ev.command.code, Color.gray, activeCol, true);
+                        }
+                        catch { }
+                    }
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);
+
             }, "Details");
         }
 
@@ -321,19 +449,7 @@ namespace PulseEditor.Module.Anima
         {
             if (dataEdited == null)
                 return;
-            var data = dataEdited;
-            if (data.Motion && animTest && animTest.target && avatar)
-            {
-                if (AnimationMode.InAnimationMode())
-                {
-                    AnimationMode.BeginSampling();
-                    AnimationMode.SampleAnimationClip(avatar, data.Motion, time);
-                    AnimationMode.EndSampling();
-                    time += Time.deltaTime;
-                    time = time % data.Motion.length;
-                    Repaint();
-                }
-            }
+            Repaint();
         }
 
         #endregion

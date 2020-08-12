@@ -31,6 +31,10 @@ namespace PulseEngine.Core
         /// </summary>
         public static Languages currentLanguage;
 
+        /// <summary>
+        /// Le chimin d'acces de l'avatrar par defaut.
+        /// </summary>
+        public const string previewAvatarPath = "Assets/Scripts/Pulse Engine/Core/Res/defaultAvatar.fbx";
 
         #endregion
 
@@ -98,6 +102,7 @@ namespace PulseEngine.Core
         /// <summary>
         /// Tampon temporel, pouvant garder utile dans les logs et animations. 
         /// </summary>
+        [System.Serializable]
         public struct TimeStamp
         {
             /// <summary>

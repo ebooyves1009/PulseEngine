@@ -13,18 +13,24 @@ namespace PulseEngine.Module.Commands
     {
         #region Enums ####################################################################
 
-        #endregion
-        #region Structures ####################################################################
+        /// <summary>
+        /// Le type d'une commande.
+        /// </summary>
+        public enum CommandType
+        {
+            none,
+        }
 
         #endregion
-        #region Nested Classes ####################################################################
+        #region Structures ####################################################################
 
         /// <summary>
         /// Une commande action.
         /// </summary>
-        public class CommandAction : IEquatable<CommandAction>
+        [System.Serializable]
+        public struct CommandAction : IEquatable<CommandAction>
         {
-            public int code;
+            public CommandType code;
             public Vector4 primaryParameters;
             public Vector4 secondaryParameters;
 
@@ -37,9 +43,10 @@ namespace PulseEngine.Module.Commands
         /// <summary>
         /// Une commande qui declenche un evenement.
         /// </summary>
-        public class CommandEvent : IEquatable<CommandEvent>
+        [System.Serializable]
+        public struct CommandEvent : IEquatable<CommandEvent>
         {
-            public int code;
+            public CommandType code;
             public Vector4 primaryParameters;
             public Vector4 secondaryParameters;
 
@@ -52,9 +59,10 @@ namespace PulseEngine.Module.Commands
         /// <summary>
         /// Une commande qui modifie des proprietes du monde.
         /// </summary>
-        public class CommandWorld : IEquatable<CommandWorld>
+        [System.Serializable]
+        public struct CommandWorld : IEquatable<CommandWorld>
         {
-            public int code;
+            public CommandType code;
             public Vector4 primaryParameters;
             public Vector4 secondaryParameters;
 
@@ -63,6 +71,9 @@ namespace PulseEngine.Module.Commands
                 return code == other.code && primaryParameters == other.primaryParameters && secondaryParameters == other.secondaryParameters;
             }
         }
+
+        #endregion
+        #region Nested Classes ####################################################################
 
         #endregion
         #region Attributes ####################################################################

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
+using PulseEngine.Core;
 
 
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
@@ -30,7 +31,7 @@ namespace PulseEditor
         /// <summary>
         /// Fait la prvisualisation d'une animation.
         /// </summary>
-        protected class AnimaPreview : Editor
+        public class AnimaPreview : EditorWindow
         {
             /// <summary>
             /// The playback time.
@@ -52,6 +53,21 @@ namespace PulseEditor
             /// </summary>
             private Vector2 winSize;
 
+            /// <summary>
+            /// Active when previwe is playing anim.
+            /// </summary>
+            private bool isPlaying;
+
+            /// <summary>
+            /// the editor.
+            /// </summary>
+            private Editor editor;
+
+            /// <summary>
+            /// le temps a la derniere frame.
+            /// </summary>
+            private DateTime lastFrameTime;
+
             //--------------------------------------------------------------------------------------------
 
             /// <summary>
@@ -60,13 +76,38 @@ namespace PulseEditor
             private void RenderPlayBack()
             {
                 AnimationClip clip = playBackMotion as AnimationClip;
-                if (!avatar)
+                if (!avatar || !editor)
                     return;
                 if (!clip)
                     return;
                 if (winSize == Vector2.zero || winSize == Vector2.positiveInfinity || winSize == Vector2.negativeInfinity)
                     return;
-
+                Vector2 prevSize = new Vector2(winSize.x, winSize.y * 0.85f);
+                GUILayout.BeginVertical();
+                editor.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(prevSize.x, prevSize.y), null);
+                editor.ReloadPreviewInstances();
+                GUILayout.BeginHorizontal(new[] { GUILayout.Height(winSize.y * 0.15f)});
+                if (isPlaying)
+                {
+                    if (GUILayout.Button("||", new[] { GUILayout.Width(80)}))
+                    {
+                        //AnimationMode.StopAnimationMode();
+                        isPlaying = false;
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button(">>", new[] { GUILayout.Width(80) }))
+                    {
+                        //AnimationMode.StartAnimationMode();
+                        isPlaying = true;
+                    }
+                }
+                float val = EditorGUILayout.Slider(playBackTime, 0, clip.length);
+                playBackTime = !isPlaying ? val : playBackTime;
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+                ProcessAnimation();
             }
 
             /// <summary>
@@ -74,10 +115,105 @@ namespace PulseEditor
             /// </summary>
             private void RenderNull()
             {
+                GUILayout.BeginVertical();
+                var r = GUILayoutUtility.GetAspectRect(16f / 9);
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("<< Nothing to render >>");
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+            }
 
+            /// <summary>
+            /// Initialise the avatar.
+            /// </summary>
+            /// <param name="_avatar"></param>
+            private void Initialize(GameObject _avatar = null)
+            {
+                if (_avatar)
+                    avatar = _avatar;
+                else if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(PulseCore_GlobalValue_Manager.previewAvatarPath)))
+                {
+                    avatar = AssetDatabase.LoadAssetAtPath<GameObject>(PulseCore_GlobalValue_Manager.previewAvatarPath);
+                }
+                if (avatar)
+                {
+                    editor = Editor.CreateEditor(avatar);
+                }
+            }
+
+            /// <summary>
+            /// Update the animation.
+            /// </summary>
+            private void ProcessAnimation()
+            {
+                AnimationClip clip = playBackMotion as AnimationClip;
+                if (!avatar)
+                    return;
+                if (!clip)
+                    return;
+                var delta = DateTime.Now - lastFrameTime;
+                lastFrameTime = DateTime.Now;
+
+                if (!AnimationMode.InAnimationMode())
+                    AnimationMode.StartAnimationMode();
+
+                AnimationMode.BeginSampling();
+                AnimationMode.SampleAnimationClip(avatar, clip, playBackTime);
+                AnimationMode.EndSampling();
+
+                if (isPlaying)
+                {
+                    playBackTime += (float)delta.TotalSeconds;
+                    if (playBackMotion.isLooping)
+                        playBackTime = playBackTime % clip.length;
+                    else if(playBackTime > clip.length)
+                    {
+                        playBackTime = 0;
+                        //AnimationMode.StopAnimationMode();
+                        isPlaying = false;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Render the preview.
+            /// </summary>
+            public float RenderPreview(Motion _motion, Vector2 _size)
+            {
+                playBackMotion = _motion;
+                winSize = _size;
+                if (avatar && editor && playBackMotion)
+                    RenderPlayBack();
+                else
+                    RenderNull();
+                return playBackTime;
+            }
+
+            /// <summary>
+            /// Render the preview.
+            /// </summary>
+            public void RenderPreview(GameObject target, Motion _motion, Vector2 _size)
+            {
+                avatar = target;
+                playBackMotion = _motion;
+                winSize = _size;
+                if (avatar != target)
+                {
+                    editor = null;
+                    editor = Editor.CreateEditor(avatar);
+                }
+                if (avatar && editor && playBackMotion)
+                    RenderPlayBack();
+                else
+                    RenderNull();
             }
 
             //-------------------------------------------------------------------------------------------------
+
+            public AnimaPreview()
+            {
+                Initialize();
+            }
         }
 
         #endregion

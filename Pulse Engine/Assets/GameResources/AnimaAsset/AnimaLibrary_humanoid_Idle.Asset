@@ -12,7 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 340334532b1b21e4992aaf2972209b7c, type: 3}
   m_Name: AnimaLibrary_humanoid_Idle
   m_EditorClassIdentifier: 
-  animList: []
+  animList:
+  - id: 1
+    isHumanMotion: 1
+    animLayer: 0
+    eventList:
+    - command:
+        code: 0
+        primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      timeStamp:
+        time: 0.202
+        duration: 0.033333335
+    - command:
+        code: 0
+        primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      timeStamp:
+        time: 0.727
+        duration: 0.033333335
+    phaseAnims:
+    - phase: 2
+      timeStamp:
+        time: 0
+        duration: 0.033333335
+    physicPlace: 1
+    motion: {fileID: -203655887218126122, guid: f931fb37286611a479f46b219db5fbc5,
+      type: 3}
   animCategory: 0
   animType: 0
   dataType: 3

@@ -62,17 +62,28 @@ namespace PulseEngine.Module.Anima
         #endregion
         #region Structures ####################################################################
 
+        #endregion
+        #region Nested Classes ####################################################################
+
         /// <summary>
         /// La commande temporelle d'une animation.
         /// </summary>
-        public struct AnimeCommand
+        [System.Serializable]
+        public class AnimeCommand
         {
             public CommanderManager.CommandAction command;
             public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
         }
 
-        #endregion
-        #region Nested Classes ####################################################################
+        /// <summary>
+        /// La commande temporelle d'une animation.
+        /// </summary>
+        [System.Serializable]
+        public struct AnimePhaseTimeStamp
+        {
+            public AnimPhase phase;
+            public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
+        }
 
         #endregion
         #region Attributes ####################################################################

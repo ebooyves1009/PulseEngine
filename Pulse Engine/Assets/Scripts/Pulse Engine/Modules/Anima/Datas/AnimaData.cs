@@ -26,10 +26,10 @@ namespace PulseEngine.Module.Anima
         private int animLayer;
 
         [SerializeField]
-        private List<AnimaManager.AnimeCommand> eventList;
+        private List<AnimaManager.AnimeCommand> eventList = new List<AnimaManager.AnimeCommand>();
 
         [SerializeField]
-        private int phaseAnim;
+        private List<AnimaManager.AnimePhaseTimeStamp> phaseAnims = new List<AnimaManager.AnimePhaseTimeStamp>();
 
         [SerializeField]
         private int physicPlace;
@@ -64,7 +64,7 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// La phase d'animation en cours.
         /// </summary>
-        public AnimaManager.AnimPhase PhaseAnim { get { return (AnimaManager.AnimPhase)phaseAnim; } set { phaseAnim = (int)value; } }
+        public List<AnimaManager.AnimePhaseTimeStamp> PhaseAnims { get { return phaseAnims; } set { phaseAnims = value; } }
 
         /// <summary>
         /// Le lieux physique, terre, aux air ... ou il est possible d'effectuer l'action.
