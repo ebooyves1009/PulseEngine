@@ -12,13 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 340334532b1b21e4992aaf2972209b7c, type: 3}
   m_Name: AnimaLibrary_humanoid_Idle
   m_EditorClassIdentifier: 
-  animList:
-  - id: 1
-    isHumanMotion: 1
-    animLayer: 0
-    phaseAnim: 0
-    physicPlace: 0
-    motion: {fileID: 0}
+  animList: []
   animCategory: 0
   animType: 0
   dataType: 3

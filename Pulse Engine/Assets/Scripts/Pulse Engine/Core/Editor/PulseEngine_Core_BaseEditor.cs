@@ -25,6 +25,63 @@ namespace PulseEditor
 
         #endregion
 
+        #region Editor Nested Classes and utils #########################################################################
+
+        /// <summary>
+        /// Fait la prvisualisation d'une animation.
+        /// </summary>
+        protected class AnimaPreview : Editor
+        {
+            /// <summary>
+            /// The playback time.
+            /// </summary>
+            private float playBackTime;
+
+            /// <summary>
+            /// The playback motion.
+            /// </summary>
+            private Motion playBackMotion;
+
+            /// <summary>
+            /// the terget to render.
+            /// </summary>
+            private GameObject avatar;
+
+            /// <summary>
+            /// the windows size.
+            /// </summary>
+            private Vector2 winSize;
+
+            //--------------------------------------------------------------------------------------------
+
+            /// <summary>
+            /// Render the playback.
+            /// </summary>
+            private void RenderPlayBack()
+            {
+                AnimationClip clip = playBackMotion as AnimationClip;
+                if (!avatar)
+                    return;
+                if (!clip)
+                    return;
+                if (winSize == Vector2.zero || winSize == Vector2.positiveInfinity || winSize == Vector2.negativeInfinity)
+                    return;
+
+            }
+
+            /// <summary>
+            /// Render empty preview.
+            /// </summary>
+            private void RenderNull()
+            {
+
+            }
+
+            //-------------------------------------------------------------------------------------------------
+        }
+
+        #endregion
+
         #region Editor Events & Arguments ######################################################################
 
         /// <summary>
@@ -345,6 +402,8 @@ namespace PulseEditor
         {
             listViewCount++;
             Vector2 scroolPos = Vector2.zero;
+            if (ListsScrolls == null)
+                ListsScrolls = new Dictionary<int, Vector2>();
             if (ListsScrolls.ContainsKey(listViewCount))
                 scroolPos = ListsScrolls[listViewCount];
             else
@@ -385,15 +444,18 @@ namespace PulseEditor
         /// </summary>
         /// <param name="guiFunctions"></param>
         /// <param name="groupTitle"></param>
-        protected void ScrollablePanel(Action guiFunctions = null)
+        protected void ScrollablePanel(Action guiFunctions = null, bool fixedSize = false)
         {
             scrollPanCount++;
             Vector2 scroolPos = Vector2.zero;
+            if (PanelsScrools == null)
+                PanelsScrools = new Dictionary<int, Vector2>();
             if (PanelsScrools.ContainsKey(scrollPanCount))
                 scroolPos = PanelsScrools[scrollPanCount];
             else
                 PanelsScrools.Add(scrollPanCount, scroolPos);
-            scroolPos = GUILayout.BeginScrollView(scroolPos);
+            var options = new[] { GUILayout.MinWidth(100), GUILayout.MaxWidth(300) };
+            scroolPos = GUILayout.BeginScrollView(scroolPos, fixedSize? options: null);
             GUILayout.BeginVertical();
             if (guiFunctions != null)
                 guiFunctions.Invoke();

@@ -35,7 +35,7 @@ namespace PulseEngine.Module.Anima
         private int physicPlace;
 
         [SerializeField]
-        private Motion motion;
+        private AnimationClip motion;
 
         #endregion
 
@@ -74,7 +74,7 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// L'animation lue.
         /// </summary>
-        public Motion Motion { get { return motion; } set { motion = value; } }
+        public AnimationClip Motion { get { return motion; } set { motion = value; } }
 
         #endregion
 

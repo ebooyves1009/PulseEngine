@@ -134,7 +134,7 @@ namespace PulseEditor.Module.Anima
                 {
                     ListAnimations(editedAsset);
                     Foot();
-                });
+                },true);
                 ScrollablePanel(() =>
                 {
                     AnimDetails(dataEdited);
@@ -265,6 +265,11 @@ namespace PulseEditor.Module.Anima
             }
         }
 
+
+        Editor animTest;
+        GameObject avatar;
+        float time;
+
         /// <summary>
         /// details.
         /// </summary>
@@ -275,8 +280,60 @@ namespace PulseEditor.Module.Anima
                 return;
             GroupGUI(() =>
             {
+                data.Motion = EditorGUILayout.ObjectField(data.Motion, typeof(AnimationClip), false) as AnimationClip;
+                avatar = EditorGUILayout.ObjectField(avatar, typeof(GameObject), false) as GameObject;
+                if (animTest == null || animTest.target != avatar)
+                {
+                    animTest = null;
+                    animTest = Editor.CreateEditor(avatar);
+                }
+                if (AnimationMode.InAnimationMode())
+                {
+                    //AnimationMode.StopAnimationMode();
+                }
+                AnimationMode.StartAnimationMode();
+                if (data.Motion && animTest && animTest.target && avatar)
+                {
+                    if (AnimationMode.InAnimationMode())
+                    {
+                        //animTest = null;
+                        //animTest = Editor.CreateEditor(avatar);
+                        //AnimationMode.BeginSampling();
+                        //AnimationMode.SampleAnimationClip(avatar, data.Motion, time);
+                        //AnimationMode.EndSampling();
+                        animTest.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(300, 250), null);
+                        animTest.ReloadPreviewInstances();
+                        //animTest.ResetTarget();
+                        //animTest.MoveNextTarget();
+                        //animTest.Repaint();
+                        //time += Time.deltaTime;
+                        //time = time % data.Motion.length;
+                        time = EditorGUILayout.Slider(time, 0, data.Motion.length);
+                    }
+                    EditorGUILayout.LabelField("time: " + time, EditorStyles.boldLabel);
+                    //animTest.DrawDefaultInspector();
+                }
                 EditorGUILayout.LabelField("ID: " + data.ID, EditorStyles.boldLabel);
             }, "Details");
+        }
+
+        private void Update()
+        {
+            if (dataEdited == null)
+                return;
+            var data = dataEdited;
+            if (data.Motion && animTest && animTest.target && avatar)
+            {
+                if (AnimationMode.InAnimationMode())
+                {
+                    AnimationMode.BeginSampling();
+                    AnimationMode.SampleAnimationClip(avatar, data.Motion, time);
+                    AnimationMode.EndSampling();
+                    time += Time.deltaTime;
+                    time = time % data.Motion.length;
+                    Repaint();
+                }
+            }
         }
 
         #endregion
