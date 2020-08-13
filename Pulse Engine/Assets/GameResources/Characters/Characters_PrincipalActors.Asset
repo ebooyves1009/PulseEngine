@@ -12,5 +12,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc7c582ebf8d0af44bec610c17eae655, type: 3}
   m_Name: Characters_PrincipalActors
   m_EditorClassIdentifier: 
-  characterlist: []
+  characterlist:
+  - id: 1
+    idTrad: 1
+    tradDataType: 1
+    stats:
+      sante: 0
+      santeMax: 0
+      intelligence: 0
+      sagesse: 0
+      force: 0
+      endurance: 0
+      enduranceMax: 0
+      souffle: 0
+      souffleMax: 0
+      dexterite: 0
+      masse: 0
+      taille: 0
+      age: 0
+      karma: 0
+      paranormal: 0
+      fierte: 0
+      engoument: 0
+    character: {fileID: 919132149155446097, guid: 1671d2784c040634c845d02693028d16,
+      type: 3}
+    animatorController: {fileID: 0}
+    animatorAvatar: {fileID: 9000000, guid: 1671d2784c040634c845d02693028d16, type: 3}
+    armurie: []
   libraryDataType: 1

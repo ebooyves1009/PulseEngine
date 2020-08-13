@@ -19,6 +19,8 @@ namespace PulseEngine.Module.Commands
         public enum CommandType
         {
             none,
+            SheatheWeapon,
+            UnsheatheWeapon,
         }
 
         #endregion

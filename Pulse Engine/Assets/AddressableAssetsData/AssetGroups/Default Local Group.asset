@@ -17,12 +17,6 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: a19ce7e2652a19c49a90d9fde8c3e764
   m_SerializeEntries:
-  - m_GUID: 03e606987676e8f4fb5ac82092f330b8
-    m_Address: Assets/GameResources/Characters/Characters_Pnj.Asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    m_MainAsset: {fileID: 0}
-    m_TargetAsset: {fileID: 0}
   - m_GUID: 1ec03fceeb1f64c47a84ca91ea484223
     m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Defensive.Asset
     m_ReadOnly: 0
@@ -37,12 +31,6 @@ MonoBehaviour:
     m_TargetAsset: {fileID: 0}
   - m_GUID: 22cf6263e02ae1943af1fae1eb026675
     m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Animations.Asset
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    m_MainAsset: {fileID: 0}
-    m_TargetAsset: {fileID: 0}
-  - m_GUID: 2cefe9b125ebb394fbd3cde383ad3257
-    m_Address: Assets/GameResources/Characters/Characters_SecondaryActor.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}

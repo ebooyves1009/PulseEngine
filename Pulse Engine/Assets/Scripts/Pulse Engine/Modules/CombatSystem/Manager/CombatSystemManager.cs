@@ -75,8 +75,10 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// L'emplacement d'une arme sur le corps.
         /// </summary>
+        [System.Serializable]
         public struct WeaponPlace
         {
+            [SerializeField]
             private int parentBone;
             public Vector3 PositionOffset;
             public Quaternion RotationOffset;
@@ -87,6 +89,7 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Le donnes d'evenement d'animation d'une attaque.
         /// </summary>
+        [System.Serializable]
         public struct AttackEvent
         {
             private int type;

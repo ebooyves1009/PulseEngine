@@ -73,6 +73,7 @@ namespace PulseEngine.Module.Anima
         {
             public CommanderManager.CommandAction command;
             public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
+            public bool isOneTimeAction;
         }
 
         /// <summary>

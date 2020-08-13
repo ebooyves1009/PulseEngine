@@ -12,7 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 340334532b1b21e4992aaf2972209b7c, type: 3}
   m_Name: AnimaLibrary_humanoid_Locamotion
   m_EditorClassIdentifier: 
-  animList: []
+  animList:
+  - id: 1
+    isHumanMotion: 1
+    animLayer: 1
+    eventList: []
+    phaseAnims: []
+    physicPlace: 0
+    motion: {fileID: 7400000, guid: 46c9d91a6b9acbd4a97394816b82a8a4, type: 2}
   animCategory: 0
   animType: 1
   dataType: 3

@@ -33,6 +33,8 @@ namespace PulseEditor
         /// </summary>
         public class AnimaPreview : EditorWindow
         {
+
+            #region Attributes ------------------------------------------------------------------------------------
             /// <summary>
             /// The playback time.
             /// </summary>
@@ -68,7 +70,9 @@ namespace PulseEditor
             /// </summary>
             private DateTime lastFrameTime;
 
-            //--------------------------------------------------------------------------------------------
+            #endregion
+
+            #region Methods --------------------------------------------------------------------------------------------
 
             /// <summary>
             /// Render the playback.
@@ -210,10 +214,28 @@ namespace PulseEditor
 
             //-------------------------------------------------------------------------------------------------
 
-            public AnimaPreview()
+            private void OnEnable()
             {
                 Initialize();
             }
+
+            private void OnDisable()
+            {
+                if (editor)
+                    DestroyImmediate(editor);
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Return a texture colored.
+        /// </summary>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public static Texture2D ColorToTexture(Color col)
+        {
+            return default;
         }
 
         #endregion
