@@ -18,7 +18,7 @@ namespace PulseEditor.Module.CombatSystem
     /// <summary>
     /// L'editeur d'arsenal.
     /// </summary>
-    public class WeaponEditor : PulseEngine_Core_BaseEditor
+    public class WeaponEditor : PulseEditor
     {
         #region Fonctionnal Attributes ################################################################
 

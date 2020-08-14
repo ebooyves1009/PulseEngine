@@ -1,11 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
 
 
 
-namespace PulseEngine.Module.StatHandler
+namespace PulseEngine.Modules.StatHandler
 {
     /// <summary>
     /// La data statistique associee a des objets.
@@ -148,37 +149,37 @@ namespace PulseEngine.Module.StatHandler
         /// </summary>
         /// <param name="_statType"></param>
         /// <returns></returns>
-        public float GetStat(StatManager.StatType _statType)
+        public float GetStat(StatType _statType)
         {
             switch (_statType)
             {
-                case StatManager.StatType.Sante:
+                case StatType.Sante:
                     return Sante;
-                case StatManager.StatType.Intelligence:
+                case StatType.Intelligence:
                     return Intelligence;
-                case StatManager.StatType.Sagesse:
+                case StatType.Sagesse:
                     return Sagesse;
-                case StatManager.StatType.Force:
+                case StatType.Force:
                     return Force;
-                case StatManager.StatType.Endurance:
+                case StatType.Endurance:
                     return Endurance;
-                case StatManager.StatType.Souffle:
+                case StatType.Souffle:
                     return Souffle;
-                case StatManager.StatType.Dexterite:
+                case StatType.Dexterite:
                     return Dexterite;
-                case StatManager.StatType.Masse:
+                case StatType.Masse:
                     return Masse;
-                case StatManager.StatType.Taille:
+                case StatType.Taille:
                     return Taille;
-                case StatManager.StatType.Age:
+                case StatType.Age:
                     return Age;
-                case StatManager.StatType.Karma:
+                case StatType.Karma:
                     return Karma;
-                case StatManager.StatType.Paranormal:
+                case StatType.Paranormal:
                     return Paranormal;
-                case StatManager.StatType.Fierte:
+                case StatType.Fierte:
                     return Fierte;
-                case StatManager.StatType.Engoument:
+                case StatType.Engoument:
                     return Engoument;
                 default:
                     return sante;
@@ -190,50 +191,50 @@ namespace PulseEngine.Module.StatHandler
         /// </summary>
         /// <param name="_statType"></param>
         /// <returns></returns>
-        public void SetStat(StatManager.StatType _statType, float value)
+        public void SetStat(StatType _statType, float value)
         {
             switch (_statType)
             {
-                case StatManager.StatType.Sante:
+                case StatType.Sante:
                     Sante = value;
                     break;
-                case StatManager.StatType.Intelligence:
+                case StatType.Intelligence:
                     Intelligence = value;
                     break;
-                case StatManager.StatType.Sagesse:
+                case StatType.Sagesse:
                     Sagesse = value;
                     break;
-                case StatManager.StatType.Force:
+                case StatType.Force:
                     Force = value;
                     break;
-                case StatManager.StatType.Endurance:
+                case StatType.Endurance:
                     Endurance = value;
                     break;
-                case StatManager.StatType.Souffle:
+                case StatType.Souffle:
                     Souffle = value;
                     break;
-                case StatManager.StatType.Dexterite:
+                case StatType.Dexterite:
                     Dexterite = value;
                     break;
-                case StatManager.StatType.Masse:
+                case StatType.Masse:
                     Masse = value;
                     break;
-                case StatManager.StatType.Taille:
+                case StatType.Taille:
                     Taille = value;
                     break;
-                case StatManager.StatType.Age:
+                case StatType.Age:
                     Age = value;
                     break;
-                case StatManager.StatType.Karma:
+                case StatType.Karma:
                     Karma = value;
                     break;
-                case StatManager.StatType.Paranormal:
+                case StatType.Paranormal:
                     Paranormal = value;
                     break;
-                case StatManager.StatType.Fierte:
+                case StatType.Fierte:
                     Fierte = value;
                     break;
-                case StatManager.StatType.Engoument:
+                case StatType.Engoument:
                     Engoument = value;
                     break;
                 default:

@@ -2,17 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 using PulseEditor;
-using PulseEngine.Core;
 using PulseEngine.Module.StatHandler;
 using UnityEditor;
+using PulseEditor.Globals;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
+using PulseEngine.Modules.StatHandler;
 using System;
 
-namespace PulseEditor.Module.StatManager
+namespace PulseEditor.Modules.StatHandler
 {
     /// <summary>
     /// L'editeur de stats.
     /// </summary>
-    public class StatEditor : PulseEngine_Core_BaseEditor
+    public class StatEditor : PulseEditorMgr
     {
         #region Fonctionnal Attributes ################################################################
 
@@ -20,11 +23,6 @@ namespace PulseEditor.Module.StatManager
         /// La stat en cours de modification.
         /// </summary>
         private StatData data;
-
-        /// <summary>
-        /// La stat originale.
-        /// </summary>
-        private StatData originalData;
 
         #endregion
         #region Visual Attributes ################################################################
@@ -54,8 +52,8 @@ namespace PulseEditor.Module.StatManager
                     returnedStat.Invoke(obj);
                 };
             }
-            window.originalData = data;
-            window.data = PulseCore_GlobalValue_Manager.DeepCopy(data);
+            window.editedData = data;
+            window.data = PulseEngineMgr.DeepCopy(data);
             window.ShowAuxWindow();
         }
 

@@ -1,11 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Module.PhysicSpace;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
 
 
 
-namespace PulseEngine.Module.Anima
+namespace PulseEngine.Modules.Anima
 {
 
     /// <summary>
@@ -26,10 +27,10 @@ namespace PulseEngine.Module.Anima
         private int animLayer;
 
         [SerializeField]
-        private List<AnimaManager.AnimeCommand> eventList = new List<AnimaManager.AnimeCommand>();
+        private List<AnimeCommand> eventList = new List<AnimeCommand>();
 
         [SerializeField]
-        private List<AnimaManager.AnimePhaseTimeStamp> phaseAnims = new List<AnimaManager.AnimePhaseTimeStamp>();
+        private List<AnimePhaseTimeStamp> phaseAnims = new List<AnimePhaseTimeStamp>();
 
         [SerializeField]
         private int physicPlace;
@@ -54,22 +55,22 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// La calque d'animator sur lequel se trouve l'animation.
         /// </summary>
-        public AnimaManager.AnimationLayer AnimLayer { get => (AnimaManager.AnimationLayer)animLayer; set => animLayer = (int)value; }
+        public AnimaLayer AnimLayer { get => (AnimaLayer)animLayer; set => animLayer = (int)value; }
 
         /// <summary>
         /// La liste des evenements au cours de l'animation.
         /// </summary>
-        public List<AnimaManager.AnimeCommand> EventList { get { return eventList; } set { eventList = value; } }
+        public List<AnimeCommand> EventList { get { return eventList; } set { eventList = value; } }
 
         /// <summary>
         /// La phase d'animation en cours.
         /// </summary>
-        public List<AnimaManager.AnimePhaseTimeStamp> PhaseAnims { get { return phaseAnims; } set { phaseAnims = value; } }
+        public List<AnimePhaseTimeStamp> PhaseAnims { get { return phaseAnims; } set { phaseAnims = value; } }
 
         /// <summary>
         /// Le lieux physique, terre, aux air ... ou il est possible d'effectuer l'action.
         /// </summary>
-        public PhysicManager.PhysicSpace PhysicPlace { get { return (PhysicManager.PhysicSpace)physicPlace; } set { physicPlace = (int)value; } }
+        public PhysicSpaces PhysicPlace { get { return (PhysicSpaces)physicPlace; } set { physicPlace = (int)value; } }
 
         /// <summary>
         /// L'animation lue.

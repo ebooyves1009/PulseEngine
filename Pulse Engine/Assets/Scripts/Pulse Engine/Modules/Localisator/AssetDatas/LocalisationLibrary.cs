@@ -1,31 +1,35 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using PulseEngine.Globals;
 
-
-
-namespace PulseEngine.Module.Localisator
+namespace PulseEngine.Modules.Localisator
 {
     /// <summary>
     /// L'asset des datas de localisation par Langue.
     /// </summary>
     [System.Serializable]
-    public class LocalisationLibrary : ScriptableObject
+    public class LocalisationLibrary : ScriptableObject, IModuleAsset
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private List<Localisationdata> localizedDatas = new List<Localisationdata>();
+        private List<Localisationdata> libraryDatasList = new List<Localisationdata>();
 
         [SerializeField]
         private int libraryLanguage;
 
         [SerializeField]
+        private int libraryScope;
+
+        [SerializeField]
         private int libraryDataType;
+
+        [SerializeField]
+        private int libraryTradType;
 
         #endregion
 
@@ -35,17 +39,28 @@ namespace PulseEngine.Module.Localisator
         /// <summary>
         /// La liste des datas localisees pour ce type de data, en cette langue.
         /// </summary>
-        public List<Localisationdata> LocalizedDatas { get { return localizedDatas; } set { localizedDatas = value; } }
+        public List<Localisationdata> DatasList { get { return libraryDatasList; } set { libraryDatasList = value; } }
 
         /// <summary>
         /// La langue des datas de l'asset.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.Languages LibraryLanguage { get { return (PulseCore_GlobalValue_Manager.Languages)libraryLanguage; } }
+        public Languages Langage { get { return (Languages)libraryLanguage; } }
 
         /// <summary>
         /// Le type des datas de l'asset.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.DataType LibraryDataType { get { return (PulseCore_GlobalValue_Manager.DataType)libraryDataType; } }
+        public DataTypes DataType { get { return (DataTypes)libraryDataType; } }
+
+        /// <summary>
+        /// Le type de TradDatas de l'asset.
+        /// </summary>
+        public TradDataTypes TradType { get { return (TradDataTypes)libraryTradType; } }
+
+        /// <summary>
+        /// Le scope de l'asset.
+        /// </summary>
+        public Scopes Scope { get => (Scopes)libraryScope; set => libraryScope = (int)value; }
+
 
         #endregion
 
@@ -57,27 +72,27 @@ namespace PulseEngine.Module.Localisator
         /// Cree l'asset de Localisation.
         /// </summary>
         /// <param name="language">La langue cible</param>
-        /// <param name="dataType">Le type cible.</param>
+        /// <param name="tradDataType">Le type cible.</param>
         /// <returns></returns>
-        public static bool Create(PulseCore_GlobalValue_Manager.Languages language, PulseCore_GlobalValue_Manager.DataType dataType)
+        public static bool Save(Languages language, TradDataTypes tradDataType)
         {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + dataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Globals.PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Globals.PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 LocalisationLibrary asset = ScriptableObject.CreateInstance<LocalisationLibrary>();
-                asset.libraryDataType = (int)dataType;
+                asset.libraryDataType = (int)tradDataType;
                 asset.libraryLanguage = (int)language;
-                Debug.Log("Created with : " + asset.LibraryDataType+" and "+asset.LibraryLanguage+" at "+fullPath);
+                asset.Scope = Scopes.tous;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
                 //Make a gameobject an addressable
@@ -104,19 +119,19 @@ namespace PulseEngine.Module.Localisator
         /// Verifie si l'asset existe.
         /// </summary>
         /// <param name="language">La langue cible</param>
-        /// <param name="dataType">Le type cible.</param>
+        /// <param name="tradDataType">Le type cible.</param>
         /// <returns></returns>
-        public static bool Exist(PulseCore_GlobalValue_Manager.Languages language, PulseCore_GlobalValue_Manager.DataType dataType)
+        public static bool Exist(Languages language, TradDataTypes tradDataType)
         {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + dataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Globals.PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Globals.PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
@@ -133,15 +148,15 @@ namespace PulseEngine.Module.Localisator
         /// Charge l'asset.
         /// </summary>
         /// <param name="language">La langue cible</param>
-        /// <param name="dataType">Le type cible.</param>
+        /// <param name="tradDataType">Le type cible.</param>
         /// <returns></returns>
-        public static LocalisationLibrary Load(PulseCore_GlobalValue_Manager.Languages language, PulseCore_GlobalValue_Manager.DataType dataType)
+        public static LocalisationLibrary Load(Languages language, TradDataTypes tradDataType)
         {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + dataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (Exist(language, dataType))
+            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Globals.PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (Exist(language, tradDataType))
             {
                 return AssetDatabase.LoadAssetAtPath(fullPath, typeof(LocalisationLibrary)) as LocalisationLibrary;
             }

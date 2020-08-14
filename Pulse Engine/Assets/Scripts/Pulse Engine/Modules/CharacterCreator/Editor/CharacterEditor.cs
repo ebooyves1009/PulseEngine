@@ -2,21 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using PulseEditor;
-using PulseEngine.Core;
-using PulseEditor.Module.Localisator;
 using PulseEngine.Module.CharacterCreator;
 using UnityEditor;
 using System;
-using PulseEngine.Module.CombatSystem;
-using PulseEditor.Module.StatManager;
-using PulseEngine.Module.StatHandler;
 
 namespace PulseEditor.Module.CharacterCreator
 {
     /// <summary>
     /// L'editeur de characters.
     /// </summary>
-    public class CharacterEditor : PulseEngine_Core_BaseEditor
+    public class CharacterEditor : PulseEditor
     {
         #region Fonctionnal Attributes ################################################################
 

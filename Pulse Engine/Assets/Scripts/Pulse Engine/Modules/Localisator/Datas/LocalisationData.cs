@@ -1,16 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
+using PulseEngine.Globals;
 
-
-namespace PulseEngine.Module.Localisator
+namespace PulseEngine.Modules.Localisator
 {
     /// <summary>
     /// La Data de localisation contenu dans un asset de localisation, dans une langue precise.
     /// </summary>
     [System.Serializable]
-    public class Localisationdata
+    public class Localisationdata : IModuleData
     {
         #region Attributes ###############################################################
 
@@ -18,55 +17,55 @@ namespace PulseEngine.Module.Localisator
         private int trad_ID;
 
         [SerializeField]
-        private string title;
+        private TradField title;
 
         [SerializeField]
-        private string header;
+        private TradField header;
 
         [SerializeField]
-        private string banner;
+        private TradField banner;
 
         [SerializeField]
-        private string groupName;
+        private TradField groupName;
 
         [SerializeField]
-        private string toolTip;
+        private TradField toolTip;
 
         [SerializeField]
-        private string description;
+        private TradField description;
 
         [SerializeField]
-        private string details;
+        private TradField details;
 
         [SerializeField]
-        private string infos;
+        private TradField infos;
 
         [SerializeField]
-        private string child1;
+        private TradField child1;
 
         [SerializeField]
-        private string child2;
+        private TradField child2;
 
         [SerializeField]
-        private string child3;
+        private TradField child3;
 
         [SerializeField]
-        private string child4;
+        private TradField child4;
 
         [SerializeField]
-        private string child5;
+        private TradField child5;
 
         [SerializeField]
-        private string child6;
+        private TradField child6;
 
         [SerializeField]
-        private string footPage;
+        private TradField footPage;
 
         [SerializeField]
-        private string conclusion;
+        private TradField conclusion;
 
         [SerializeField]
-        private string end;
+        private TradField end;
 
         #endregion
 
@@ -75,92 +74,92 @@ namespace PulseEngine.Module.Localisator
         /// <summary>
         /// L'id de traduction.
         /// </summary>
-        public int Trad_ID { get { return trad_ID; } set { trad_ID = value; }  }
+        public int ID { get { return trad_ID; } set { trad_ID = value; } }
 
         /// <summary>
         /// Le titre.
         /// </summary>
-        public string Title { get {return title;} set { title = value; } }
+        public TradField Title { get {return title;} set { title = value; } }
 
         /// <summary>
         /// L'entete.
         /// </summary>
-        public string Header { get { return header; } set { header = value; } }
+        public TradField Header { get { return header; } set { header = value; } }
 
         /// <summary>
         /// La banniere.
         /// </summary>
-        public string Banner { get { return banner; } set { banner = value; } }
+        public TradField Banner { get { return banner; } set { banner = value; } }
 
         /// <summary>
         /// Le nom de groupe.
         /// </summary>
-        public string GroupName { get { return groupName; } set { groupName = value; } }
+        public TradField GroupName { get { return groupName; } set { groupName = value; } }
 
         /// <summary>
         /// Le texte au survol.
         /// </summary>
-        public string ToolTip { get { return toolTip; } set { toolTip = value; } }
+        public TradField ToolTip { get { return toolTip; } set { toolTip = value; } }
 
         /// <summary>
         /// La description.
         /// </summary>
-        public string Description { get { return description; } set { description = value; } }
+        public TradField Description { get { return description; } set { description = value; } }
 
         /// <summary>
         /// Les details.
         /// </summary>
-        public string Details { get { return details; } set { details = value; } }
+        public TradField Details { get { return details; } set { details = value; } }
 
         /// <summary>
         /// Les details avances.
         /// </summary>
-        public string Infos { get { return infos; } set { infos = value; } }
+        public TradField Infos { get { return infos; } set { infos = value; } }
 
         /// <summary>
         /// Le sous texte 1
         /// </summary>
-        public string Child1 { get { return child1; } set { child1 = value; } }
+        public TradField Child1 { get { return child1; } set { child1 = value; } }
 
         /// <summary>
         /// Le sous texte 2
         /// </summary>
-        public string Child2 { get { return child2; } set { child2 = value; } }
+        public TradField Child2 { get { return child2; } set { child2 = value; } }
 
         /// <summary>
         /// Le sous texte 3
         /// </summary>
-        public string Child3 { get { return child3; } set { child3 = value; } }
+        public TradField Child3 { get { return child3; } set { child3 = value; } }
 
         /// <summary>
         /// Le sous texte 4
         /// </summary>
-        public string Child4 { get { return child4; } set { child4 = value; } }
+        public TradField Child4 { get { return child4; } set { child4 = value; } }
 
         /// <summary>
         /// Le sous texte 5
         /// </summary>
-        public string Child5 { get { return child5; } set { child5 = value; } }
+        public TradField Child5 { get { return child5; } set { child5 = value; } }
 
         /// <summary>
         /// Le sous texte 6
         /// </summary>
-        public string Child6 { get { return child6; } set { child6 = value; } }
+        public TradField Child6 { get { return child6; } set { child6 = value; } }
 
         /// <summary>
         /// Le pied de page.
         /// </summary>
-        public string FootPage { get { return footPage; } set { footPage = value; } }
+        public TradField FootPage { get { return footPage; } set { footPage = value; } }
 
         /// <summary>
         /// La conclusion.
         /// </summary>
-        public string Conclusion { get { return conclusion; } set { conclusion = value; } }
+        public TradField Conclusion { get { return conclusion; } set { conclusion = value; } }
 
         /// <summary>
         /// Le ending / les credits
         /// </summary>
-        public string End { get { return end; } set { end = value; } }
+        public TradField End { get { return end; } set { end = value; } }
 
         #endregion
 

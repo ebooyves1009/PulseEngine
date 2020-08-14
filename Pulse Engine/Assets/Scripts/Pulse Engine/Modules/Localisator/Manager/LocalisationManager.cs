@@ -1,57 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
 using System.Threading.Tasks;
 using UnityEngine.AddressableAssets;
 using System.Linq;
-using static PulseEngine.Module.Localisator.LocalisationManager;
+using PulseEngine.Globals;
 
 
 //TODO: Continuer d'implementer des fonction au fil des besoins du module, sans oublier les fonction d'access aux datas inGame.
-namespace PulseEngine.Module.Localisator
+namespace PulseEngine.Modules.Localisator
 {
     /// <summary>
     /// Le Manager du Module Localisator.
     /// </summary>
     public static class LocalisationManager
     {
-        #region Enums and  structs #######################################################
-
-        /// <summary>
-        /// l'enumeration des champs d'un donnee de localisation.
-        /// </summary>
-        public enum DatalocationField
-        {
-            title,
-            header,
-            banner,
-            groupName,
-            toolTip,
-            description,
-            details,
-            infos,
-            child1,
-            child2,
-            child3,
-            child4,
-            child5,
-            child6,
-            footPage,
-            conclusion,
-            end,
-        }
-
-        #endregion
-
-        #region Module Globals ###################################################################
-
-        /// <summary>
-        /// Le chemin d'access des donneens de localisation.
-        /// </summary>
-        public static string AssetsPath { get { return "LocalisationDatas"; } }
-
-        #endregion
 
         #region Utils and helpers ################################################################
 
@@ -60,11 +23,11 @@ namespace PulseEngine.Module.Localisator
         /// </summary>
         /// <param name="langue">La langue source.</param>
         /// <returns></returns>
-        public static string LanguageConverter(PulseCore_GlobalValue_Manager.Languages langue)
+        public static string LanguageConverter(Languages langue)
         {
             switch (langue)
             {
-                case PulseCore_GlobalValue_Manager.Languages.English:
+                case Languages.English:
                     return "EN";
                 default:
                     return "FR";
@@ -81,18 +44,18 @@ namespace PulseEngine.Module.Localisator
         #region Methods ##################################################################
 
         /// <summary>
-        /// Retourne la data correspondante aux info renseignes dans la BD, ou revoi null.
+        /// Retourne la data textuelle correspondante aux info renseignes dans la BD, ou revoi null.
         /// </summary>
         /// <param name="_id"></param>
-        /// <param name="dataType"></param>
+        /// <param name="tradDataType"></param>
         /// <param name="langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(int _id, DatalocationField _field, int dataType, int langage)
+        public static async Task<string> TextData(int _id, DatalocationField _field, int tradDataType, int langage)
         {
             string result = string.Empty;
             LocalisationLibrary handle = null;
             Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter((PulseCore_GlobalValue_Manager.Languages)langage) + "_" + ((PulseCore_GlobalValue_Manager.DataType)dataType).ToString();
+            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
             var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
             if (locationsIlist == null || locationsIlist.Count <= 0)
                 return string.Empty;
@@ -103,7 +66,7 @@ namespace PulseEngine.Module.Localisator
             }
             if (handle)
             {
-                data = handle.LocalizedDatas.Find(d => { return d.Trad_ID == _id; });
+                data = handle.DatasList.Find(d => { return d.ID == _id; });
             }
             if (data == null)
                 return string.Empty;
@@ -111,55 +74,55 @@ namespace PulseEngine.Module.Localisator
             switch (_field)
             {
                 case DatalocationField.title:
-                    result = data.Title;
+                    result = data.Title.s_textField;
                     break;
                 case DatalocationField.header:
-                    result = data.Header;
+                    result = data.Header.s_textField;
                     break;
                 case DatalocationField.banner:
-                    result = data.Banner;
+                    result = data.Banner.s_textField;
                     break;
                 case DatalocationField.groupName:
-                    result = data.GroupName;
+                    result = data.GroupName.s_textField;
                     break;
                 case DatalocationField.toolTip:
-                    result = data.ToolTip;
+                    result = data.ToolTip.s_textField;
                     break;
                 case DatalocationField.description:
-                    result = data.Description;
+                    result = data.Description.s_textField;
                     break;
                 case DatalocationField.details:
-                    result = data.Details;
+                    result = data.Details.s_textField;
                     break;
                 case DatalocationField.infos:
-                    result = data.Infos;
+                    result = data.Infos.s_textField;
                     break;
                 case DatalocationField.child1:
-                    result = data.Child1;
+                    result = data.Child1.s_textField;
                     break;
                 case DatalocationField.child2:
-                    result = data.Child2;
+                    result = data.Child2.s_textField;
                     break;
                 case DatalocationField.child3:
-                    result = data.Child3;
+                    result = data.Child3.s_textField;
                     break;
                 case DatalocationField.child4:
-                    result = data.Child4;
+                    result = data.Child4.s_textField;
                     break;
                 case DatalocationField.child5:
-                    result = data.Child5;
+                    result = data.Child5.s_textField;
                     break;
                 case DatalocationField.child6:
-                    result = data.Child6;
+                    result = data.Child6.s_textField;
                     break;
                 case DatalocationField.footPage:
-                    result = data.FootPage;
+                    result = data.FootPage.s_textField;
                     break;
                 case DatalocationField.conclusion:
-                    result = data.Conclusion;
+                    result = data.Conclusion.s_textField;
                     break;
                 case DatalocationField.end:
-                    result = data.End;
+                    result = data.End.s_textField;
                     break;
             }
 
@@ -178,7 +141,7 @@ namespace PulseEngine.Module.Localisator
                         int type = 0;
                         if (int.TryParse(subParts[0], out id) && int.TryParse(subParts[1], out type))
                         {
-                            string subkey = "Localisator_" + LanguageConverter((PulseCore_GlobalValue_Manager.Languages)langage) + "_" + ((PulseCore_GlobalValue_Manager.DataType)type).ToString();
+                            string subkey = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((DataTypes)type).ToString();
                             var sublocationsIlist = await Addressables.LoadResourceLocationsAsync(subkey).Task;
                             if (locationsIlist == null || locationsIlist.Count <= 0)
                                 continue;
@@ -188,9 +151,9 @@ namespace PulseEngine.Module.Localisator
                                 var subHandle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
                                 if (subHandle)
                                 {
-                                    var subData = subHandle.LocalizedDatas.Find(d => { return d.Trad_ID == id; });
+                                    var subData = subHandle.DatasList.Find(d => { return d.ID == id; });
                                     if(subData != null)
-                                        parts[i] = subData.Title;
+                                        parts[i] = subData.Title.s_textField;
                                 }
                             }
                         }
@@ -199,16 +162,177 @@ namespace PulseEngine.Module.Localisator
             }
             return string.Join(" ",parts);
         }
+
+        /// <summary>
+        /// Retourne la data vocale correspondante aux info renseignes dans la BD, ou revoi null.
+        /// </summary>
+        /// <param name="_id"></param>
+        /// <param name="tradDataType"></param>
+        /// <param name="langage"></param>
+        /// <returns></returns>
+        public static async Task<AudioClip> AudioData(int _id, DatalocationField _field, int tradDataType, int langage)
+        {
+            AudioClip result = null;
+            LocalisationLibrary handle = null;
+            Localisationdata data = null;
+            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
+            var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
+            if (locationsIlist == null || locationsIlist.Count <= 0)
+                return null;
+            var location = locationsIlist.FirstOrDefault();
+            if(location != null)
+            {
+                handle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
+            }
+            if (handle)
+            {
+                data = handle.DatasList.Find(d => { return d.ID == _id; });
+            }
+            if (data == null)
+                return null;
+
+            switch (_field)
+            {
+                case DatalocationField.title:
+                    result = data.Title.s_audioField;
+                    break;
+                case DatalocationField.header:
+                    result = data.Header.s_audioField;
+                    break;
+                case DatalocationField.banner:
+                    result = data.Banner.s_audioField;
+                    break;
+                case DatalocationField.groupName:
+                    result = data.GroupName.s_audioField;
+                    break;
+                case DatalocationField.toolTip:
+                    result = data.ToolTip.s_audioField;
+                    break;
+                case DatalocationField.description:
+                    result = data.Description.s_audioField;
+                    break;
+                case DatalocationField.details:
+                    result = data.Details.s_audioField;
+                    break;
+                case DatalocationField.infos:
+                    result = data.Infos.s_audioField;
+                    break;
+                case DatalocationField.child1:
+                    result = data.Child1.s_audioField;
+                    break;
+                case DatalocationField.child2:
+                    result = data.Child2.s_audioField;
+                    break;
+                case DatalocationField.child3:
+                    result = data.Child3.s_audioField;
+                    break;
+                case DatalocationField.child4:
+                    result = data.Child4.s_audioField;
+                    break;
+                case DatalocationField.child5:
+                    result = data.Child5.s_audioField;
+                    break;
+                case DatalocationField.child6:
+                    result = data.Child6.s_audioField;
+                    break;
+                case DatalocationField.footPage:
+                    result = data.FootPage.s_audioField;
+                    break;
+                case DatalocationField.conclusion:
+                    result = data.Conclusion.s_audioField;
+                    break;
+                case DatalocationField.end:
+                    result = data.End.s_audioField;
+                    break;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Retourne la data Image correspondante aux info renseignes dans la BD, ou revoi null.
+        /// </summary>
+        /// <param name="_id"></param>
+        /// <param name="tradDataType"></param>
+        /// <param name="langage"></param>
+        /// <returns></returns>
+        public static async Task<Sprite> ImageData(int _id, DatalocationField _field, int tradDataType, int langage)
+        {
+            Sprite result = null;
+            LocalisationLibrary handle = null;
+            Localisationdata data = null;
+            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
+            var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
+            if (locationsIlist == null || locationsIlist.Count <= 0)
+                return null;
+            var location = locationsIlist.FirstOrDefault();
+            if (location != null)
+            {
+                handle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
+            }
+            if (handle)
+            {
+                data = handle.DatasList.Find(d => { return d.ID == _id; });
+            }
+            if (data == null)
+                return null;
+
+            switch (_field)
+            {
+                case DatalocationField.title:
+                    result = data.Title.s_imageField;
+                    break;
+                case DatalocationField.header:
+                    result = data.Header.s_imageField;
+                    break;
+                case DatalocationField.banner:
+                    result = data.Banner.s_imageField;
+                    break;
+                case DatalocationField.groupName:
+                    result = data.GroupName.s_imageField;
+                    break;
+                case DatalocationField.toolTip:
+                    result = data.ToolTip.s_imageField;
+                    break;
+                case DatalocationField.description:
+                    result = data.Description.s_imageField;
+                    break;
+                case DatalocationField.details:
+                    result = data.Details.s_imageField;
+                    break;
+                case DatalocationField.infos:
+                    result = data.Infos.s_imageField;
+                    break;
+                case DatalocationField.child1:
+                    result = data.Child1.s_imageField;
+                    break;
+                case DatalocationField.child2:
+                    result = data.Child2.s_imageField;
+                    break;
+                case DatalocationField.child3:
+                    result = data.Child3.s_imageField;
+                    break;
+                case DatalocationField.child4:
+                    result = data.Child4.s_imageField;
+                    break;
+                case DatalocationField.child5:
+                    result = data.Child5.s_imageField;
+                    break;
+                case DatalocationField.child6:
+                    result = data.Child6.s_imageField;
+                    break;
+                case DatalocationField.footPage:
+                    result = data.FootPage.s_imageField;
+                    break;
+                case DatalocationField.conclusion:
+                    result = data.Conclusion.s_imageField;
+                    break;
+                case DatalocationField.end:
+                    result = data.End.s_imageField;
+                    break;
+            }
+            return result;
+        }
         #endregion
     }
 
-    /// <summary>
-    /// L'interface de toute donne traductible.
-    /// </summary>
-    interface ITraductible
-    {
-        int IdTrad { get; set; }
-        PulseCore_GlobalValue_Manager.DataType TradDataType { get; set; }
-        Task<string> GetTradText(DatalocationField field);
-    }
 }

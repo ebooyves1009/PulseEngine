@@ -1,101 +1,46 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
-using PulseEngine.Module.Commands;
+using PulseEngine.Globals;
 
 
-namespace PulseEngine.Module.Anima
+namespace PulseEngine.Modules.Anima
 {
+    /// <summary>
+    /// Le manager du module Anima
+    /// </summary>
     public static class AnimaManager
     {
-        #region Enums ####################################################################
-
-        /// <summary>
-        /// La phase d'une animation.
-        /// </summary>
-        public enum AnimPhase
-        {
-            Repos,
-            Preparing,
-            Processing,
-            PostProcessing,
-            recovering
-        }
-
-        /// <summary>
-        /// Le layer sur lequel est place une animation dans l'animator.
-        /// </summary>
-        public enum AnimationLayer
-        {
-            IdleLayer,
-            LocamotionLayer,
-            InterractionLayer,
-            OffensiveLayer,
-            DefensiveLayer,
-            DamageLayer
-        }
-
-        /// <summary>
-        /// Le type d'animation.
-        /// </summary>
-        public enum AnimationType
-        {
-            Idle,
-            Locamotion,
-            Interraction,
-            Offensive,
-            Defensive,
-            Damage
-        }
-
-        /// <summary>
-        /// La categorie d'une animation.
-        /// </summary>
-        public enum AnimaCategory
-        {
-            humanoid,
-            quadruped,
-            generic
-        }
-
-        #endregion
-        #region Structures ####################################################################
-
-        #endregion
-        #region Nested Classes ####################################################################
-
-        /// <summary>
-        /// La commande temporelle d'une animation.
-        /// </summary>
-        [System.Serializable]
-        public class AnimeCommand
-        {
-            public CommanderManager.CommandAction command;
-            public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
-            public bool isOneTimeAction;
-        }
-
-        /// <summary>
-        /// La commande temporelle d'une animation.
-        /// </summary>
-        [System.Serializable]
-        public struct AnimePhaseTimeStamp
-        {
-            public AnimPhase phase;
-            public PulseCore_GlobalValue_Manager.TimeStamp timeStamp;
-        }
-
-        #endregion
         #region Attributes ####################################################################
-
-        /// <summary>
-        /// Le chemin d'acces local des datas
-        /// </summary>
-        public static string AssetsPath { get => "AnimaAsset"; }
 
         #endregion
         #region Methods ####################################################################
+
+        /// <summary>
+        /// Get the animator layer corresponding to AnimType.
+        /// </summary>
+        /// <param name="_type"></param>
+        /// <returns></returns>
+        public static AnimaLayer LayerFromType(AnimaType _type)
+        {
+            switch (_type)
+            {
+                case AnimaType.Idle:
+                    return AnimaLayer.IdleLayer;
+                case AnimaType.Locamotion:
+                    return AnimaLayer.LocamotionLayer;
+                case AnimaType.Interraction:
+                    return AnimaLayer.InterractionLayer;
+                case AnimaType.Offensive:
+                    return AnimaLayer.OffensiveLayer;
+                case AnimaType.Defensive:
+                    return AnimaLayer.DefensiveLayer;
+                case AnimaType.Damage:
+                    return AnimaLayer.DamageLayer;
+                default:
+                    return AnimaLayer.IdleLayer;
+            }
+        }
 
         #endregion
         #region Extension&Helpers ####################################################################

@@ -1,45 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
 
 
 
 namespace PulseEngine.Module.StatHandler
 {
-
+    /// <summary>
+    /// Le manager de StatHandler
+    /// </summary>
     public static class StatManager
     {
-        #region Enums ####################################################################
-
-        /// <summary>
-        /// Le type des stats.
-        /// </summary>
-        public enum StatType
-        {
-            Sante,
-            Intelligence,
-            Sagesse,
-            Force,
-            Endurance,
-            Souffle,
-            Dexterite,
-            Masse,
-            Taille,
-            Age,
-            Karma,
-            Paranormal,
-            Fierte,
-            Engoument
-        }
-
-        #endregion
-        #region Structures ####################################################################
-
-        #endregion
-        #region Nested Classes ####################################################################
-
-        #endregion
         #region Attributes ####################################################################
 
         #endregion

@@ -1,29 +1,31 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using PulseEngine.Globals;
 
-namespace PulseEngine.Module.Anima
+namespace PulseEngine.Modules.Anima
 {
     /// <summary>
     /// la library d'animation par type et catagorie.
     /// </summary>
     [System.Serializable]
-    public class AnimaLibrary : ScriptableObject
+    public class AnimaLibrary : ScriptableObject, IModuleAsset
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private List<AnimaData> animList = new List<AnimaData>();
+        private List<AnimaData> datasList = new List<AnimaData>();
         [SerializeField]
         private int animCategory;
         [SerializeField]
         private int animType;
         [SerializeField]
         private int dataType;
+        [SerializeField]
+        private int scope;
 
         #endregion
         #region Proprietes ##########################################################
@@ -31,22 +33,28 @@ namespace PulseEngine.Module.Anima
         /// <summary>
         /// La liste des animations.
         /// </summary>
-        public List<AnimaData> AnimList { get => animList; set => animList = value; }
+        public List<AnimaData> DataList { get => datasList; set => datasList = value; }
 
         /// <summary>
         /// La categorie de l'animation; representant souvent le type d'anatomie de la cible.
         /// </summary>
-        public AnimaManager.AnimaCategory AnimCategory { get => (AnimaManager.AnimaCategory)animCategory; set => animCategory = (int)value; }
+        public AnimaCategory AnimCategory { get => (AnimaCategory)animCategory; set => animCategory = (int)value; }
 
         /// <summary>
         /// La type d'animation, idle, locomotion etc...
         /// </summary>
-        public AnimaManager.AnimationType AnimType { get => (AnimaManager.AnimationType)animType; set => animType = (int)value; }
+        public AnimaType AnimType { get => (AnimaType)animType; set => animType = (int)value; }
 
         /// <summary>
         /// Le type de data.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.DataType DataType { get => (PulseCore_GlobalValue_Manager.DataType)dataType; set => dataType = (int)value; }
+        DataTypes IModuleAsset.DataType => (DataTypes)dataType;
+
+        /// <summary>
+        /// Le scope de celui qui a cree.
+        /// </summary>
+        public Scopes Scope { get => (Scopes)scope; set => scope = (int)value; }
+
 
         #endregion
 #if UNITY_EDITOR //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -57,25 +65,26 @@ namespace PulseEngine.Module.Anima
         /// Cree l'asset.
         /// </summary>
         /// <returns></returns>
-        public static bool Create(AnimaManager.AnimaCategory _cat, AnimaManager.AnimationType _typ)
+        public static bool Save(AnimaCategory _cat, AnimaType _typ)
         {
             string fileName = "AnimaLibrary_" + _cat +"_"+_typ+ ".Asset";
-            string path = AnimaManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 AnimaLibrary asset = ScriptableObject.CreateInstance<AnimaLibrary>();
-                asset.dataType = (int)PulseCore_GlobalValue_Manager.DataType.Animations;
+                asset.dataType = (int)DataTypes.AnimaData;
                 asset.AnimType = _typ;
                 asset.AnimCategory = _cat;
+                asset.Scope = Scopes.tous;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
                 //Make a gameobject an addressable
@@ -102,17 +111,17 @@ namespace PulseEngine.Module.Anima
         /// Verifie si l'asset existe.
         /// </summary>
         /// <returns></returns>
-        public static bool Exist(AnimaManager.AnimaCategory _cat, AnimaManager.AnimationType _typ)
+        public static bool Exist(AnimaCategory _cat, AnimaType _typ)
         {
             string fileName = "AnimaLibrary_" + _cat + "_" + _typ + ".Asset";
-            string path = AnimaManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
@@ -129,12 +138,12 @@ namespace PulseEngine.Module.Anima
         /// Charge l'asset.
         /// </summary>
         /// <returns></returns>
-        public static AnimaLibrary Load(AnimaManager.AnimaCategory _cat, AnimaManager.AnimationType _typ)
+        public static AnimaLibrary Load(AnimaCategory _cat, AnimaType _typ)
         {
             string fileName = "AnimaLibrary_" + _cat + "_" + _typ + ".Asset";
-            string path = AnimaManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
             if (Exist(_cat, _typ))
             {
                 return AssetDatabase.LoadAssetAtPath(fullPath, typeof(AnimaLibrary)) as AnimaLibrary;

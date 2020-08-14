@@ -5,7 +5,7 @@ using UnityEngine;
 
 
 
-namespace PulseEngine.Module.Anima
+namespace PulseEngine.Modules.Anima
 {
 
     /// <summary>

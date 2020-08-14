@@ -2,62 +2,40 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using PulseEngine.Core;
-using PulseEditor;
 using System;
 using System.Linq;
-using PulseEngine.Module.Localisator;
+using PulseEditor.Globals;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
+using PulseEngine.Modules.Localisator;
+using UILayout = UnityEngine.GUILayout;
+using EILayout = UnityEditor.EditorGUILayout;
 
 
 //TODO: implementer les details de la data.
-namespace PulseEditor.Module.Localisator
+namespace PulseEditor.Modules.Localisator
 {
     /// <summary>
     /// L'editeur de localisation.
     /// </summary>
-    public class LocalisationEditor : PulseEngine_Core_BaseEditor
+    public class LocalisationEditor : PulseEditorMgr
     {
         #region Attributs ##################################################################################
 
         /// <summary>
         /// La langue choisie.
         /// </summary>
-        private int selectedLangage;
+        private Languages selectedLangage;
 
         /// <summary>
         /// Le type de data choisie.
         /// </summary>
-        private int selectedDataType;
-
-        /// <summary>
-        /// L'index de la data choisie.
-        /// </summary>
-        private int selectedDataIndex;
-
-        /// <summary>
-        /// Tous les assets de localisation.
-        /// </summary>
-        private List<LocalisationLibrary> allAsset = new List<LocalisationLibrary>();
-
-        /// <summary>
-        /// L'asset chargee.
-        /// </summary>
-        private LocalisationLibrary asset;
+        private TradDataTypes selectedDataType;
 
         /// <summary>
         /// L'asset temporaire du meme type de data mais pas de la meme langue.
         /// </summary>
         private LocalisationLibrary auXasset;
-
-        /// <summary>
-        /// L'asset en cours de modification.
-        /// </summary>
-        private LocalisationLibrary editedAsset;
-
-        /// <summary>
-        /// La data de localisation en cours d'edition.
-        /// </summary>
-        private Localisationdata editedData;
 
         /// <summary>
         /// le type data du hash tag selectionne.
@@ -69,19 +47,14 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         private int hashtag_id;
 
-        /// <summary>
-        /// L'id de la data a modifier en mode modification
-        /// </summary>
-        private int dataID;
-
         #endregion
 
-        #region GUIFunctions ###############################################################################
+        #region Static Functions ###########################################################################
 
         /// <summary>
         /// Open the editor
         /// </summary>
-        [MenuItem(PulseCore_GlobalValue_Manager.Menu_EDITOR_MENU + "Localisator Editor")]
+        [MenuItem(Menu_EDITOR_MENU + "Localisator Editor")]
         public static void OpenEditor()
         {
             var window = GetWindow<LocalisationEditor>();
@@ -92,11 +65,11 @@ namespace PulseEditor.Module.Localisator
         /// <summary>
         /// Open the selector
         /// </summary>
-        public static void OpenSelector(Action<object,EventArgs> onSelect, PulseCore_GlobalValue_Manager.DataType dtype)
+        public static void OpenSelector(Action<object, EventArgs> onSelect, TradDataTypes dtype)
         {
             var window = GetWindow<LocalisationEditor>(true, "Localisator Selector");
             window.windowOpenMode = EditorMode.Selector;
-            window.selectedDataType = (int)dtype;
+            window.selectedDataType = dtype;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) =>
@@ -110,11 +83,11 @@ namespace PulseEditor.Module.Localisator
         /// <summary>
         /// Open the Item selector
         /// </summary>
-        public static void OpenModifier(int _id, PulseCore_GlobalValue_Manager.DataType dType)
+        public static void OpenModifier(int _id, TradDataTypes dType)
         {
             var window = GetWindow<LocalisationEditor>(true, "Localisator Modifier");
             window.windowOpenMode = EditorMode.ItemEdition;
-            window.selectedDataType = (int)dType;
+            window.selectedDataType = dType;
             window.dataID = _id;
             window.ShowAuxWindow();
         }
@@ -122,25 +95,23 @@ namespace PulseEditor.Module.Localisator
         /// <summary>
         /// Request a text on editor mode
         /// </summary>
-        public static string[] GetTexts(int _id, PulseCore_GlobalValue_Manager.DataType dType)
+        public static string[] GetTexts(int _id, TradDataTypes dType)
         {
             List<string> retList = new List<string>();
             var allAsset = new List<LocalisationLibrary>();
             LocalisationLibrary asset = null;
 
-            foreach (PulseCore_GlobalValue_Manager.Languages langue in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.Languages)))
+            foreach (Languages langue in Enum.GetValues(typeof(Languages)))
             {
-                foreach (PulseCore_GlobalValue_Manager.DataType type in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.DataType)))
+                foreach (TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
                 {
-                    if (type == PulseCore_GlobalValue_Manager.DataType.None)
-                        continue;
                     if (LocalisationLibrary.Exist(langue, type))
                     {
                         var load = LocalisationLibrary.Load(langue, type);
                         if (load != null)
                             allAsset.Add(load);
                     }
-                    else if (LocalisationLibrary.Create(langue, type))
+                    else if (LocalisationLibrary.Save(langue, type))
                     {
                         var load = LocalisationLibrary.Load(langue, type);
                         if (load != null)
@@ -151,73 +122,76 @@ namespace PulseEditor.Module.Localisator
 
             if (allAsset != null && allAsset.Count > 0 && _id > 0)
             {
-                int index = allAsset.FindIndex(library => { return library.LibraryLanguage == PulseCore_GlobalValue_Manager.currentLanguage && library.LibraryDataType == dType; });
+                int index = allAsset.FindIndex(library => { return library.Langage == PulseEngineMgr.currentLanguage && library.TradType == dType; });
                 if (index >= 0)
                     asset = allAsset[index];
-                var data = asset.LocalizedDatas.Find(dt => { return dt.Trad_ID == _id; });
-                if(data != null)
+                var data = asset.DatasList.Find(dt => { return dt.ID == _id; });
+                if (data != null)
                 {
-                    retList.Add(data.Title);
-                    retList.Add(data.Description);
-                    retList.Add(data.Details);
+                    retList.Add(data.Title.s_textField);
+                    retList.Add(data.Description.s_textField);
+                    retList.Add(data.Details.s_textField);
                 }
             }
             return retList.ToArray();
         }
 
+        #endregion
+
+        #region GUIFunctions ###############################################################################
+
+
         /// <summary>
         /// La tete de fenetre.
         /// </summary>
         /// <returns></returns>
-        private bool Header(PulseCore_GlobalValue_Manager.Languages langue = PulseCore_GlobalValue_Manager.Languages.Francais , PulseCore_GlobalValue_Manager.DataType dataType = PulseCore_GlobalValue_Manager.DataType.None)
+        private bool Header(Languages langue = Languages.Francais , TradDataTypes tradDataType = TradDataTypes.Person)
         {
             if (windowOpenMode == EditorMode.Normal)
             {
-                langue = PulseCore_GlobalValue_Manager.Languages.Francais;
+                langue = Languages.Francais;
                 GroupGUInoStyle(() =>
                 {
-                    selectedLangage = GUILayout.Toolbar(selectedLangage, Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.Languages)));
-                    switch ((PulseCore_GlobalValue_Manager.Languages)selectedLangage)
+                    selectedLangage = (Languages)GUILayout.Toolbar((int)selectedLangage, Enum.GetNames(typeof(Languages)));
+                    switch (selectedLangage)
                     {
-                        case PulseCore_GlobalValue_Manager.Languages.English:
-                            langue = PulseCore_GlobalValue_Manager.Languages.English;
+                        case Languages.English:
+                            langue = Languages.English;
                             break;
                         default:
-                            langue = PulseCore_GlobalValue_Manager.Languages.Francais;
+                            langue = Languages.Francais;
                             break;
                     }
                 }, "Language", 50);
-                dataType = PulseCore_GlobalValue_Manager.DataType.None;
+                tradDataType = TradDataTypes.Person;
                 GroupGUInoStyle(() =>
                 {
-                    selectedDataType = GUILayout.Toolbar(selectedDataType, Enum.GetNames(typeof(PulseCore_GlobalValue_Manager.DataType)));
+                    selectedDataType = (TradDataTypes)EILayout.EnumPopup(selectedDataType);
                     //selectedDataType = Mathf.Clamp(selectedDataType, 1, selectedDataType);
-                    dataType = (PulseCore_GlobalValue_Manager.DataType)selectedDataType;
+                    tradDataType = selectedDataType;
                 }, "Type", 50);
-                if (dataType == PulseCore_GlobalValue_Manager.DataType.None)
-                    return false;
             }
             if (asset == null)
             {
-                if (allAsset.Count > 0)
+                if (allAssets.Count > 0)
                 {
-                    int index = allAsset.FindIndex(library => { return library.LibraryLanguage == langue && library.LibraryDataType == dataType; });
+                    int index = allAssets.FindIndex(library => { return ((LocalisationLibrary)library).Langage == langue && ((LocalisationLibrary)library).TradType == tradDataType; });
                     if (editedAsset != null && asset != null)
                         SaveAsset(editedAsset, asset);
                     editedAsset = null;
                     if (index >= 0)
-                        asset = allAsset[index];
+                        asset = allAssets[index];
                     else
                         return false;
                 }
                 else
                     return false;
             }
-            else if (asset.LibraryDataType != dataType || asset.LibraryLanguage != langue)
+            else if (((LocalisationLibrary)asset).TradType != tradDataType || ((LocalisationLibrary)asset).Langage != langue)
             {
-                int index = allAsset.FindIndex(library => { return library.LibraryLanguage == langue && library.LibraryDataType == dataType; });
+                int index = allAssets.FindIndex(library => { return ((LocalisationLibrary)library).Langage == langue && ((LocalisationLibrary)library).TradType == tradDataType; });
                 if (index >= 0)
-                    asset = allAsset[index];
+                    asset = allAssets[index];
                 else
                     return false;
             }
@@ -245,7 +219,7 @@ namespace PulseEditor.Module.Localisator
                     break;
                 case EditorMode.Selector:
                     SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { Select(editedData, true);}),
+                        new KeyValuePair<string, Action>("Select", ()=> { Select((Localisationdata)editedData, true);}),
                         new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                     break;
@@ -269,7 +243,8 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         private void PageBody()
         {
-            if (editedAsset == null)
+            var _editedAsset = editedAsset as LocalisationLibrary;
+            if (_editedAsset == null)
                 return;
 
             GUILayout.BeginHorizontal();
@@ -300,35 +275,44 @@ namespace PulseEditor.Module.Localisator
                         GUILayout.BeginVertical();
                         List<GUIContent> listContent = new List<GUIContent>();
                         int maxId = 0;
-                        for (int i = 0; i < editedAsset.LocalizedDatas.Count; i++) {
-                            var data = editedAsset.LocalizedDatas[i];
+                        for (int i = 0; i < _editedAsset.DatasList.Count; i++) {
+                            var data = _editedAsset.DatasList[i];
                             char[] titleChars = new char[LIST_MAX_CHARACTERS];
                             string pointDeSuspension = string.Empty;
                             try
                             {
-                                if (data.Trad_ID > maxId) maxId = data.Trad_ID;
+                                if (data.ID > maxId) maxId = data.ID;
                                 for (int j = 0; j < titleChars.Length; j++)
-                                    if (j < data.Title.Length)
-                                        titleChars[j] = data.Title[j];
-                                if (data.Title.Length >= titleChars.Length)
+                                    if (j < data.Title.s_textField.Length)
+                                        titleChars[j] = data.Title.s_textField[j];
+                                if (data.Title.s_textField.Length >= titleChars.Length)
                                     pointDeSuspension = "...";
                             }
                             catch { }
                             string title = new string(titleChars) + pointDeSuspension;
-                            listContent.Add(new GUIContent { text = data != null ? data.Trad_ID + "-" + title : "null data" });
+                            listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
                         }
-                        selectedDataIndex = ListItems(selectedDataIndex, listContent.ToArray());
+                        selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
                         GUILayout.Space(5);
+                        GUILayout.BeginHorizontal();
                         if (GUILayout.Button("+"))
                         {
-                            editedAsset.LocalizedDatas.Add(new Localisationdata { Trad_ID = maxId + 1 });
+                            _editedAsset.DatasList.Add(new Localisationdata { ID = maxId + 1 });
                         }
+                        if(selectDataIndex >= 0)
+                        {
+                            if (GUILayout.Button("-"))
+                            {
+                                _editedAsset.DatasList.RemoveAt(selectDataIndex);
+                            }
+                        }
+                        GUILayout.EndHorizontal();
                         GUILayout.EndVertical();
                     }, "Localisation Datas List");
                 });
             }else if(windowOpenMode == EditorMode.ItemEdition)
             {
-                selectedDataIndex = asset.LocalizedDatas.FindIndex(data => { return data.Trad_ID == dataID; });
+                selectDataIndex = ((LocalisationLibrary)asset).DatasList.FindIndex(data => { return data.ID == dataID; });
             }
             GUILayout.Space(5);
             HashTagGenerator();
@@ -339,13 +323,13 @@ namespace PulseEditor.Module.Localisator
             //column two
             try
             {
-                if (selectedDataIndex < editedAsset.LocalizedDatas.Count && selectedDataIndex >= 0)
+                if (selectDataIndex < _editedAsset.DatasList.Count && selectDataIndex >= 0)
                 {
-                    editedData = editedAsset.LocalizedDatas[selectedDataIndex];
+                    editedData = _editedAsset.DatasList[selectDataIndex];
                     if (windowOpenMode == EditorMode.Normal || windowOpenMode == EditorMode.ItemEdition)
-                        PageDetailsEdition(editedData);
+                        PageDetailsEdition((Localisationdata)editedData);
                     else if (windowOpenMode == EditorMode.Selector)
-                        PageDetailsPreview(editedData);
+                        PageDetailsPreview((Localisationdata)editedData);
                 }
             }
             catch { }
@@ -376,6 +360,14 @@ namespace PulseEditor.Module.Localisator
                         return true;
                 }
             };
+            Func<TradField, TradField> MakeField = field =>
+              {
+                  var fieldCpy = field;
+                  fieldCpy.s_textField = EditorGUILayout.TextArea(data.Title.s_textField, style_txtArea);
+                  fieldCpy.s_audioField = (AudioClip)EditorGUILayout.ObjectField(data.Title.s_audioField, typeof(AudioClip), false, new[] { UILayout.Width(50) });
+                  fieldCpy.s_imageField = (Sprite)EditorGUILayout.ObjectField(data.Title.s_imageField, typeof(Sprite), false, new[] { UILayout.Width(50) });
+                  return fieldCpy;
+              };
             if (detailsCompatiblesmode())
             {
                 ScrollablePanel(() =>
@@ -386,96 +378,96 @@ namespace PulseEditor.Module.Localisator
                         //Trad ID
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Traduction ID: ", style_label);
-                        GUILayout.Label(data.Trad_ID.ToString());
+                        GUILayout.Label(data.ID.ToString());
                         GUILayout.EndHorizontal();
                         //Title
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Title :", style_label);
-                        data.Title = EditorGUILayout.TextArea(data.Title);
+                        data.Title = MakeField(data.Title);
                         GUILayout.EndHorizontal();
                         //Banner
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Banner :", style_label);
-                        data.Banner = EditorGUILayout.TextArea(data.Banner);
+                        data.Banner = MakeField(data.Banner);
                         GUILayout.EndHorizontal();
                         //GroupName
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("GroupName :", style_label);
-                        data.GroupName = EditorGUILayout.TextArea(data.GroupName);
+                        data.GroupName = MakeField(data.GroupName);
                         GUILayout.EndHorizontal();
                         //Header
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Header :", style_label);
-                        data.Header = EditorGUILayout.TextArea(data.Header);
+                        data.Header = MakeField(data.Header);
                         GUILayout.EndHorizontal();
                         //Infos
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Infos :", style_label);
-                        data.Infos = EditorGUILayout.TextArea(data.Infos, style_txtArea);
+                        data.Infos = MakeField(data.Infos);
                         GUILayout.EndHorizontal();
                         //Description
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Description :", style_label);
-                        data.Description = EditorGUILayout.TextArea(data.Description);
+                        data.Description = MakeField(data.Description);
                         GUILayout.EndHorizontal();
                         //Details
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Details :", style_label);
-                        data.Details = EditorGUILayout.TextArea(data.Details);
+                        data.Details = MakeField(data.Details);
                         GUILayout.EndHorizontal();
                         //ToolTip
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("ToolTip :", style_label);
-                        data.ToolTip = EditorGUILayout.TextArea(data.Details);
+                        data.ToolTip = MakeField(data.ToolTip);
                         GUILayout.EndHorizontal();
                         //Child1
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child1 :", style_label);
-                        data.Child1 = EditorGUILayout.TextArea(data.Child1);
+                        data.Child1 = MakeField(data.Child1);
                         GUILayout.EndHorizontal();
                         //Child2
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child2 :", style_label);
-                        data.Child2 = EditorGUILayout.TextArea(data.Child2);
+                        data.Child2 = MakeField(data.Child2);
                         GUILayout.EndHorizontal();
                         //Child3
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child3 :", style_label);
-                        data.Child3 = EditorGUILayout.TextArea(data.Child3);
+                        data.Child3 = MakeField(data.Child3);
                         GUILayout.EndHorizontal();
                         //Child4
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child4 :", style_label);
-                        data.Child4 = EditorGUILayout.TextArea(data.Child4);
+                        data.Child4 = MakeField(data.Child4);
                         GUILayout.EndHorizontal();
                         //Child5
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child5 :", style_label);
-                        data.Child5 = EditorGUILayout.TextArea(data.Child5);
+                        data.Child5 = MakeField(data.Child5);
                         GUILayout.EndHorizontal();
                         //Child6
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Child6 :", style_label);
-                        data.Child6 = EditorGUILayout.TextArea(data.Child6);
+                        data.Child6 = MakeField(data.Child6);
                         GUILayout.EndHorizontal();
                         //FootPage
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("FootPage :", style_label);
-                        data.FootPage = EditorGUILayout.TextArea(data.FootPage);
+                        data.FootPage = MakeField(data.FootPage);
                         GUILayout.EndHorizontal();
                         //Conclusion
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Conclusion :", style_label);
-                        data.Conclusion = EditorGUILayout.TextArea(data.Conclusion);
+                        data.Conclusion = MakeField(data.Conclusion);
                         GUILayout.EndHorizontal();
                         //End
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("End :", style_label);
-                        data.End = EditorGUILayout.TextArea(data.End);
+                        data.End = MakeField(data.End);
                         GUILayout.EndHorizontal();
 
                         GUILayout.EndVertical();
-                    }, data.Trad_ID + " Edition");
+                    }, data.ID + " Edition");
                 });
             }
         }
@@ -513,96 +505,96 @@ namespace PulseEditor.Module.Localisator
                         //Trad ID
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Traduction ID: ", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Trad_ID.ToString());
+                        EditorGUILayout.LabelField(data.ID.ToString());
                         GUILayout.EndHorizontal();
                         //Title
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Title :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Title);
+                        EditorGUILayout.LabelField(data.Title.s_textField);
                         GUILayout.EndHorizontal();
                         //Banner
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Banner :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Banner);
+                        EditorGUILayout.LabelField(data.Banner.s_textField);
                         GUILayout.EndHorizontal();
                         //GroupName
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("GroupName :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.GroupName);
+                        EditorGUILayout.LabelField(data.GroupName.s_textField);
                         GUILayout.EndHorizontal();
                         //Header
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Header :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Header);
+                        EditorGUILayout.LabelField(data.Header.s_textField);
                         GUILayout.EndHorizontal();
                         //Infos
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Infos :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Infos);
+                        EditorGUILayout.LabelField(data.Infos.s_textField);
                         GUILayout.EndHorizontal();
                         //Description
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Description :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Description);
+                        EditorGUILayout.LabelField(data.Description.s_textField);
                         GUILayout.EndHorizontal();
                         //Details
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Details :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Details);
+                        EditorGUILayout.LabelField(data.Details.s_textField);
                         GUILayout.EndHorizontal();
                         //ToolTip
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("ToolTip :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Details);
+                        EditorGUILayout.LabelField(data.Details.s_textField);
                         GUILayout.EndHorizontal();
                         //Child1
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child1 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child1);
+                        EditorGUILayout.LabelField(data.Child1.s_textField);
                         GUILayout.EndHorizontal();
                         //Child2
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child2 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child2);
+                        EditorGUILayout.LabelField(data.Child2.s_textField);
                         GUILayout.EndHorizontal();
                         //Child3
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child3 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child3);
+                        EditorGUILayout.LabelField(data.Child3.s_textField);
                         GUILayout.EndHorizontal();
                         //Child4
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child4 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child4);
+                        EditorGUILayout.LabelField(data.Child4.s_textField);
                         GUILayout.EndHorizontal();
                         //Child5
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child5 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child5);
+                        EditorGUILayout.LabelField(data.Child5.s_textField);
                         GUILayout.EndHorizontal();
                         //Child6
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Child6 :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Child6);
+                        EditorGUILayout.LabelField(data.Child6.s_textField);
                         GUILayout.EndHorizontal();
                         //FootPage
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("FootPage :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.FootPage);
+                        EditorGUILayout.LabelField(data.FootPage.s_textField);
                         GUILayout.EndHorizontal();
                         //Conclusion
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("Conclusion :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.Conclusion);
+                        EditorGUILayout.LabelField(data.Conclusion.s_textField);
                         GUILayout.EndHorizontal();
                         //End
                         GUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField("End :", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField(data.End);
+                        EditorGUILayout.LabelField(data.End.s_textField);
                         GUILayout.EndHorizontal();
 
                         GUILayout.EndVertical();
-                    }, data.Trad_ID + " Edition");
+                    }, data.ID + " Edition");
                 });
             }
         }
@@ -612,7 +604,7 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         private void HashTagGenerator()
         {
-            if (allAsset == null || allAsset.Count <= 0)
+            if (allAssets == null || allAssets.Count <= 0)
                 return;
             if (windowOpenMode != EditorMode.Normal)
                 return;
@@ -621,26 +613,26 @@ namespace PulseEditor.Module.Localisator
                 GroupGUInoStyle(() =>
                 {
                     GUILayout.BeginVertical();
-                    var IEdataTypes = from a in allAsset
-                                      where a.LibraryLanguage == (PulseCore_GlobalValue_Manager.Languages)selectedLangage
-                                      select a.LibraryDataType.ToString();
+                    var IEdataTypes = from a in allAssets.ConvertAll(new Converter<ScriptableObject, LocalisationLibrary>(obj => { return (LocalisationLibrary)obj; }))
+                                      where a.Langage == selectedLangage
+                                      select a.DataType.ToString();
                     string[] dataTypes = IEdataTypes.ToArray();
                     hashtag_dataTypeIndex = EditorGUILayout.Popup(hashtag_dataTypeIndex, dataTypes);
-                    var dataType = allAsset[hashtag_dataTypeIndex].LibraryDataType;
-                    var filteredList = from a in allAsset
-                                       where a.LibraryDataType == dataType && a.LibraryLanguage == (PulseCore_GlobalValue_Manager.Languages)selectedLangage
+                    var dataType = ((LocalisationLibrary)allAssets[hashtag_dataTypeIndex]).DataType;
+                    var filteredList = from a in allAssets.ConvertAll(new Converter<ScriptableObject, LocalisationLibrary>(obj => { return (LocalisationLibrary)obj; }))
+                                       where a.DataType == dataType && a.Langage == selectedLangage
                                        select a;
                     var target = filteredList.FirstOrDefault();
                     int index = 0;
                     if (target)
                     {
-                        index = target.LocalizedDatas.FindIndex(item => { return item.Trad_ID == hashtag_id; });
-                        var ieListNames = from i in target.LocalizedDatas
-                                          select i.Trad_ID + "-" + i.Title;
+                        index = target.DatasList.FindIndex(item => { return item.ID == hashtag_id; });
+                        var ieListNames = from i in target.DatasList
+                                          select i.ID + "-" + i.Title;
                         index = Mathf.Clamp(index, 0, index);
                         var listNames = ieListNames.ToArray();
                         index = EditorGUILayout.Popup(index, listNames);
-                        hashtag_id = target.LocalizedDatas[index].Trad_ID;
+                        hashtag_id = target.DatasList[index].ID;
                         if(hashtag_id > 0)
                             EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, dataType));
                     }
@@ -662,11 +654,11 @@ namespace PulseEditor.Module.Localisator
                         return;
                     break;
                 case EditorMode.Selector:
-                    if (!Header(PulseCore_GlobalValue_Manager.currentLanguage, (PulseCore_GlobalValue_Manager.DataType)selectedDataType))
+                    if (!Header(PulseEngineMgr.currentLanguage, selectedDataType))
                         return;
                     break;
                 case EditorMode.ItemEdition:
-                    if (!Header(PulseCore_GlobalValue_Manager.currentLanguage, (PulseCore_GlobalValue_Manager.DataType)selectedDataType))
+                    if (!Header(PulseEngineMgr.currentLanguage, selectedDataType))
                         return;
                     break;
                 case EditorMode.Preview:
@@ -713,7 +705,7 @@ namespace PulseEditor.Module.Localisator
         /// </summary>
         private void OnDisable()
         {
-            allAsset.Clear();
+            allAssets.Clear();
             editedAsset = null;
             asset = null;
             auXasset = null;
@@ -726,23 +718,21 @@ namespace PulseEditor.Module.Localisator
         /// <param name="close"></param>
         private void Initialise()
         {
-            foreach(PulseCore_GlobalValue_Manager.Languages langue in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.Languages)))
+            foreach(Languages langue in Enum.GetValues(typeof(Languages)))
             {
-                foreach(PulseCore_GlobalValue_Manager.DataType type in Enum.GetValues(typeof(PulseCore_GlobalValue_Manager.DataType)))
+                foreach(TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
                 {
-                    if (type == PulseCore_GlobalValue_Manager.DataType.None)
-                        continue;
                     if (LocalisationLibrary.Exist(langue, type))
                     {
                         var load = LocalisationLibrary.Load(langue, type);
                         if (load != null)
-                            allAsset.Add(load);
+                            allAssets.Add(load);
                     }
-                    else if (LocalisationLibrary.Create(langue, type))
+                    else if (LocalisationLibrary.Save(langue, type))
                     {
                         var load = LocalisationLibrary.Load(langue, type);
                         if (load != null)
-                            allAsset.Add(load);
+                            allAssets.Add(load);
                     }
                 }
             }
@@ -754,21 +744,21 @@ namespace PulseEditor.Module.Localisator
         /// <param name="close"></param>
         private void Save(bool close = false)
         {
-            for (int i = 0, len = allAsset.Count; i < len; i++)
+            for (int i = 0, len = allAssets.Count; i < len; i++)
             {
-                auXasset = allAsset[i];
+                auXasset = allAssets[i] as LocalisationLibrary;
                 var otherAsset = auXasset;
-                for (int j = 0, len2 = editedAsset.LocalizedDatas.Count; j < len2; j++)
+                for (int j = 0, len2 = ((LocalisationLibrary)editedAsset).DatasList.Count; j < len2; j++)
                 {
-                    var data = editedAsset.LocalizedDatas[j];
-                    if (otherAsset.LibraryDataType == editedAsset.LibraryDataType)
+                    var data = ((LocalisationLibrary)editedAsset).DatasList[j];
+                    if (otherAsset.DataType == ((LocalisationLibrary)editedAsset).DataType)
                     {
-                        if (otherAsset.LocalizedDatas.FindIndex(d => { return d.Trad_ID == data.Trad_ID; }) < 0)
+                        if (otherAsset.DatasList.FindIndex(d => { return d.ID == data.ID; }) < 0)
                         {
-                            Localisationdata newOne = new Localisationdata { Trad_ID = data.Trad_ID };
-                            if (editedAsset.LibraryDataType == PulseCore_GlobalValue_Manager.DataType.CharacterInfos)
+                            Localisationdata newOne = new Localisationdata { ID = data.ID };
+                            if (((LocalisationLibrary)editedAsset).TradType == TradDataTypes.Person)
                                 newOne.Title = data.Title;
-                            otherAsset.LocalizedDatas.Add(newOne);
+                            otherAsset.DatasList.Add(newOne);
                             EditorUtility.CopySerialized(otherAsset, auXasset);
                         }
                     }
@@ -789,8 +779,8 @@ namespace PulseEditor.Module.Localisator
                 return;
             EditorEventArgs eventArgs = new EditorEventArgs
             {
-                ID = data.Trad_ID,
-                dataType = (int)editedAsset.LibraryDataType
+                ID = data.ID,
+                dataType = (int)(((LocalisationLibrary)editedAsset).DataType)
             };
             if(onSelectionEvent != null)
                 onSelectionEvent.Invoke(this, eventArgs);
@@ -804,7 +794,7 @@ namespace PulseEditor.Module.Localisator
         /// <param name="id"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static string MakeTag(int id, PulseCore_GlobalValue_Manager.DataType T)
+        public static string MakeTag(int id, DataTypes T)
         {
             string hashTag = "#" + id + "_" + (int)T + "#";
             return hashTag;

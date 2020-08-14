@@ -1,13 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
-using PulseEngine.Module.StatHandler;
-using PulseEngine.Module.Localisator;
 using System.Threading.Tasks;
-using PulseEngine.Module.CombatSystem;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
+using PulseEngine.Modules.StatHandler;
 
-namespace PulseEngine.Module.CharacterCreator
+namespace PulseEngine.Modules.CharacterCreator
 {
     /// <summary>
     /// La Data d'un character.
@@ -51,7 +50,7 @@ namespace PulseEngine.Module.CharacterCreator
         /// <summary>
         /// le type de data de localisation.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.DataType TradDataType { get => (PulseCore_GlobalValue_Manager.DataType)tradDataType; set => tradDataType = (int)value; }
+        public TradDataTypes TradType => (TradDataTypes)tradDataType;
 
         /// <summary>
         /// Les stats du character.
@@ -78,6 +77,12 @@ namespace PulseEngine.Module.CharacterCreator
         /// </summary>
         public List<Vector2Int> Armurie{ get => armurie; set => armurie = value;}
 
+
+        public Task<Sprite> GetTradSprite(DatalocationField field)
+        {
+            throw new System.NotImplementedException();
+        }
+
         #endregion
 
         #region Methods #########################################################
@@ -90,6 +95,16 @@ namespace PulseEngine.Module.CharacterCreator
         public async Task<string> GetTradText(LocalisationManager.DatalocationField field)
         {
             return await LocalisationManager.TextData(idTrad, field, tradDataType, (int)PulseCore_GlobalValue_Manager.currentLanguage);
+        }
+
+        public Task<string> GetTradText(DatalocationField field)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<AudioClip> GetTradVoice(DatalocationField field)
+        {
+            throw new System.NotImplementedException();
         }
 
         #endregion
