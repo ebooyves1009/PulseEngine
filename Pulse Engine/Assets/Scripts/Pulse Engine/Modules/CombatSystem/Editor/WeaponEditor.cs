@@ -1,46 +1,27 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor;
-using PulseEngine.Core;
-using PulseEditor.Module.Localisator;
+using PulseEditor.Globals;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
+using PulseEditor.Modules.Localisator;
 using PulseEngine.Module.CharacterCreator;
 using UnityEditor;
 using System;
-using PulseEngine.Module.CombatSystem;
-using PulseEditor.Module.StatManager;
-using PulseEngine.Module.StatHandler;
+using PulseEngine.Modules.CombatSystem;
+using PulseEditor.Modules.StatHandler;
+using PulseEngine.Modules.StatHandler;
 using System.Linq;
-using PulseEngine.Module.PhysicSpace;
+using PulseEngine.Modules.PhysicSpace;
 
-namespace PulseEditor.Module.CombatSystem
+namespace PulseEditor.Modules.CombatSystem
 {
     /// <summary>
     /// L'editeur d'arsenal.
     /// </summary>
-    public class WeaponEditor : PulseEditor
+    public class WeaponEditor : PulseEditorMgr
     {
         #region Fonctionnal Attributes ################################################################
-
-        /// <summary>
-        /// toutes les armes de tous les types.
-        /// </summary>
-        private List<WeaponLibrary> allAssets = new List<WeaponLibrary>();
-
-        /// <summary>
-        /// L'asset permanent.
-        /// </summary>
-        private WeaponLibrary asset = null;
-
-        /// <summary>
-        /// L'asset temporaire en cours de modification.
-        /// </summary>
-        private WeaponLibrary editedAsset = null;
-
-        /// <summary>
-        /// La data en cours de modification.
-        /// </summary>
-        private WeaponData editedData = null;
 
         /// <summary>
         /// La liste des gameobject et leurs previsualisation.
@@ -49,29 +30,41 @@ namespace PulseEditor.Module.CombatSystem
 
 
         #endregion
+
         #region Visual Attributes ################################################################
 
         /// <summary>
         /// Le type d'arme selectionne.
         /// </summary>
-        private CombatSystemManager.WeaponType weaponTypeSelected;
-
-        /// <summary>
-        /// l'index de la data choisie dans la liste des datas.
-        /// </summary>
-        private int indexDataSelected;
+        private WeaponType weaponTypeSelected;
 
 
         #endregion
+
         #region Fonctionnal Methods ################################################################
 
+
+        /// <summary>
+        /// Initialisation.
+        /// </summary>
+        protected override void OnInitialize()
+        {
+            base.OnInitialize();
+            var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), currentScope);
+            allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
+            allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) asset = a; });
+            if (asset)
+                editedAsset = asset;
+        }
+
         #endregion
-        #region Visual Methods ################################################################
+
+        #region Static Methods ################################################################
 
         /// <summary>
         /// open weapon editor.
         /// </summary>
-        [MenuItem(PulseCore_GlobalValue_Manager.Menu_EDITOR_MENU + "Weapon Editor")]
+        [MenuItem(Menu_EDITOR_MENU + "Weapon Editor")]
         public static void OpenEditor()
         {
             var window = GetWindow<WeaponEditor>();
@@ -82,16 +75,29 @@ namespace PulseEditor.Module.CombatSystem
         /// <summary>
         /// open weapon selector.
         /// </summary>
-        public static void OpenSelector(Action<object,EventArgs> onSelect)
+        public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
             var window = GetWindow<WeaponEditor>();
             window.windowOpenMode = EditorMode.Selector;
-            if(onSelect != null)
+            if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
                     onSelect.Invoke(obj, arg);
                 };
             }
+            window.Show();
+        }
+
+        /// <summary>
+        /// open weapon Modifier.
+        /// </summary>
+        public static void OpenModifier(int _id, WeaponType type, Scopes _scope)
+        {
+            var window = GetWindow<WeaponEditor>(true);
+            window.windowOpenMode = EditorMode.ItemEdition;
+            window.dataID = _id;
+            window.currentScope = _scope;
+            window.weaponTypeSelected = type;
             window.Show();
         }
 
@@ -106,19 +112,8 @@ namespace PulseEditor.Module.CombatSystem
         }
 
         #endregion
-        #region Common Windows ################################################################
 
-        /// <summary>
-        /// Initialisation.
-        /// </summary>
-        protected override void OnInitialize()
-        {
-            base.OnInitialize();
-            allAssets = LibraryFiller(allAssets);
-            allAssets.ForEach(a => { if (a.LibraryWeaponType == weaponTypeSelected) asset = a; });
-            if (asset)
-                editedAsset = asset;
-        }
+        #region Visual Methods ################################################################
 
 
         /// <summary>
@@ -132,15 +127,21 @@ namespace PulseEditor.Module.CombatSystem
             ScrollablePanel(() =>
             {
                 Header();
-                WeaponList(editedAsset);
+                WeaponList((WeaponLibrary)editedAsset);
                 Foot();
-            });
+            },true);
             ScrollablePanel(() =>
             {
-                WeaponDetails(editedData);
+                WeaponDetails((WeaponData)editedData);
             });
             GUILayout.EndHorizontal();
         }
+
+        #endregion
+
+        #region Common Windows ################################################################
+
+
 
         /// <summary>
         /// The header.
@@ -151,8 +152,8 @@ namespace PulseEditor.Module.CombatSystem
             GroupGUInoStyle(() =>
             {
                 int selected = (int)weaponTypeSelected;
-                selected = GUILayout.Toolbar((int)weaponTypeSelected , Enum.GetNames(typeof(CombatSystemManager.WeaponType)));
-                weaponTypeSelected = (CombatSystemManager.WeaponType)selected;
+                selected = GUILayout.Toolbar((int)weaponTypeSelected , Enum.GetNames(typeof(WeaponType)));
+                weaponTypeSelected = (WeaponType)selected;
             },"Weapon Type",50);
             if (bkpType != weaponTypeSelected)
             {
@@ -207,10 +208,10 @@ namespace PulseEditor.Module.CombatSystem
                         GUILayout.BeginVertical();
                         List<GUIContent> listContent = new List<GUIContent>();
                         int maxId = 0;
-                        for (int i = 0; i < library.WeaponList.Count; i++)
+                        for (int i = 0; i < library.DataList.Count; i++)
                         {
-                            var data = library.WeaponList[i];
-                            var nameList = LocalisationEditor.GetTexts(data.IdTrad, data.TradDataType);
+                            var data = library.DataList[i];
+                            var nameList = LocalisationEditor.GetTexts(data.IdTrad, data.TradType);
                             string name = nameList.Length > 0 ? nameList[0] : string.Empty;
                             char[] titleChars = new char[LIST_MAX_CHARACTERS];
                             string pointDeSuspension = string.Empty;
@@ -227,26 +228,26 @@ namespace PulseEditor.Module.CombatSystem
                             string title = new string(titleChars) + pointDeSuspension;
                             listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
                         }
-                        indexDataSelected = ListItems(indexDataSelected, listContent.ToArray());
+                        selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
                         GUILayout.Space(5);
                         GUILayout.BeginHorizontal();
                         if (GUILayout.Button("+"))
                         {
-                            library.WeaponList.Add(new WeaponData { ID = maxId + 1, TradDataType = PulseCore_GlobalValue_Manager.DataType.Weapon, TypeArme = weaponTypeSelected }) ;
+                            library.DataList.Add(new WeaponData { ID = maxId + 1, TradType = TradDataTypes.Weapon, TypeArme = weaponTypeSelected }) ;
                         }
-                        if (indexDataSelected >= 0 && indexDataSelected < editedAsset.WeaponList.Count)
+                        if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
                         {
                             if (GUILayout.Button("-"))
                             {
-                                library.WeaponList.RemoveAt(indexDataSelected);
+                                library.DataList.RemoveAt(selectDataIndex);
                             }
                         }
                         GUILayout.EndHorizontal();
                         GUILayout.EndVertical();
                     }, "Weapon Datas List");
                 });
-                if (indexDataSelected >= 0 && indexDataSelected < editedAsset.WeaponList.Count)
-                    editedData = editedAsset.WeaponList[indexDataSelected];
+                if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
+                    editedData = library.DataList[selectDataIndex];
                 else
                     editedData = null;
             }
@@ -291,7 +292,7 @@ namespace PulseEditor.Module.CombatSystem
                     EditorGUILayout.LabelField(data.TypeArme.ToString());
                     GUILayout.EndHorizontal();
                     string name = string.Empty;
-                    string[] names = LocalisationEditor.GetTexts(data.IdTrad, data.TradDataType);
+                    string[] names = LocalisationEditor.GetTexts(data.IdTrad, data.TradType);
                     if (names.Length > 0)
                         name = names[0];
                     GUILayout.BeginHorizontal();
@@ -305,16 +306,16 @@ namespace PulseEditor.Module.CombatSystem
                             if (a == null)
                                 return;
                             data.IdTrad = a.ID;
-                        }, data.TradDataType);
+                        }, data.TradType);
                     }
                     if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
                     {
-                        LocalisationEditor.OpenModifier(data.IdTrad, data.TradDataType);
+                        LocalisationEditor.OpenModifier(data.IdTrad, data.TradType);
                     }
                     GUILayout.EndHorizontal();
 
                     //Degats
-                    data.TypeDegats = (CombatSystemManager.TypeDegatArme)EditorGUILayout.EnumPopup("Damage type: ",data.TypeDegats);
+                    data.TypeDegats = (TypeDegatArme)EditorGUILayout.EnumPopup("Damage type: ",data.TypeDegats);
                     data.Degats = EditorGUILayout.FloatField("Damage Value: ", data.Degats);
                     data.Degats = Mathf.Clamp(data.Degats, 1, data.Degats);
                     //portee
@@ -322,10 +323,10 @@ namespace PulseEditor.Module.CombatSystem
                     Vector2 ranges = Vector2.zero;
                     switch (data.TypeArme)
                     {
-                        case CombatSystemManager.WeaponType.shortRange:
+                        case WeaponType.shortRange:
                             ranges = new Vector2(1, 4);
                             break;
-                        case CombatSystemManager.WeaponType.LongRange:
+                        case WeaponType.LongRange:
                             ranges = new Vector2(4, float.PositiveInfinity);
                             break;
                     }
@@ -396,10 +397,10 @@ namespace PulseEditor.Module.CombatSystem
                     {
                         data.Weapons.Add(new GameObject());
                         var d = data.Materiaux;
-                        d.Add(PhysicManager.PhysicMaterials.none);
+                        d.Add(PhysicMaterials.none);
                         data.Materiaux = d;
-                        data.RestPlaces.Add(new CombatSystemManager.WeaponPlace());
-                        data.CarryPlaces.Add(new CombatSystemManager.WeaponPlace());
+                        data.RestPlaces.Add(new WeaponPlace());
+                        data.CarryPlaces.Add(new WeaponPlace());
                         data.ProjectilesOutPoints.Add(new Vector3());
                     }
                     GUILayout.EndHorizontal();
@@ -434,7 +435,7 @@ namespace PulseEditor.Module.CombatSystem
                             //Materiau
                             var d = data.Materiaux;
                             var mat = d[i];
-                            mat = (PhysicManager.PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ",mat);
+                            mat = (PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ",mat);
                             d[i] = mat;
                             if (mat != data.Materiaux[i])
                             {
@@ -469,6 +470,7 @@ namespace PulseEditor.Module.CombatSystem
         }
 
         #endregion
+
         #region Helpers & Tools ################################################################
 
         /// <summary>
@@ -476,18 +478,18 @@ namespace PulseEditor.Module.CombatSystem
         /// </summary>
         /// <param name="inputLibrary"></param>
         /// <returns></returns>
-        private static List<WeaponLibrary> LibraryFiller(List<WeaponLibrary> inputLibrary)
+        private static List<WeaponLibrary> LibraryFiller(List<WeaponLibrary> inputLibrary, Scopes _scope)
         {
             if (inputLibrary == null)
                 inputLibrary = new List<WeaponLibrary>();
-            foreach(CombatSystemManager.WeaponType type in Enum.GetValues(typeof(CombatSystemManager.WeaponType)))
+            foreach(WeaponType type in Enum.GetValues(typeof(WeaponType)))
             {
-                if (type == CombatSystemManager.WeaponType.aucun)
+                if (type == WeaponType.aucun)
                     continue;
-                if (WeaponLibrary.Exist(type))
-                    inputLibrary.Add(WeaponLibrary.Load(type));
-                else if(WeaponLibrary.Create(type))
-                    inputLibrary.Add(WeaponLibrary.Load(type));
+                if (WeaponLibrary.Exist(type, _scope))
+                    inputLibrary.Add(WeaponLibrary.Load(type, _scope));
+                else if(WeaponLibrary.Save(type, _scope))
+                    inputLibrary.Add(WeaponLibrary.Load(type, _scope));
             }
             return inputLibrary;
         }

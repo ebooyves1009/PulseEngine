@@ -1,8 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Module.Localisator;
-using PulseEngine.Core;
 using UnityEditor;
 using eWindow = UnityEditor.EditorGUILayout;
 using Window = UnityEngine.GUILayout;
@@ -22,8 +20,6 @@ public class Tester : MonoBehaviour
     public Transform here;
 
     private Animator animator;
-
-    public CharactersLibrary datas;
 
 
     // Start is called before the first frame update
@@ -54,21 +50,6 @@ public class Tester : MonoBehaviour
         //        here.position = animator.targetPosition;
         //}
 
-        if (datas && GUILayout.Button("Create Character"))
-        {
-            if(datas.Characterlist.Count > 0)
-            {
-                var go = Instantiate(datas.Characterlist[0].Character);
-                var animator = go.GetComponent<Animator>();
-                if (!animator)
-                    animator = go.AddComponent<Animator>();
-                if (animator)
-                {
-                    animator.runtimeAnimatorController = datas.Characterlist[0].AnimatorController;
-                    animator.avatar = datas.Characterlist[0].AnimatorAvatar;
-                }
-            }
-        }
         //if (!string.IsNullOrEmpty(gotName))
         //    GUILayout.Label(gotName);
         //if(GUILayout.Button("Get details on 1"))
@@ -84,7 +65,6 @@ public class Tester : MonoBehaviour
 //public class InspectorTest : Editor
 public class InspectorTest : Editor
 {
-    private PulseEngine.Module.Anima.AnimaStateMachine stateMachine;
     private UnityEditor.Animations.AnimatorState state;
 
     private void OnEnable()

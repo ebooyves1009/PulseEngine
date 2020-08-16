@@ -1,12 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
-using PulseEngine.Module.Anima;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
+using PulseEngine.Modules.Anima;
 
 
 
-namespace PulseEngine.Module.CombatSystem
+namespace PulseEngine.Modules.CombatSystem
 {
     /// <summary>
     /// LA data d'une action defensive.
@@ -29,12 +30,12 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Le type de defense.
         /// </summary>
-        public CombatSystemManager.DefenseType DefenseType { get { return (CombatSystemManager.DefenseType)defenseType; } set { defenseType = (int)value; } }
+        public DefenseType DefenseType { get { return (DefenseType)defenseType; } set { defenseType = (int)value; } }
 
         /// <summary>
         /// La hauteur de la garde.
         /// </summary>
-        public CombatSystemManager.AttackHeight DefenseHeight { get { return (CombatSystemManager.AttackHeight)defenseHeight; } set { defenseHeight = (int)value; } }
+        public AttackHeight DefenseHeight { get { return (AttackHeight)defenseHeight; } set { defenseHeight = (int)value; } }
 
         #endregion
 

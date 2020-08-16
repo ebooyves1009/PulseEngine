@@ -1,12 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Module.Anima;
+using PulseEngine.Modules.Anima;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
 
 
 
 
-namespace PulseEngine.Module.CombatSystem
+namespace PulseEngine.Modules.CombatSystem
 {
     /// <summary>
     /// La data d'une attaque.
@@ -17,7 +19,8 @@ namespace PulseEngine.Module.CombatSystem
         #region Attributs #########################################################
 
         [SerializeField]
-        private List<CombatSystemManager.AttackEvent> attackEvents;
+        private List<AttackEvent> attackEvents;
+
         #endregion
 
         #region Propriete #########################################################
@@ -25,7 +28,7 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// La liste des hits produits par cette attaque en fonction du temps.
         /// </summary>
-        public List<CombatSystemManager.AttackEvent> AttackEvents { get { return attackEvents; } set { attackEvents = value; } }
+        public List<AttackEvent> AttackEvents { get { return attackEvents; } set { attackEvents = value; } }
 
         #endregion
 

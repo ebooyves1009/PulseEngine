@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using PulseEngine.Globals;
 using PulseEngine.Modules;
 using PulseEngine.Modules.StatHandler;
+using PulseEngine.Modules.Localisator;
 
 namespace PulseEngine.Modules.CharacterCreator
 {
@@ -50,7 +51,7 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <summary>
         /// le type de data de localisation.
         /// </summary>
-        public TradDataTypes TradType => (TradDataTypes)tradDataType;
+        public TradDataTypes TradType { get => (TradDataTypes)tradDataType; set => tradDataType = (int)value; }
 
         /// <summary>
         /// Les stats du character.
@@ -77,12 +78,6 @@ namespace PulseEngine.Modules.CharacterCreator
         /// </summary>
         public List<Vector2Int> Armurie{ get => armurie; set => armurie = value;}
 
-
-        public Task<Sprite> GetTradSprite(DatalocationField field)
-        {
-            throw new System.NotImplementedException();
-        }
-
         #endregion
 
         #region Methods #########################################################
@@ -92,19 +87,29 @@ namespace PulseEngine.Modules.CharacterCreator
         /// </summary>
         /// <param name="field"></param>
         /// <returns></returns>
-        public async Task<string> GetTradText(LocalisationManager.DatalocationField field)
+        public async Task<string> GetTradText(DatalocationField field)
         {
-            return await LocalisationManager.TextData(idTrad, field, tradDataType, (int)PulseCore_GlobalValue_Manager.currentLanguage);
+            return await LocalisationManager.TextData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
         }
 
-        public Task<string> GetTradText(DatalocationField field)
+        /// <summary>
+        /// recupere les images localisees.
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        public async Task<Sprite> GetTradSprite(DatalocationField field)
         {
-            throw new System.NotImplementedException();
+            return await LocalisationManager.ImageData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
         }
 
-        public Task<AudioClip> GetTradVoice(DatalocationField field)
+        /// <summary>
+        /// recupere les voix localisees.
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        public async Task<AudioClip> GetTradVoice(DatalocationField field)
         {
-            throw new System.NotImplementedException();
+            return await LocalisationManager.AudioData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
         }
 
         #endregion

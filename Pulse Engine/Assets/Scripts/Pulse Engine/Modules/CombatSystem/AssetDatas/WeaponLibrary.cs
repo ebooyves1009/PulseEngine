@@ -1,29 +1,33 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
+using PulseEngine.Globals;
+using PulseEngine.Modules;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 
-namespace PulseEngine.Module.CombatSystem
+namespace PulseEngine.Modules.CombatSystem
 {
     /// <summary>
     /// L'asset des armes par type.
     /// </summary>
     [System.Serializable]
-    public class WeaponLibrary : ScriptableObject
+    public class WeaponLibrary : ScriptableObject, IModuleAsset
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private List<WeaponData> weaponList = new List<WeaponData>();
+        private List<WeaponData> dataList = new List<WeaponData>();
 
         [SerializeField]
         private int libraryWeaponType;
 
         [SerializeField]
         private int libraryDataType;
+
+        [SerializeField]
+        private int scope;
 
         #endregion
 
@@ -32,17 +36,22 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// La liste des armes
         /// </summary>
-        public List<WeaponData> WeaponList { get => weaponList; set => weaponList = value; }
+        public List<WeaponData> DataList { get => dataList; set => dataList = value; }
 
         /// <summary>
         /// Le type d'arme contenus dans cet asset.
         /// </summary>
-        public CombatSystemManager.WeaponType LibraryWeaponType { get => (CombatSystemManager.WeaponType)libraryWeaponType; set => libraryWeaponType = (int)value; }
+        public WeaponType LibraryWeaponType { get => (WeaponType)libraryWeaponType; set => libraryWeaponType = (int)value; }
 
         /// <summary>
         /// Le type de data.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.DataType LibraryDataType { get => (PulseCore_GlobalValue_Manager.DataType)libraryDataType; set => libraryDataType = (int)value; }
+        public DataTypes DataType  => (DataTypes)libraryDataType;
+
+        /// <summary>
+        /// Le scope.
+        /// </summary>
+        public Scopes Scope { get => (Scopes)scope; set => scope = (int)value; }
 
         #endregion
 
@@ -54,24 +63,25 @@ namespace PulseEngine.Module.CombatSystem
         /// Cree l'asset d'armes.
         /// </summary>
         /// <returns></returns>
-        public static bool Create(CombatSystemManager.WeaponType _weaponType)
+        public static bool Save(WeaponType _weaponType, Scopes scope)
         {
-            string fileName = "Weapon_"+ _weaponType.ToString() + ".Asset";
-            string path = CombatSystemManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 WeaponLibrary asset = ScriptableObject.CreateInstance<WeaponLibrary>();
-                asset.libraryDataType = (int)PulseCore_GlobalValue_Manager.DataType.Weapon;
+                asset.libraryDataType = (int)DataTypes.WeaponData;
                 asset.LibraryWeaponType = _weaponType;
+                asset.Scope = scope;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
                 //Make a gameobject an addressable
@@ -97,20 +107,18 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Verifie si l'asset existe.
         /// </summary>
-        /// <param name="language">La langue cible</param>
-        /// <param name="dataType">Le type cible.</param>
         /// <returns></returns>
-        public static bool Exist(CombatSystemManager.WeaponType _weaponType)
+        public static bool Exist(WeaponType _weaponType, Scopes scope)
         {
-            string fileName = "Weapon_" + _weaponType.ToString() + ".Asset";
-            string path = CombatSystemManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES))
+            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
@@ -126,16 +134,14 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Charge l'asset.
         /// </summary>
-        /// <param name="language">La langue cible</param>
-        /// <param name="dataType">Le type cible.</param>
         /// <returns></returns>
-        public static WeaponLibrary Load(CombatSystemManager.WeaponType _weaponType)
+        public static WeaponLibrary Load(WeaponType _weaponType, Scopes scope)
         {
-            string fileName = "Weapon_" + _weaponType.ToString() + ".Asset";
-            string path = CombatSystemManager.AssetsPath;
-            string folderPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseCore_GlobalValue_Manager.Path_GAMERESSOURCES, path, fileName);
-            if (Exist(_weaponType))
+            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
+            string path = ModuleConstants.AssetsPath;
+            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            if (Exist(_weaponType, scope))
             {
                 return AssetDatabase.LoadAssetAtPath(fullPath, typeof(WeaponLibrary)) as WeaponLibrary;
             }

@@ -50,12 +50,12 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="tradDataType"></param>
         /// <param name="langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(int _id, DatalocationField _field, int tradDataType, int langage)
+        public static async Task<string> TextData(int _id, DatalocationField _field, TradDataTypes tradDataType, Languages langage)
         {
             string result = string.Empty;
             LocalisationLibrary handle = null;
             Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
+            string key = "Localisator_" + LanguageConverter(langage) + "_" + tradDataType;
             var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
             if (locationsIlist == null || locationsIlist.Count <= 0)
                 return string.Empty;
@@ -170,12 +170,12 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="tradDataType"></param>
         /// <param name="langage"></param>
         /// <returns></returns>
-        public static async Task<AudioClip> AudioData(int _id, DatalocationField _field, int tradDataType, int langage)
+        public static async Task<AudioClip> AudioData(int _id, DatalocationField _field, TradDataTypes tradDataType, Languages langage)
         {
             AudioClip result = null;
             LocalisationLibrary handle = null;
             Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
+            string key = "Localisator_" + LanguageConverter(langage) + "_" + tradDataType;
             var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
             if (locationsIlist == null || locationsIlist.Count <= 0)
                 return null;
@@ -255,12 +255,12 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="tradDataType"></param>
         /// <param name="langage"></param>
         /// <returns></returns>
-        public static async Task<Sprite> ImageData(int _id, DatalocationField _field, int tradDataType, int langage)
+        public static async Task<Sprite> ImageData(int _id, DatalocationField _field, TradDataTypes tradDataType, Languages langage)
         {
             Sprite result = null;
             LocalisationLibrary handle = null;
             Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter((Languages)langage) + "_" + ((TradDataTypes)tradDataType).ToString();
+            string key = "Localisator_" + LanguageConverter(langage) + "_" + tradDataType;
             var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
             if (locationsIlist == null || locationsIlist.Count <= 0)
                 return null;

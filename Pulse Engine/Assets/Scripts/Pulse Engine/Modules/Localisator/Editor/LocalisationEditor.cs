@@ -189,6 +189,8 @@ namespace PulseEditor.Modules.Localisator
             }
             else if (((LocalisationLibrary)asset).TradType != tradDataType || ((LocalisationLibrary)asset).Langage != langue)
             {
+                editedData = null;
+                selectDataIndex = -1;
                 int index = allAssets.FindIndex(library => { return ((LocalisationLibrary)library).Langage == langue && ((LocalisationLibrary)library).TradType == tradDataType; });
                 if (index >= 0)
                     asset = allAssets[index];
@@ -249,7 +251,6 @@ namespace PulseEditor.Modules.Localisator
 
             GUILayout.BeginHorizontal();
             //Column one
-            GUILayout.BeginVertical();
             Func<bool> listCompatiblesmode = () =>
             {
                 switch (windowOpenMode)
@@ -275,7 +276,8 @@ namespace PulseEditor.Modules.Localisator
                         GUILayout.BeginVertical();
                         List<GUIContent> listContent = new List<GUIContent>();
                         int maxId = 0;
-                        for (int i = 0; i < _editedAsset.DatasList.Count; i++) {
+                        for (int i = 0; i < _editedAsset.DatasList.Count; i++)
+                        {
                             var data = _editedAsset.DatasList[i];
                             char[] titleChars = new char[LIST_MAX_CHARACTERS];
                             string pointDeSuspension = string.Empty;
@@ -299,7 +301,7 @@ namespace PulseEditor.Modules.Localisator
                         {
                             _editedAsset.DatasList.Add(new Localisationdata { ID = maxId + 1 });
                         }
-                        if(selectDataIndex >= 0)
+                        if (selectDataIndex >= 0)
                         {
                             if (GUILayout.Button("-"))
                             {
@@ -309,16 +311,15 @@ namespace PulseEditor.Modules.Localisator
                         GUILayout.EndHorizontal();
                         GUILayout.EndVertical();
                     }, "Localisation Datas List");
-                });
+                    GUILayout.Space(5);
+                    HashTagGenerator();
+                    FootPage();
+                }, true);
             }else if(windowOpenMode == EditorMode.ItemEdition)
             {
                 selectDataIndex = ((LocalisationLibrary)asset).DatasList.FindIndex(data => { return data.ID == dataID; });
+                FootPage();
             }
-            GUILayout.Space(5);
-            HashTagGenerator();
-            GUILayout.Space(5);
-            FootPage();
-            GUILayout.EndVertical();
             GUILayout.Space(5);
             //column two
             try
@@ -363,9 +364,9 @@ namespace PulseEditor.Modules.Localisator
             Func<TradField, TradField> MakeField = field =>
               {
                   var fieldCpy = field;
-                  fieldCpy.s_textField = EditorGUILayout.TextArea(data.Title.s_textField, style_txtArea);
-                  fieldCpy.s_audioField = (AudioClip)EditorGUILayout.ObjectField(data.Title.s_audioField, typeof(AudioClip), false, new[] { UILayout.Width(50) });
-                  fieldCpy.s_imageField = (Sprite)EditorGUILayout.ObjectField(data.Title.s_imageField, typeof(Sprite), false, new[] { UILayout.Width(50) });
+                  fieldCpy.s_textField = EditorGUILayout.TextArea(fieldCpy.s_textField, style_txtArea);
+                  fieldCpy.s_audioField = (AudioClip)EditorGUILayout.ObjectField(fieldCpy.s_audioField, typeof(AudioClip), false, new[] { UILayout.Width(50) });
+                  fieldCpy.s_imageField = (Sprite)EditorGUILayout.ObjectField(fieldCpy.s_imageField, typeof(Sprite), false, new[] { UILayout.Width(50) });
                   return fieldCpy;
               };
             if (detailsCompatiblesmode())
@@ -615,7 +616,7 @@ namespace PulseEditor.Modules.Localisator
                     GUILayout.BeginVertical();
                     var IEdataTypes = from a in allAssets.ConvertAll(new Converter<ScriptableObject, LocalisationLibrary>(obj => { return (LocalisationLibrary)obj; }))
                                       where a.Langage == selectedLangage
-                                      select a.DataType.ToString();
+                                      select a.TradType.ToString();
                     string[] dataTypes = IEdataTypes.ToArray();
                     hashtag_dataTypeIndex = EditorGUILayout.Popup(hashtag_dataTypeIndex, dataTypes);
                     var dataType = ((LocalisationLibrary)allAssets[hashtag_dataTypeIndex]).DataType;
@@ -628,13 +629,16 @@ namespace PulseEditor.Modules.Localisator
                     {
                         index = target.DatasList.FindIndex(item => { return item.ID == hashtag_id; });
                         var ieListNames = from i in target.DatasList
-                                          select i.ID + "-" + i.Title;
+                                          select i.ID + "-" + i.Title.s_textField;
                         index = Mathf.Clamp(index, 0, index);
                         var listNames = ieListNames.ToArray();
                         index = EditorGUILayout.Popup(index, listNames);
-                        hashtag_id = target.DatasList[index].ID;
-                        if(hashtag_id > 0)
-                            EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, dataType));
+                        if (index >= 0 && target.DatasList.Count > index)
+                        {
+                            hashtag_id = target.DatasList[index].ID;
+                            if (hashtag_id > 0)
+                                EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, dataType));
+                        }
                     }
                     GUILayout.EndVertical();
 
@@ -718,6 +722,7 @@ namespace PulseEditor.Modules.Localisator
         /// <param name="close"></param>
         private void Initialise()
         {
+            allAssets.Clear();
             foreach(Languages langue in Enum.GetValues(typeof(Languages)))
             {
                 foreach(TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
@@ -751,7 +756,7 @@ namespace PulseEditor.Modules.Localisator
                 for (int j = 0, len2 = ((LocalisationLibrary)editedAsset).DatasList.Count; j < len2; j++)
                 {
                     var data = ((LocalisationLibrary)editedAsset).DatasList[j];
-                    if (otherAsset.DataType == ((LocalisationLibrary)editedAsset).DataType)
+                    if (otherAsset.TradType == ((LocalisationLibrary)editedAsset).TradType)
                     {
                         if (otherAsset.DatasList.FindIndex(d => { return d.ID == data.ID; }) < 0)
                         {

@@ -17,98 +17,212 @@ MonoBehaviour:
     m_SerializedData: []
   m_GUID: a19ce7e2652a19c49a90d9fde8c3e764
   m_SerializeEntries:
-  - m_GUID: 1ec03fceeb1f64c47a84ca91ea484223
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Defensive.Asset
+  - m_GUID: 044b89a035185d84297dbee16c44b074
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Behaviour.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 20da50e4d6548cc478151bb75ba07c41
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Locamotion.Asset
+  - m_GUID: 0605b7f7efb4609419a00d9a06248dd5
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Damage.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 22cf6263e02ae1943af1fae1eb026675
-    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Animations.Asset
+  - m_GUID: 0fb0487f17b642144a30e2f9ffed3ad5
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Cinematic.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 33a4bcde58ac4c448803fcbb817674ba
-    m_Address: Assets/GameResources/Characters/Characters_PrincipalActors.Asset
+  - m_GUID: 1234ff3a1069f984e875959bf361f448
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Person.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 424894c6f92be454588852ac52086cef
-    m_Address: Localisator_FR_CharacterInfos
+  - m_GUID: 1417213b2c2a0b14193a6728f0a20f47
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Damage.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 4dc88c548bd152a41a53146969a5da18
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Defensive.Asset
+  - m_GUID: 1701c0a0031875342a4dc32142183a9c
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Document.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 5780d52d0b81f964bb443a775b358dab
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Locamotion.Asset
+  - m_GUID: 19dd1ef60873d5e4584c56340f0a0b77
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Animal.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 5a4ebdefd1108b044b5c51d04e044a68
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Offensive.Asset
+  - m_GUID: 207098903396c2a4abf51c2ed8460cfa
+    m_Address: Assets/GameResources/CombatDatas/Weapon_LongRange_tous.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 609c9bd5d42b6da43a447fe27c95a4e7
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Damage.Asset
+  - m_GUID: 21b351b074430554eb7d299632d5d875
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Message.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 787a9a1698c72a0479113c4f5c60e163
-    m_Address: Assets/GameResources/Characters/Characters_InteractiveObject.Asset
+  - m_GUID: 2397ddeb76aafbc46a3e21863ee658fd
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Offensive.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 7ac945cb8efc8c447a1fb21dcb77244d
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Defensive.Asset
+  - m_GUID: 2c1eb3e8ba3d21945a357a8181102c34
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Prop.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 7d402348585203a44b675421f158d6bb
-    m_Address: Assets/GameResources/Combat Assets/Weapon_shortRange.Asset
+  - m_GUID: 34d8ba48e1d4e3340ab52df60c16e7c3
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Idle.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 7f73c005b8794704a85cac112b604e62
-    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Animations.Asset
+  - m_GUID: 3654c61a5241f3a42a3a6ab7bb790653
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Defensive.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 8e1a598b354a3714197e4e28d74fd23e
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Interraction.Asset
+  - m_GUID: 36eae64fbc672f442aa1517e5dca5d8e
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Notification.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 8f83578069fff5f4696d5ece260f2628
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Idle.Asset
+  - m_GUID: 44b812456a3277748b8d67c8c287ef1b
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Item.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: 9b4b10e8aaa738d4f9c961299ee8007f
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Interraction.Asset
+  - m_GUID: 4d8b7a741aea6e14d97c16a38f47fbb5
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Place.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 527e74f290ea3bd4496aa4029b753736
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Person.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 5507ea781564bcd4f9d54b5d8724a27b
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Interraction.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 5b996b57719e88548993f1b4761d0739
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_InterrractibleObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 5e010c2075a6ca441a4d5c938e8fa69b
+    m_Address: Assets/GameResources/CharactersDatas/Characters_SecondaryActor_tous.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 63e28894cf4f18246ad3c18513027f8c
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Interraction.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 6614e69439d4c4d4283946b3834ddab1
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_HUD.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 7210aaa5bc261b042bc6a0b5183495ac
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Cinematic.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 746a0545af2ccf54e9c39d6d8c5d4b8a
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_HUD.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 7c4d1b0f1e2018b45964833b8b2d1fa1
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Interraction.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 81a52781fa79d034baaa6406ae387fd4
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_InterrractibleObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 82d28c9a2c397f64cbd1d1adc6cdb594
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Locamotion.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 835712e0f6ff3b64fb16f442e9fb6f01
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Idle.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 8f63606fcdb781c41a0574b147b7eee8
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Behaviour.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 9bb8f71f60a7be547819aa0967d3d483
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Skill.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 9c669f15eabc9ae4bbff2d42b9cbe6fb
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Message.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: a0a8c3a47c8325d4d9622e6b92639d71
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Skill.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: a14a3d83e7b078b4c84072180cfc27ae
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Offensive.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: a2bb23f3064ae024cbce8c6f04358a50
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_StaticObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: a44afba9317e4834e8b8194816b29b3f
+    m_Address: Assets/GameResources/CharactersDatas/Characters_PrincipalActors_tous.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
@@ -119,14 +233,50 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: a87b08350ad0f7a49acd6448d985e533
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Locamotion.Asset
+  - m_GUID: ac35a9ab3cb57c24485e54b8c319f297
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Prop.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: b3c9c148955848540b39fe43d3979e4d
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Damage.Asset
+  - m_GUID: af1899c50da135e499a80f4bcaec97cc
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Place.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: b5149133ce46d654485ca41216c5a3d9
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Idle.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: bda3171aa629c3c4a98f4339bd420ea6
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Dialog.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: bed354804171c784d9dbcfa79bda4dac
+    m_Address: Assets/GameResources/CharactersDatas/Characters_InteractiveObject_tous.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: c071f819c0d53394cb081d19b3efa6e9
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Defensive.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: c926cc4cdbaad5d4ea4af9a8d93ddfc9
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_StaticObject.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: cdcbe9aa28014ef458b73321576fbc57
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Dialog.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
@@ -137,50 +287,80 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: d3858cde148c42c48862e84d517b03d0
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Idle.Asset
+  - m_GUID: d16cac4d69261ab43886868c4f2b76cb
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Document.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: d68dd31247eae8f469f09f3ec5a99d82
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Offensive.Asset
+  - m_GUID: d468b2d668dd9fb4faae78aabd847935
+    m_Address: Assets/GameResources/CombatDatas/Weapon_shortRange_tous.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: dff244faf9eb82c49b8282db2398b4a2
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_humanoid_Offensive.Asset
+  - m_GUID: d89bee5f548d59141aac4267736e34cf
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_generic_Offensive.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: e6c4df6732d66bb42931751ceab11dac
-    m_Address: Localisator_EN_CharacterInfos
+  - m_GUID: db0ec89bf7c457041b95fe884ba4c47b
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Locamotion.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: e9764a1c69b11024aa0875c44126cdd4
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_generic_Idle.Asset
+  - m_GUID: dbb745b0df5237d47b710a0c1b42ecd2
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Animal.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: f836a19ca05abfe48b555fe8032a585d
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Damage.Asset
+  - m_GUID: dfe8bca8b4be79b44aa515be4a87dcc1
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_humanoid_Defensive.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: feb3a0afc7466d0429d5c818d9ab2167
-    m_Address: Assets/GameResources/AnimaAsset/AnimaLibrary_quadruped_Interraction.Asset
+  - m_GUID: e1339c4a15d1bab43b74b0ca56f4d412
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Item.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: ff782f8a3101114479c71acd13038fe8
-    m_Address: Assets/GameResources/Combat Assets/Weapon_LongRange.Asset
+  - m_GUID: e84cfb5f2d164e844a627eedda21bb3d
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Locamotion.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: e9c3778fe5e00ab48b976e82fe9c83f5
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_FR_Gadget.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: ee82333d2bf70a446bf54bcc09c482f0
+    m_Address: Assets/GameResources/AnimaDatas/AnimaLibrary_quadruped_Damage.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: effc381b84e3bd74880c95020d38aad1
+    m_Address: Assets/GameResources/CharactersDatas/Characters_Pnj_tous.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: f85266a856d05bf4e9a7aef9b81a1749
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Notification.Asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: f9e74e71332aa3842903429cf2ad7ccd
+    m_Address: Assets/GameResources/LocalisationDatas/Localisator_EN_Gadget.Asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}

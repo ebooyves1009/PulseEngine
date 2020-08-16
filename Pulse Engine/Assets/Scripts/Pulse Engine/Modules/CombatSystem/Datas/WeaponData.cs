@@ -1,14 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Core;
-using PulseEngine.Module.StatHandler;
-using PulseEngine.Module.Anima;
-using PulseEngine.Module.Localisator;
+using PulseEngine.Modules.StatHandler;
+using PulseEngine.Globals;
+using PulseEngine.Modules.Anima;
+using PulseEngine.Modules.Localisator;
 using System.Threading.Tasks;
-using PulseEngine.Module.PhysicSpace;
+using PulseEngine.Modules.PhysicSpace;
 
-namespace PulseEngine.Module.CombatSystem
+namespace PulseEngine.Modules.CombatSystem
 {
     /// <summary>
     /// La data d'une arme.
@@ -53,9 +53,9 @@ namespace PulseEngine.Module.CombatSystem
         [SerializeField]
         private bool portable;
         [SerializeField]
-        private List<CombatSystemManager.WeaponPlace> restPlaces = new List<CombatSystemManager.WeaponPlace>();
+        private List<WeaponPlace> restPlaces = new List<WeaponPlace>();
         [SerializeField]
-        private List<CombatSystemManager.WeaponPlace> carryPlaces = new List<CombatSystemManager.WeaponPlace>();
+        private List<WeaponPlace> carryPlaces = new List<WeaponPlace>();
         [SerializeField]
         private List<Vector3> projectilesOutPoints = new List<Vector3>();
 
@@ -76,12 +76,12 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Le type de data traductible.
         /// </summary>
-        public PulseCore_GlobalValue_Manager.DataType TradDataType { get => (PulseCore_GlobalValue_Manager.DataType)tradDataType; set => tradDataType = (int)value; }
+        public TradDataTypes TradType { get => (TradDataTypes)tradDataType; set => tradDataType = (int)value; }
 
         /// <summary>
         /// Le type d'arme.
         /// </summary>
-        public CombatSystemManager.WeaponType TypeArme { get { return (CombatSystemManager.WeaponType)typeArme; } set { typeArme = (int)value; } }
+        public WeaponType TypeArme { get { return (WeaponType)typeArme; } set { typeArme = (int)value; } }
 
         /// <summary>
         /// La portee de l'arme.
@@ -91,7 +91,7 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// le type de degat que l'arme inflige.
         /// </summary>
-        public CombatSystemManager.TypeDegatArme TypeDegats { get => (CombatSystemManager.TypeDegatArme)typeDegats; set => typeDegats = (int)value; }
+        public TypeDegatArme TypeDegats { get => (TypeDegatArme)typeDegats; set => typeDegats = (int)value; }
 
         /// <summary>
         /// la valeur des degats infliges.
@@ -106,15 +106,15 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// La liste des materiaux en lesquels sont faites chaque partie de l'arme, un pour chaque objet.
         /// </summary>
-        public List<PhysicManager.PhysicMaterials> Materiaux
+        public List<PhysicMaterials> Materiaux
         {
             get
             {
-                return materiaux.ConvertAll<PhysicManager.PhysicMaterials>(new System.Converter<int, PhysicManager.PhysicMaterials>(integer => { return (PhysicManager.PhysicMaterials)integer; }));
+                return materiaux.ConvertAll<PhysicMaterials>(new System.Converter<int, PhysicMaterials>(integer => { return (PhysicMaterials)integer; }));
             }
             set
             {
-                materiaux = value.ConvertAll<int>(new System.Converter<PhysicManager.PhysicMaterials, int>(physic => { return (int)physic; }));
+                materiaux = value.ConvertAll<int>(new System.Converter<PhysicMaterials, int>(physic => { return (int)physic; }));
             }
         }
 
@@ -162,13 +162,13 @@ namespace PulseEngine.Module.CombatSystem
         /// <summary>
         /// Les emplacements rengaine de l'arme. un pour chaque object
         /// </summary>
-        public List<CombatSystemManager.WeaponPlace> RestPlaces { get => restPlaces; set => restPlaces = value; }
+        public List<WeaponPlace> RestPlaces { get => restPlaces; set => restPlaces = value; }
 
 
         /// <summary>
         /// Les emplacements degaine de l'arme. un pour chaque object
         /// </summary>
-        public List<CombatSystemManager.WeaponPlace> CarryPlaces { get => carryPlaces; set => carryPlaces = value; }
+        public List<WeaponPlace> CarryPlaces { get => carryPlaces; set => carryPlaces = value; }
 
         /// <summary>
         /// Les points de sortie de projectiles pour les armes a distance.
@@ -185,9 +185,31 @@ namespace PulseEngine.Module.CombatSystem
         /// </summary>
         /// <param name="field"></param>
         /// <returns></returns>
-        public async Task<string> GetTradText(LocalisationManager.DatalocationField field)
+        public async Task<string> GetTradText(DatalocationField field)
         {
-            return await LocalisationManager.TextData(IdTrad, field, (int)tradDataType, (int)PulseCore_GlobalValue_Manager.currentLanguage);
+            return await LocalisationManager.TextData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
+        }
+
+
+        /// <summary>
+        /// Get the traducted Image.
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        public async Task<Sprite> GetTradSprite(DatalocationField field)
+        {
+            return await LocalisationManager.ImageData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
+        }
+
+
+        /// <summary>
+        /// Get the traducted Audio.
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        public async Task<AudioClip> GetTradVoice(DatalocationField field)
+        {
+            return await LocalisationManager.AudioData(IdTrad, field, TradType, PulseEngineMgr.currentLanguage);
         }
 
         #endregion

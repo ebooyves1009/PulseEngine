@@ -34,6 +34,7 @@ namespace PulseEditor.Modules.Anima
         private CommandAction currentAnimCommand;
 
         #endregion
+
         #region Visual Attributes ################################################################
 
         /// <summary>
@@ -51,7 +52,13 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         private Vector2 eventListScroll;
 
+        /// <summary>
+        /// La previsualisations de l'animation
+        /// </summary>
+        private Previewer animPreview;
+
         #endregion
+
         #region Fonctionnal Methods ################################################################
 
         /// <summary>
@@ -62,6 +69,8 @@ namespace PulseEditor.Modules.Anima
             allAssets.Clear();
             editedAsset = null;
             editedData = null;
+            if (animPreview != null)
+                animPreview.Destroy();
             foreach (AnimaCategory category in Enum.GetValues(typeof(AnimaCategory)))
             {
                 foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
@@ -77,6 +86,7 @@ namespace PulseEditor.Modules.Anima
             {
                 editedAsset = asset;
             }
+            animPreview = new Previewer();
         }
 
         /// <summary>
@@ -169,6 +179,7 @@ namespace PulseEditor.Modules.Anima
 
 
         #endregion
+
         #region Common Windows ################################################################
 
         /// <summary>
@@ -283,6 +294,7 @@ namespace PulseEditor.Modules.Anima
         }
 
 
+
         /// <summary>
         /// details.
         /// </summary>
@@ -296,9 +308,10 @@ namespace PulseEditor.Modules.Anima
                 //ID
                 EditorGUILayout.LabelField("ID: " + data.ID, EditorStyles.boldLabel);
                 //Motion
-                timeInCurrentAnimation = Previewer.Previsualize(data.Motion);
-                var newMotion = EditorGUILayout.ObjectField("Motion ",data.Motion, typeof(AnimationClip), false) as AnimationClip;
-                if(newMotion != data.Motion)
+                if (animPreview != null)
+                    timeInCurrentAnimation = animPreview.Previsualize(data.Motion);
+                var newMotion = EditorGUILayout.ObjectField("Motion ", data.Motion, typeof(AnimationClip), false) as AnimationClip;
+                if (newMotion != data.Motion)
                 {
                     if (EditorUtility.DisplayDialog("Warning", "By changing motion, you will lost all data configured from it.\n Proceed?", "Yes", "No"))
                     {
@@ -562,6 +575,7 @@ namespace PulseEditor.Modules.Anima
         }
 
         #endregion
+
         #region Helpers & Tools ################################################################
 
         #endregion

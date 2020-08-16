@@ -90,7 +90,8 @@ namespace PulseEngine.Modules.Localisator
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 LocalisationLibrary asset = ScriptableObject.CreateInstance<LocalisationLibrary>();
-                asset.libraryDataType = (int)tradDataType;
+                asset.libraryTradType = (int)tradDataType;
+                asset.libraryDataType = (int)DataTypes.tradData;
                 asset.libraryLanguage = (int)language;
                 asset.Scope = Scopes.tous;
                 AssetDatabase.CreateAsset(asset, fullPath);
