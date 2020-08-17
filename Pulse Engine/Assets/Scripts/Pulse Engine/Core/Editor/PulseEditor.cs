@@ -48,7 +48,12 @@ namespace PulseEditor
             /// <summary>
             /// Le chimin d'acces de l'avatrar par defaut.
             /// </summary>
-            public const string previewAvatarPath = "Assets/Scripts/Pulse Engine/Core/Res/defaultAvatar.fbx";
+            public const string previewAvatarPath = "Assets/Scripts/Pulse Engine/Core/Res/defaultAvatar.prefab";
+
+            /// <summary>
+            /// Le chimin d'acces de l'avatrar par defaut.
+            /// </summary>
+            public const string previewAvatarFloorPath = "Assets/Scripts/Pulse Engine/Core/Res/Plane.prefab";
 
             /// <summary>
             /// Le menu dans lequel seront crees les menus des editeurs.
@@ -538,7 +543,7 @@ namespace PulseEditor
             /// <summary>
             /// the target's accessories to render.
             /// </summary>
-            private Dictionary<GameObject,(HumanBodyBones bone, Vector3 offset)> accesories;
+            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)> accesories = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
 
             /// <summary>
             /// arrow indicator
@@ -670,6 +675,7 @@ namespace PulseEditor
                     {
                         if (GUILayout.Button("Play"))
                         {
+                            AnimationMode.StartAnimationMode();
                             targetAnimator.Play(animState.name);
                         }
                     }
@@ -1011,7 +1017,14 @@ namespace PulseEditor
             {
                 if (!target || !targetAnimator)
                     return;
-                targetAnimator.SetFloat("PlaybackTime", playBackTime);
+                //targetAnimator.SetFloat("PlaybackTime", playBackTime);
+
+                if (AnimationMode.InAnimationMode())
+                {
+                    AnimationMode.BeginSampling();
+                    AnimationMode.SampleAnimationClip(target, (AnimationClip)playBackMotion, playBackTime);
+                    AnimationMode.EndSampling();
+                }
             }
 
             /// <summary>
@@ -1078,6 +1091,10 @@ namespace PulseEditor
                     catch { }
 
                 }
+                if (!playBackMotion || (playBackMotion != _motion && _motion != null))
+                {
+                    playBackMotion = _motion;
+                }
                 if (floorTexture == null)
                 {
                     floorTexture = (Texture2D)EditorGUIUtility.Load("Avatar/Textures/AvatarFloor.png");
@@ -1106,33 +1123,32 @@ namespace PulseEditor
                 }
                 if (!floorPlane)
                 {
+                    floorPlane = (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath);
                     var originalMesh = Resources.GetBuiltinResource<Mesh>("New-Plane.fbx");
                     var plMesh = UnityEngine.Object.Instantiate(originalMesh, Vector3.zero, Quaternion.identity);
-                    var renderer = floorPlane.AddComponent<SkinnedMeshRenderer>();
+                    var renderer = floorPlane.GetComponent<SkinnedMeshRenderer>();
                     renderer.sharedMesh = plMesh;
                 }
                 if (!directionArrow)
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/dial_flat.prefab");
                     directionArrow = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    previewRenderer.AddSingleGO(directionArrow);
+                    //previewRenderer.AddSingleGO(directionArrow);
                     //SetEnabledRecursive(directionArrow, true);
                 }
                 if (!rootGameObject)
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/root.fbx");
                     rootGameObject = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    previewRenderer.AddSingleGO(rootGameObject);
+                    //previewRenderer.AddSingleGO(rootGameObject);
                     //SetEnabledRecursive(rootGameObject, true);
                 }
-                if (!target)
+                if (true)
                 {
                     //TODO: Load the default avatar here.
-                    var defaultAvatar = (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarPath);
-                    target = _avatar ? _avatar : defaultAvatar;
+                    target = _avatar ? _avatar : (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarPath);
                     if (target) {
                         //UnityEngine.Object.Destroy(defaultAvatar);
-                        defaultAvatar = null;
                         targetAnimator = target.GetComponentInChildren<Animator>();
                         if (!targetAnimator)
                         {
@@ -1144,13 +1160,13 @@ namespace PulseEditor
                         targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                         targetAnimator.logWarnings = false;
                         targetAnimator.fireEvents = false;
-                        previewRenderer.AddSingleGO(target);
+                        //previewRenderer.AddSingleGO(target);
                         //SetEnabledRecursive(target, true);
                         //rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/control.controller");
                         if (rtController == null)
                         {
-                            rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/control.controller");
-                            animState = rtController.AddMotion(playBackMotion);
+                            rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/Scripts/Pulse Engine/Core/Res/control.controller");
+                            animState = rtController.AddMotion(playBackMotion, 0);
                             rtController.AddParameter("PlaybackTime", AnimatorControllerParameterType.Float);
                             animState.timeParameter = "PlaybackTime";
                             targetAnimator.runtimeAnimatorController = rtController;
@@ -1168,6 +1184,7 @@ namespace PulseEditor
                     if (!accesories.ContainsKey(accessory.go))
                     {
                         accesories.Add(accessory.go, (accessory.bone, accessory.offset));
+                        //previewRenderer.AddSingleGO(accessory.go);
                     }
                 }
 
@@ -1179,18 +1196,13 @@ namespace PulseEditor
             /// </summary>
             private void Reset()
             {
-                target = null;
-                targetAnimator = null;
                 if (previewRenderer != null)
                 {
                     previewRenderer.Cleanup();
-                    previewRenderer = null;
                 }
                 playBackMotion = null;
                 playBackTime = 0;
-                floorPlane = null;
-                cameraPivot = null;
-                rootGameObject = null;
+                AnimationMode.StopAnimationMode();
             }
 
             /// <summary>

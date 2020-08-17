@@ -574,6 +574,12 @@ namespace PulseEditor.Modules.Anima
             Repaint();
         }
 
+        private void OnDisable()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+        }
+
         #endregion
 
         #region Helpers & Tools ################################################################
