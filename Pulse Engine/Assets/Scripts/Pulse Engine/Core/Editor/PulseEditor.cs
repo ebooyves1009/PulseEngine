@@ -7,6 +7,7 @@ using PulseEngine.Globals;
 using UILayout = UnityEngine.GUILayout;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
+using System.Linq;
 
 
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
@@ -520,7 +521,7 @@ namespace PulseEditor
         /// <summary>
         /// Fait une previsualisation.
         /// </summary>
-        public class Previewer 
+        public class Previewer
         {
 
             #region Attributes ###################################################################################
@@ -538,12 +539,12 @@ namespace PulseEditor
             /// <summary>
             /// the target to render.
             /// </summary>
-            private GameObject target;
+            private GameObject previewAvatar;
 
             /// <summary>
             /// the target's accessories to render.
             /// </summary>
-            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)> accesories = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
+            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)> accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
 
             /// <summary>
             /// arrow indicator
@@ -571,6 +572,11 @@ namespace PulseEditor
             private UnityEditor.Animations.AnimatorController rtController;
 
             /// <summary>
+            /// The target's animator runtimeController's state machine.
+            /// </summary>
+            private UnityEditor.Animations.AnimatorStateMachine animStateMachine;
+
+            /// <summary>
             /// The target's animator runtimeController's state.
             /// </summary>
             private UnityEditor.Animations.AnimatorState animState;
@@ -594,16 +600,6 @@ namespace PulseEditor
             /// the floor material.
             /// </summary>
             private Material floorMaterial;
-
-            /// <summary>
-            /// the shadow mask material.
-            /// </summary>
-            private Material shadowMaskMaterial;
-
-            /// <summary>
-            /// the shadowPlane material.
-            /// </summary>
-            private Material shadowPlaneMaterial;
 
             /// <summary>
             /// the zooming factor
@@ -645,6 +641,16 @@ namespace PulseEditor
             /// </summary>
             private ViewTool viewTool = ViewTool.None;
 
+            /// <summary>
+            /// The time at the last frame.
+            /// </summary>
+            private DateTime lastFrameTime;
+
+            /// <summary>
+            /// The time spend rendering the last frame.
+            /// </summary>
+            private float deltaTime;
+
             #endregion
 
             #region public Methods #################################################################################################
@@ -656,6 +662,8 @@ namespace PulseEditor
             /// <param name="_target"></param>
             public float Previsualize(Motion _motion, GameObject _target = null, params (GameObject go, HumanBodyBones bone, Vector3 offset)[] accessories)
             {
+                deltaTime = (float)(DateTime.Now - lastFrameTime).TotalSeconds;
+                lastFrameTime = DateTime.Now;
                 if(!_motion)
                 {
                     Reset();
@@ -670,13 +678,12 @@ namespace PulseEditor
                     panAngle = EditorGUILayout.FloatField("Pan", panAngle);
                     tiltAngle = EditorGUILayout.FloatField("tilt", tiltAngle);
                     pivotOffset.y = EditorGUILayout.FloatField("Height", pivotOffset.y);
-                    playBackTime = EditorGUILayout.FloatField("PlayBackTime", playBackTime);
-                    if (rtController && animState)
+                    playBackTime = EditorGUILayout.Slider("PlayBackTime", playBackTime, 0, 1);
+                    if (rtController && animStateMachine)
                     {
-                        if (GUILayout.Button("Play"))
+                        if (GUILayout.Button(isPlaying?"Pause":"Play"))
                         {
-                            AnimationMode.StartAnimationMode();
-                            targetAnimator.Play(animState.name);
+                            isPlaying = !isPlaying;
                         }
                     }
                     try { EditorGUILayout.LabelField(targetAnimator.avatar.name); } catch { EditorGUILayout.LabelField("No Avatar"); }
@@ -783,7 +790,7 @@ namespace PulseEditor
                             DoAvatarPreviewPan(evt, previewRect);
                             break;
                         case ViewTool.Zoom:
-                            DoAvatarPreviewZoom(evt, (0f - HandleUtility.niceMouseDeltaZoom) * ((!evt.shift) ? 0.5f : 2f));
+                            DoAvatarPreviewZoom(evt, (0f - HandleUtility.niceMouseDeltaZoom) * ((!evt.shift) ? 0.5f : 2f), previewRect);
                             break;
                         default:
                             break;
@@ -822,7 +829,7 @@ namespace PulseEditor
                     case EventType.KeyUp:
                         break;
                     case EventType.ScrollWheel:
-                        DoAvatarPreviewZoom(evt, HandleUtility.niceMouseDeltaZoom * ((!evt.shift) ? 0.5f : 2f));
+                        DoAvatarPreviewZoom(evt, HandleUtility.niceMouseDeltaZoom * ((!evt.shift) ? 0.5f : 2f),previewRect);
                         break;
                     case EventType.MouseDown:
                         HandleMouseDown(evt, id, previewRect);
@@ -856,12 +863,15 @@ namespace PulseEditor
             /// </summary>
             /// <param name="evt"></param>
             /// <param name="delta"></param>
-            public void DoAvatarPreviewZoom(Event evt, float delta)
+            public void DoAvatarPreviewZoom(Event evt, float delta, Rect previewRect)
             {
-                float num = (0f - delta) * 0.05f;
-                zoomFactor += zoomFactor * num;
-                zoomFactor = Mathf.Max(zoomFactor, targetScale / 10f);
-                evt.Use();
+                if (previewRect.Contains(evt.mousePosition))
+                {
+                    float num = (0f - delta) * 0.05f;
+                    zoomFactor += zoomFactor * num;
+                    zoomFactor = Mathf.Max(zoomFactor, targetScale / 10f);
+                    evt.Use();
+                }
             }
 
             #endregion
@@ -946,14 +956,13 @@ namespace PulseEditor
 
                 //if (previewRenderer.camera.transform.parent != cameraPivot)
                 //    previewRenderer.camera.transform.SetParent(cameraPivot.transform);
-                if (!target)
-                    return;
                 if (previewRenderer == null)
                     return;
 
                 Animate();
-                target.transform.localToWorldMatrix.SetTRS(target.transform.position, target.transform.rotation, target.transform.localScale);
+                //previewAvatar.transform.localToWorldMatrix.SetTRS(previewAvatar.transform.position, previewAvatar.transform.rotation, previewAvatar.transform.localScale);
                 PositionPreviewObjects();
+                AdjustFloor();
 
                 previewRenderer.BeginPreview(r, GUIStyle.none);
                 //render floor plane
@@ -963,39 +972,7 @@ namespace PulseEditor
                     if (floorMesh)
                     {
                         floorMesh.receiveShadows = true;
-                        previewRenderer.DrawMesh(floorMesh.sharedMesh, Vector3.zero, Quaternion.identity, floorMaterial, 0);
-                    }
-                }
-                //render target avatar
-                var mesh = target.GetComponentsInChildren<SkinnedMeshRenderer>();
-                for (int i = 0; i < mesh.Length; i++)
-                {
-                    var m = mesh[i];
-                    for (int j = 0; j < m.sharedMesh.subMeshCount; j++)
-                    {
-                        if(m.sharedMesh != null)
-                        {
-                            m.shadowCastingMode = ShadowCastingMode.On;
-                            previewRenderer.DrawMesh(m.sharedMesh, m.transform.localToWorldMatrix * target.transform.localToWorldMatrix, m.sharedMaterials[j], j);
-                        }
-                    }
-                }
-                //Render Accesories
-                foreach(var acc in accesories)
-                {
-                    var subMesh = acc.Key.GetComponentsInChildren<SkinnedMeshRenderer>();
-                    acc.Key.transform.localToWorldMatrix.SetTRS(acc.Key.transform.position, acc.Key.transform.rotation, acc.Key.transform.localScale);
-                    for (int i = 0; i < subMesh.Length; i++)
-                    {
-                        var m = subMesh[i];
-                        for (int j = 0; j < m.sharedMesh.subMeshCount; j++)
-                        {
-                            if (m.sharedMesh != null)
-                            {
-                                m.shadowCastingMode = ShadowCastingMode.On;
-                                previewRenderer.DrawMesh(m.sharedMesh, m.transform.localToWorldMatrix * acc.Key.transform.localToWorldMatrix, m.sharedMaterials[j], j);
-                            }
-                        }
+                        previewRenderer.DrawMesh(floorMesh.sharedMesh, floorPlane.transform.position, Quaternion.identity, floorMaterial, 0);
                     }
                 }
 
@@ -1015,17 +992,89 @@ namespace PulseEditor
             /// </summary>
             private void Animate()
             {
-                if (!target || !targetAnimator)
+                if (!previewAvatar || !targetAnimator)
                     return;
-                //targetAnimator.SetFloat("PlaybackTime", playBackTime);
-
-                if (AnimationMode.InAnimationMode())
+                bool flag = Event.current.type == EventType.Repaint;
+                targetAnimator.applyRootMotion = isPlaying;
+                if (flag)
                 {
-                    AnimationMode.BeginSampling();
-                    AnimationMode.SampleAnimationClip(target, (AnimationClip)playBackMotion, playBackTime);
-                    AnimationMode.EndSampling();
+                    //m_AvatarPreview.timeControl.Update();
+                }
+                AnimationClip animationClip = playBackMotion as AnimationClip;
+                AnimationClipSettings animationClipSettings = AnimationUtility.GetAnimationClipSettings(animationClip);
+                if (isPlaying)
+                {
+                    //playBackTime += (1 / animationClip.frameRate);
+                    playBackTime += 1 / (deltaTime * animationClip.frameRate);
+                    if(playBackTime > animationClipSettings.stopTime)
+                    {
+                        isPlaying = animationClipSettings.loopTime;
+                        playBackTime = 0;
+                    }
+                }
+                if (flag && previewAvatar != null)
+                {
+                    if (!animationClip.legacy && targetAnimator != null)
+                    {
+                        if (animState != null)
+                        {
+                            animState.iKOnFeet = true;
+                        }
+                        //float normalizedTime = (animationClipSettings.stopTime - animationClipSettings.startTime == 0f) ? 0f : ((playBackTime - animationClipSettings.startTime) / (animationClipSettings.stopTime - animationClipSettings.startTime));
+                        float normalizedTime = playBackTime;
+                        targetAnimator.Play(0, 0, normalizedTime);
+                        targetAnimator.Update(deltaTime);
+                    }
+                    else
+                    {
+                        animationClip.SampleAnimation(previewAvatar, playBackTime);
+                    }
                 }
             }
+
+            /// <summary>
+            /// Initialise the animator controller
+            /// </summary>
+            private void InitController()
+            {
+                if (playBackMotion.legacy || targetAnimator == null)
+                {
+                    return;
+                }
+                bool flag = true;
+                if (rtController == null)
+                {
+                    rtController = new UnityEditor.Animations.AnimatorController();
+                    //rtController.pushUndo = false;
+                    rtController.hideFlags = HideFlags.HideAndDontSave;
+                    rtController.AddLayer("preview");
+                    animStateMachine = rtController.layers[0].stateMachine;
+                    //animState.pushUndo = false;
+                    animStateMachine.hideFlags = HideFlags.HideAndDontSave;
+                    flag = false;
+                }
+                if (animState == null)
+                {
+                    animState = animStateMachine.AddState("preview");
+                    //animState.pushUndo = false;
+                    UnityEditor.Animations.AnimatorControllerLayer[] layers2 = rtController.layers;
+                    animState.motion = playBackMotion;
+                    rtController.layers = layers2;
+                    animState.hideFlags = HideFlags.HideAndDontSave;
+                    flag = false;
+                }
+                UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
+                if (targetAnimator.runtimeAnimatorController != rtController)
+                {
+                    UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
+                }
+                if (!flag)
+                {
+                    targetAnimator.Play(0, 0, 0f);
+                    targetAnimator.Update(0f);
+                }
+            }
+
 
             /// <summary>
             /// Render empty preview.
@@ -1056,40 +1105,20 @@ namespace PulseEditor
                     var cx = zoomFactor * Mathf.Cos(panAngle * Mathf.Deg2Rad);
                     var cy = zoomFactor * Mathf.Sin(tiltAngle * Mathf.Deg2Rad);
                     var cz = zoomFactor * Mathf.Sin(panAngle * Mathf.Deg2Rad);
-                    previewRenderer.camera.transform.localPosition = pivotOffset + new Vector3(cx, cy, cz);
-                    previewRenderer.camera.transform.LookAt(pivotOffset, Vector3.up);
-
-                    //Camera config
-                    previewRenderer.camera.fieldOfView = 60;
-                    previewRenderer.camera.nearClipPlane = 0.01f;
-                    previewRenderer.camera.farClipPlane = 100;
-
-                    //Lights and FX
-                    SphericalHarmonicsL2 ambientProbe = RenderSettings.ambientProbe;
-                    SetupPreviewLightingAndFx(ambientProbe);
-
-                    //Shadows and floor Texture offset
-                    Matrix4x4 outterMatrix;
-                    RenderTexture renderTex = null;
-                    try
+                    if (previewRenderer.camera)
                     {
-                        //renderTex = RenderPreviewShadowmap(previewRenderer.lights[0], 128, pivotOffset, Vector3.zero, out outterMatrix);
-                        //Vector3 position = target.transform.position;
-                        //Vector2 floorTexOffset = -new Vector2(position.x, position.z);
-                        //if (floorMaterial)
-                        //{
-                        //    Material floorMat = floorMaterial;
-                        //    Matrix4x4 matrix = Matrix4x4.TRS(position, cameraPivot.transform.rotation, Vector3.one * 5f * targetScale);
-                        //    floorMat.mainTextureOffset = floorTexOffset * 5f * 0.08f * (1f / targetScale);
-                        //    floorMat.SetTexture("_ShadowTexture", renderTex);
-                        //    floorMat.SetMatrix("_ShadowTextureMatrix", outterMatrix);
-                        //    floorMat.SetVector("_Alphas", new Vector4(0.5f, 0.3f, 0f, 0f));
-                        //    floorMat.renderQueue = 1000;
-                        //}
-                        //RenderTexture.ReleaseTemporary(renderTex);
-                    }
-                    catch { }
+                        previewRenderer.camera.transform.localPosition = pivotOffset + new Vector3(cx, cy, cz);
+                        previewRenderer.camera.transform.LookAt(pivotOffset, Vector3.up);
 
+                        //Camera config
+                        previewRenderer.camera.fieldOfView = 60;
+                        previewRenderer.camera.nearClipPlane = 0.01f;
+                        previewRenderer.camera.farClipPlane = 100;
+
+                        //Lights and FX
+                        SphericalHarmonicsL2 ambientProbe = RenderSettings.ambientProbe;
+                        SetupPreviewLightingAndFx(ambientProbe);
+                    }
                 }
                 if (!playBackMotion || (playBackMotion != _motion && _motion != null))
                 {
@@ -1109,18 +1138,6 @@ namespace PulseEditor
                     floorMaterial.hideFlags = HideFlags.HideAndDontSave;
                     floorMaterial = new Material(floorMaterial);
                 }
-                if (shadowMaskMaterial == null)
-                {
-                    Shader shader2 = EditorGUIUtility.LoadRequired("Previews/PreviewShadowMask.shader") as Shader;
-                    shadowMaskMaterial = new Material(shader2);
-                    shadowMaskMaterial.hideFlags = HideFlags.HideAndDontSave;
-                }
-                if (shadowPlaneMaterial == null)
-                {
-                    Shader shader3 = EditorGUIUtility.LoadRequired("Previews/PreviewShadowPlaneClip.shader") as Shader;
-                    shadowPlaneMaterial = new Material(shader3);
-                    shadowPlaneMaterial.hideFlags = HideFlags.HideAndDontSave;
-                }
                 if (!floorPlane)
                 {
                     floorPlane = (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath);
@@ -1133,23 +1150,22 @@ namespace PulseEditor
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/dial_flat.prefab");
                     directionArrow = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    //previewRenderer.AddSingleGO(directionArrow);
-                    //SetEnabledRecursive(directionArrow, true);
+                    previewRenderer.AddSingleGO(directionArrow);
                 }
                 if (!rootGameObject)
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/root.fbx");
                     rootGameObject = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    //previewRenderer.AddSingleGO(rootGameObject);
-                    //SetEnabledRecursive(rootGameObject, true);
+                    previewRenderer.AddSingleGO(rootGameObject);
                 }
-                if (true)
+                if (!previewAvatar)
                 {
-                    //TODO: Load the default avatar here.
-                    target = _avatar ? _avatar : (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarPath);
-                    if (target) {
-                        //UnityEngine.Object.Destroy(defaultAvatar);
-                        targetAnimator = target.GetComponentInChildren<Animator>();
+                    previewAvatar = GetAvatar(ref _avatar);
+                    previewAvatar.hideFlags = HideFlags.HideAndDontSave;
+                    previewRenderer.AddSingleGO(previewAvatar);
+                    if (previewAvatar)
+                    {
+                        targetAnimator = previewAvatar.GetComponentInChildren<Animator>();
                         if (!targetAnimator)
                         {
                             Reset();
@@ -1160,17 +1176,7 @@ namespace PulseEditor
                         targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                         targetAnimator.logWarnings = false;
                         targetAnimator.fireEvents = false;
-                        //previewRenderer.AddSingleGO(target);
-                        //SetEnabledRecursive(target, true);
-                        //rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/control.controller");
-                        if (rtController == null)
-                        {
-                            rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/Scripts/Pulse Engine/Core/Res/control.controller");
-                            animState = rtController.AddMotion(playBackMotion, 0);
-                            rtController.AddParameter("PlaybackTime", AnimatorControllerParameterType.Float);
-                            animState.timeParameter = "PlaybackTime";
-                            targetAnimator.runtimeAnimatorController = rtController;
-                        }
+                        InitController();
                     }
                     else {
                         Reset();
@@ -1179,16 +1185,35 @@ namespace PulseEditor
                 }
                 foreach(var accessory in accessories)
                 {
-                    if (accesories == null)
-                        accesories = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
-                    if (!accesories.ContainsKey(accessory.go))
+                    if (accesoriesPool == null)
+                        accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
+                    for(int i = 0; i < accesoriesPool.Count; i++)
                     {
-                        accesories.Add(accessory.go, (accessory.bone, accessory.offset));
-                        //previewRenderer.AddSingleGO(accessory.go);
+                        var poolItem = accesoriesPool.ElementAt(i);
+                        if (poolItem.Key.name == accessory.go.name && poolItem.Value.bone == accessory.bone)
+                            continue;
+                        var acc = UnityEngine.Object.Instantiate(accessory.go);
+                        acc.name = accessory.go.name;
+                        if (!accesoriesPool.ContainsKey(acc))
+                        {
+                            accesoriesPool.Add(acc, (accessory.bone, accessory.offset));
+                            previewRenderer.AddSingleGO(acc);
+                        }
                     }
                 }
 
                 return true;
+            }
+
+            /// <summary>
+            /// get the avatar.
+            /// </summary>
+            /// <param name="original"></param>
+            /// <returns></returns>
+            private GameObject GetAvatar(ref GameObject original)
+            {
+                GameObject o = original ? original : (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarPath);
+                return UnityEngine.Object.Instantiate(o, Vector3.zero, Quaternion.identity);
             }
 
             /// <summary>
@@ -1202,94 +1227,6 @@ namespace PulseEditor
                 }
                 playBackMotion = null;
                 playBackTime = 0;
-                AnimationMode.StopAnimationMode();
-            }
-
-            /// <summary>
-            /// Active go renderers
-            /// </summary>
-            /// <param name="go"></param>
-            /// <param name="enabled"></param>
-            private static void SetEnabledRecursive(GameObject go, bool enabled)
-            {
-                Renderer[] componentsInChildren = go.GetComponentsInChildren<Renderer>();
-                foreach (Renderer renderer in componentsInChildren)
-                {
-                    renderer.enabled = enabled;
-                }
-            }
-
-            /// <summary>
-            /// enable or disable target renderers.
-            /// </summary>
-            /// <param name="enabled"></param>
-            private void SetpreviewCharEnabled(bool enabled)
-            {
-                SetEnabledRecursive(target, enabled);
-                SetEnabledRecursive(directionArrow, enabled);
-                SetEnabledRecursive(rootGameObject, enabled);
-            }
-
-            /// <summary>
-            /// Generate shadow.
-            /// </summary>
-            /// <param name="light"></param>
-            /// <param name="scale"></param>
-            /// <param name="center"></param>
-            /// <param name="floorPos"></param>
-            /// <param name="outShadowMatrix"></param>
-            /// <returns></returns>
-            private RenderTexture RenderPreviewShadowmap(Light light, float scale, Vector3 center, Vector3 floorPos, out Matrix4x4 outShadowMatrix)
-            {
-                Assert.IsTrue(Event.current.type == EventType.Repaint);
-                Camera camera = previewRenderer.camera;
-                camera.orthographic = true;
-                camera.orthographicSize = scale * 2f;
-                camera.nearClipPlane = 1f * scale;
-                camera.farClipPlane = 25f * scale;
-                camera.transform.rotation =  light.transform.rotation;
-                camera.transform.position = center - light.transform.forward * (scale * 5.5f);
-                CameraClearFlags clearFlags = camera.clearFlags;
-                camera.clearFlags = CameraClearFlags.Color;
-                Color backgroundColor = camera.backgroundColor;
-                camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
-                RenderTexture targetTexture = camera.targetTexture;
-                RenderTexture temporary = RenderTexture.GetTemporary(256, 256, 16);
-                temporary.isPowerOfTwo = true;
-                temporary.wrapMode = TextureWrapMode.Clamp;
-                temporary.filterMode = FilterMode.Bilinear;
-                camera.targetTexture = temporary;
-                //SetPreviewCharacterEnabled(enabled: true, showReference: false);
-                previewRenderer.camera.Render();
-                RenderTexture.active = temporary;
-                GL.PushMatrix();
-                GL.LoadOrtho();
-                shadowMaskMaterial.SetPass(0);
-                GL.Begin(7);
-                GL.Vertex3(0f, 0f, -99f);
-                GL.Vertex3(1f, 0f, -99f);
-                GL.Vertex3(1f, 1f, -99f);
-                GL.Vertex3(0f, 1f, -99f);
-                GL.End();
-                GL.LoadProjectionMatrix(camera.projectionMatrix);
-                GL.LoadIdentity();
-                GL.MultMatrix(camera.worldToCameraMatrix);
-                shadowPlaneMaterial.SetPass(0);
-                GL.Begin(7);
-                float num = 5f * scale;
-                GL.Vertex(floorPos + new Vector3(0f - num, 0f, 0f - num));
-                GL.Vertex(floorPos + new Vector3(num, 0f, 0f - num));
-                GL.Vertex(floorPos + new Vector3(num, 0f, num));
-                GL.Vertex(floorPos + new Vector3(0f - num, 0f, num));
-                GL.End();
-                GL.PopMatrix();
-                Matrix4x4 lhs = Matrix4x4.TRS(new Vector3(0.5f, 0.5f, 0.5f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f));
-                outShadowMatrix = lhs * camera.projectionMatrix * camera.worldToCameraMatrix;
-                camera.orthographic = false;
-                camera.clearFlags = clearFlags;
-                camera.backgroundColor = backgroundColor;
-                camera.targetTexture = targetTexture;
-                return temporary;
             }
 
             /// <summary>
@@ -1310,28 +1247,24 @@ namespace PulseEditor
             /// <summary>
             /// Position the gameobjects in scene.
             /// </summary>
-            /// <param name="pivotRot"></param>
-            /// <param name="pivotPos"></param>
-            /// <param name="bodyRot"></param>
-            /// <param name="bodyPos"></param>
-            /// <param name="directionRot"></param>
-            /// <param name="rootRot"></param>
-            /// <param name="rootPos"></param>
-            /// <param name="directionPos"></param>
-            /// <param name="scale"></param>
             private void PositionPreviewObjects()
             {
-                target.transform.position = targetAnimator.rootPosition;
-                target.transform.rotation = targetAnimator.rootRotation;
-                target.transform.localScale = Vector3.one * targetScale;
+                var position = targetAnimator.rootPosition;
+                position.y = Mathf.Clamp(position.y, 0, position.y);
+                previewAvatar.transform.position = position;
+                previewAvatar.transform.rotation = targetAnimator.rootRotation;
+                previewAvatar.transform.localScale = Vector3.one * targetScale;
+                var offset = Vector3.Lerp(pivotOffset, position, 0.016f);
+                pivotOffset = new Vector3(offset.x, pivotOffset.y, offset.z);
                 directionArrow.transform.position = targetAnimator.rootPosition;
-                directionArrow.transform.rotation = targetAnimator.bodyRotation;
+                var rot = Quaternion.Euler(0, targetAnimator.bodyRotation.eulerAngles.y, 0);
+                directionArrow.transform.rotation = rot;
                 directionArrow.transform.localScale = Vector3.one * targetScale * 2f;
                 rootGameObject.transform.position = pivotOffset;
                 rootGameObject.transform.rotation = Quaternion.identity;
                 rootGameObject.transform.localScale = Vector3.one * targetScale * 0.25f;
 
-                foreach(var acc in accesories)
+                foreach(var acc in accesoriesPool)
                 {
                     if (targetAnimator)
                     {
@@ -1340,57 +1273,24 @@ namespace PulseEditor
                         acc.Key.transform.rotation = bone.rotation;
                     }
                 }
-                //float normalizedTime = timeControl.normalizedTime;
-                //float num = timeControl.deltaTime / (timeControl.stopTime - timeControl.startTime);
-                //if (normalizedTime - num < 0f || normalizedTime - num >= 1f)
-                //{
-                //    m_PrevFloorHeight = m_NextFloorHeight;
-                //}
-                //if (m_LastNormalizedTime != -1000f && timeControl.startTime == m_LastStartTime && timeControl.stopTime == m_LastStopTime)
-                //{
-                //    float num2 = normalizedTime - num - m_LastNormalizedTime;
-                //    if (num2 > 0.5f)
-                //    {
-                //        num2 -= 1f;
-                //    }
-                //    else if (num2 < -0.5f)
-                //    {
-                //        num2 += 1f;
-                //    }
-                //}
-                //m_LastNormalizedTime = normalizedTime;
-                //m_LastStartTime = timeControl.startTime;
-                //m_LastStopTime = timeControl.stopTime;
-                //if (m_NextTargetIsForward)
-                //{
-                //    m_NextFloorHeight = Animator.targetPosition.y;
-                //}
-                //else
-                //{
-                //    m_PrevFloorHeight = Animator.targetPosition.y;
-                //}
                 nextTargetIsForward = !nextTargetIsForward;
                 targetAnimator.SetTarget(AvatarTarget.Root, nextTargetIsForward ? 1 : 0);
             }
 
-            /// <summary>
-            /// Update the animation.
-            /// </summary>
-            private IEnumerator UpdateAnimation()
-            {
-                isPlaying = true;
-                for (; ; )
-                {
-                    //TODO: Animate here/ update positions and rotations.
 
-                    //--------------------------------------------------
-                    yield return new WaitForEndOfFrame();
-                    if (!playBackMotion || !target || !targetAnimator)
-                    {
-                        isPlaying = false;
-                        yield break;
-                    }
-                }
+            /// <summary>
+            /// Adjust floorMaterial.
+            /// </summary>
+            private void AdjustFloor()
+            {
+                if (!floorPlane)
+                    return;
+                Vector3 position = new Vector3(previewAvatar.transform.position.x, previewAvatar.transform.position.y < 0 ? previewAvatar.transform.position.y : 0, previewAvatar.transform.position.z);
+                floorPlane.transform.position = position;
+                if (!floorMaterial)
+                    return;
+                Vector2 floorTexOffset = -new Vector2(position.x, position.z);
+                floorMaterial.mainTextureOffset = floorTexOffset;
             }
 
             #endregion

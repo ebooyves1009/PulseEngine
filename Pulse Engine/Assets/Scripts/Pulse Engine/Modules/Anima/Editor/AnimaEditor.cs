@@ -322,6 +322,10 @@ namespace PulseEditor.Modules.Anima
                         var tmpEv = data.EventList;
                         tmpEv.Clear();
                         data.EventList = tmpEv;
+                        if (animPreview != null)
+                            animPreview.Destroy();
+                        animPreview = null;
+                        animPreview = new Previewer();
                     }
                 } 
                 GUILayout.Space(10);

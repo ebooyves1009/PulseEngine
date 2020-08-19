@@ -553,7 +553,7 @@ GameObject:
   - component: {fileID: 1227696165028205063}
   - component: {fileID: 5181826764302731389}
   m_Layer: 0
-  m_Name: defaultAvatar
+  m_Name: Nelly2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
