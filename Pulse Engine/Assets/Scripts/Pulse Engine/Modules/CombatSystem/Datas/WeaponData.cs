@@ -45,6 +45,8 @@ namespace PulseEngine.Modules.CombatSystem
         [SerializeField]
         private List<AnimaData> handle_moves = new List<AnimaData>();
         [SerializeField]
+        private AnimaData idle_move;
+        [SerializeField]
         private List<AttackData> attackDatas = new List<AttackData>();
         [SerializeField]
         private List<DefenseData> defenseDatas = new List<DefenseData>();
@@ -138,6 +140,11 @@ namespace PulseEngine.Modules.CombatSystem
         /// Les mouvements de degainage et rengainage de l'arme.
         /// </summary>
         public List<AnimaData> HandleMoves { get => handle_moves; set => handle_moves = value; }
+
+        /// <summary>
+        /// l'idle avec l'arme.
+        /// </summary>
+        public AnimaData IdleMove { get => idle_move; set => idle_move = value; }
 
         /// <summary>
         /// La liste des mouvements offensifs de l'arme et leurs donnees.

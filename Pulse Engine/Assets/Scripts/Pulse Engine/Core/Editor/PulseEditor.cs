@@ -190,6 +190,11 @@ namespace PulseEditor
 
             #region GuiMethods ##########################################################################
 
+            private void Update()
+            {
+                Repaint();
+            }
+
             private void OnEnable()
             {
                 minSize = new Vector2(600, 600);
@@ -370,19 +375,19 @@ namespace PulseEditor
                 {
                     case EditorMode.Normal:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save & Close", ()=> { SaveAsset(_toSave, _whereSave); Close(); }),
+                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave);}),
                         new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
                     case EditorMode.Selector:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { if(SelectAction != null) SelectAction.Invoke(); Close(); }),
+                        new KeyValuePair<string, Action>("Select", ()=> { SaveAsset(_toSave, _whereSave); if(SelectAction != null) SelectAction.Invoke(); Close(); }),
                         new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
                     case EditorMode.ItemEdition:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave);}),
+                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave); Close(); }),
                         new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
@@ -519,12 +524,14 @@ namespace PulseEditor
         }
 
         /// <summary>
-        /// Fait une previsualisation.
+        /// Fait la previsualisation d'une animation.
         /// </summary>
         public class Previewer
         {
 
-            #region Attributes ###################################################################################
+            #region Attributes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            #region time control ###############################################
 
             /// <summary>
             /// The playback time.
@@ -532,34 +539,24 @@ namespace PulseEditor
             private float playBackTime;
 
             /// <summary>
+            /// The returned playback time.
+            /// </summary>
+            private float pTime;
+
+            /// <summary>
+            /// The delta of playbackTime between frames.
+            /// </summary>
+            private float deltaTime;
+
+            #endregion
+
+            #region Animation ##################################################
+
+
+            /// <summary>
             /// The playback motion.
             /// </summary>
             private Motion playBackMotion;
-
-            /// <summary>
-            /// the target to render.
-            /// </summary>
-            private GameObject previewAvatar;
-
-            /// <summary>
-            /// the target's accessories to render.
-            /// </summary>
-            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)> accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
-
-            /// <summary>
-            /// arrow indicator
-            /// </summary>
-            private GameObject directionArrow;
-
-            /// <summary>
-            /// root indicator
-            /// </summary>
-            private GameObject rootGameObject;
-
-            /// <summary>
-            /// The grond plane mesh.
-            /// </summary>
-            private GameObject floorPlane;
 
             /// <summary>
             /// The target's animator.
@@ -586,10 +583,45 @@ namespace PulseEditor
             /// </summary>
             private bool isPlaying;
 
+            #endregion
+
+            #region Rendering ##################################################
+
+
             /// <summary>
             /// the preview renderer.
             /// </summary>
             private PreviewRenderUtility previewRenderer;
+
+            #endregion
+
+            #region World Transforms ###########################################
+
+
+            /// <summary>
+            /// the target to render.
+            /// </summary>
+            private GameObject previewAvatar;
+
+            /// <summary>
+            /// the target's accessories to render.
+            /// </summary>
+            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 PosOffset, Quaternion RotOffset)> accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 PosOffset, Quaternion RotOffset)>();
+
+            /// <summary>
+            /// arrow indicator
+            /// </summary>
+            private GameObject directionArrow;
+
+            /// <summary>
+            /// root indicator
+            /// </summary>
+            private GameObject rootGameObject;
+
+            /// <summary>
+            /// The grond plane mesh.
+            /// </summary>
+            private GameObject floorPlane;
 
             /// <summary>
             /// the floor texture.
@@ -600,6 +632,15 @@ namespace PulseEditor
             /// the floor material.
             /// </summary>
             private Material floorMaterial;
+
+            /// <summary>
+            /// the preview cam pivot offset.
+            /// </summary>
+            private Vector3 pivotOffset;
+
+            #endregion
+
+            #region Navigation #################################################
 
             /// <summary>
             /// the zooming factor
@@ -617,78 +658,46 @@ namespace PulseEditor
             private float tiltAngle = 50;
 
             /// <summary>
-            /// usefull for positionning Go in scene.
-            /// </summary>
-            private bool nextTargetIsForward;
-
-            /// <summary>
             /// the target's scale.
             /// </summary>
             private float targetScale = 1;
-
-            /// <summary>
-            /// the preview cam pivot offset.
-            /// </summary>
-            private Vector3 pivotOffset;
-
-            /// <summary>
-            /// 
-            /// </summary>
-            private GameObject cameraPivot;
 
             /// <summary>
             /// the view tool used right now
             /// </summary>
             private ViewTool viewTool = ViewTool.None;
 
-            /// <summary>
-            /// The time at the last frame.
-            /// </summary>
-            private DateTime lastFrameTime;
+            #endregion
 
-            /// <summary>
-            /// The time spend rendering the last frame.
-            /// </summary>
-            private float deltaTime;
 
             #endregion
 
-            #region public Methods #################################################################################################
+            #region public Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
             /// <summary>
             /// Render the preview.
             /// </summary>
             /// <param name="_motion"></param>
             /// <param name="_target"></param>
-            public float Previsualize(Motion _motion, GameObject _target = null, params (GameObject go, HumanBodyBones bone, Vector3 offset)[] accessories)
+            public float Previsualize(Motion _motion, float aspectRatio = 1.77f, GameObject _target = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rotation)[] accessories)
             {
-                deltaTime = (float)(DateTime.Now - lastFrameTime).TotalSeconds;
-                lastFrameTime = DateTime.Now;
-                if(!_motion)
+                GUILayout.BeginVertical("GroupBox");
+                if (!_motion)
                 {
                     Reset();
                     RenderNull();
+                    GUILayout.EndVertical();
                     return 0;
                 }
                 if (Initialize(_motion, _target, accessories))
                 {
-                    //pivotOffset = EditorGUILayout.Vector3Field("Cam pos", pivotOffset);
-                    targetScale = EditorGUILayout.FloatField("Scale", targetScale);
-                    zoomFactor = EditorGUILayout.FloatField("distance", zoomFactor);
-                    panAngle = EditorGUILayout.FloatField("Pan", panAngle);
-                    tiltAngle = EditorGUILayout.FloatField("tilt", tiltAngle);
-                    pivotOffset.y = EditorGUILayout.FloatField("Height", pivotOffset.y);
-                    playBackTime = EditorGUILayout.Slider("PlayBackTime", playBackTime, 0, 1);
-                    if (rtController && animStateMachine)
-                    {
-                        if (GUILayout.Button(isPlaying?"Pause":"Play"))
-                        {
-                            isPlaying = !isPlaying;
-                        }
-                    }
-                    try { EditorGUILayout.LabelField(targetAnimator.avatar.name); } catch { EditorGUILayout.LabelField("No Avatar"); }
-                    try { EditorGUILayout.LabelField(targetAnimator.runtimeAnimatorController.name); } catch { EditorGUILayout.LabelField("No RT controller"); }
-                    var r = GUILayoutUtility.GetAspectRect(16f / 9);
+                    //targetScale = EditorGUILayout.FloatField("Scale", targetScale);
+                    //zoomFactor = EditorGUILayout.FloatField("distance", zoomFactor);
+                    //panAngle = EditorGUILayout.FloatField("Pan", panAngle);
+                    //tiltAngle = EditorGUILayout.FloatField("tilt", tiltAngle);
+                    //pivotOffset.y = EditorGUILayout.FloatField("Height", pivotOffset.y);
+                    //EditorGUILayout.FloatField("FPS", 1 / Time.deltaTime);
+                    var r = GUILayoutUtility.GetAspectRect(aspectRatio);
                     Rect rect2 = r;
                     rect2.yMin += 20f;
                     rect2.height = Mathf.Max(rect2.height, 64f);
@@ -698,401 +707,29 @@ namespace PulseEditor
                     if (typeForControl == EventType.Repaint)
                     {
                         RenderPreview(r);
-                        //previewRenderer.EndAndDrawPreview(rect2);
                     }
-                    //AvatarTimeControlGUI(rect);
                     int controlID2 = GUIUtility.GetControlID("Preview".GetHashCode(), FocusType.Passive);
                     typeForControl = current.GetTypeForControl(controlID2);
                     HandleViewTool(Event.current, typeForControl, 0, r);
-                    //DoAvatarPreviewDrag(current, typeForControl);
-                    //HandleViewTool(current, typeForControl, controlID2, rect2);
-                    //DoAvatarPreviewFrame(current, typeForControl, rect2);
+                    TimeControl();
 
                 }
                 else
                     RenderNull();
-
-                return playBackTime;
-            }
-
-            /// <summary>
-            /// Close the rendrepreview
-            /// </summary>
-            public void Destroy()
-            {
-                Reset();
-            }
-
-            #endregion
-
-            #region private Methods #################################################################################################
-
-
-            #region Camera movements #####################################################
-
-
-            /// <summary>
-            /// Handle the mouse up event
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="id"></param>
-            private void HandleMouseUp(Event evt, int id)
-            {
-                if (GUIUtility.hotControl == id)
-                {
-                    viewTool = ViewTool.None;
-                    GUIUtility.hotControl = 0;
-                    EditorGUIUtility.SetWantsMouseJumping(0);
-                    viewTool = ViewTool.None;
-                    evt.Use();
-                }
-            }
-
-            /// <summary>
-            /// Handle the mouse down event.
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="id"></param>
-            /// <param name="previewRect"></param>
-            private void HandleMouseDown(Event evt, int id, Rect previewRect)
-            {
-                if (viewTool != 0 && previewRect.Contains(evt.mousePosition))
-                {
-                    EditorGUIUtility.SetWantsMouseJumping(1);
-                    if(evt.button == 0)
-                    {
-                        viewTool = ViewTool.Orbit;
-                    }else if(evt.button == 2)
-                    {
-                        viewTool = ViewTool.Pan;
-                    }
-                    evt.Use();
-                    GUIUtility.hotControl = id;
-                }
-            }
-
-            /// <summary>
-            /// handle the mouse drag
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="id"></param>
-            /// <param name="previewRect"></param>
-            private void HandleMouseDrag(Event evt, int id, Rect previewRect)
-            {
-                if (!(previewRenderer == null) && GUIUtility.hotControl == id)
-                {
-                    switch (viewTool)
-                    {
-                        case ViewTool.Orbit:
-                            DoAvatarPreviewOrbit(evt, previewRect);
-                            break;
-                        case ViewTool.Pan:
-                            DoAvatarPreviewPan(evt, previewRect);
-                            break;
-                        case ViewTool.Zoom:
-                            DoAvatarPreviewZoom(evt, (0f - HandleUtility.niceMouseDeltaZoom) * ((!evt.shift) ? 0.5f : 2f), previewRect);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Pan
-            /// </summary>
-            /// <param name="evt"></param>
-            private void DoAvatarPreviewPan(Event evt, Rect previewRect)
-            {
-                Vector2 camPivot = new Vector2(0, -pivotOffset.y);
-                camPivot -= evt.delta * ((!evt.shift) ? 1 : 3) / Mathf.Min(previewRect.width, previewRect.height) * 12f;
-                //camPivot.y = Mathf.Clamp(camPivot.y, 0, 2);
-                pivotOffset.y = -camPivot.y;
-                pivotOffset.y = Mathf.Clamp(pivotOffset.y, 0, 2);
-                evt.Use();
-            }
-
-
-            /// <summary>
-            /// Handle the view tool
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="eventType"></param>
-            /// <param name="id"></param>
-            /// <param name="previewRect"></param>
-            protected void HandleViewTool(Event evt, EventType eventType, int id, Rect previewRect)
-            {
-                switch (eventType)
-                {
-                    case EventType.MouseMove:
-                    case EventType.KeyDown:
-                    case EventType.KeyUp:
-                        break;
-                    case EventType.ScrollWheel:
-                        DoAvatarPreviewZoom(evt, HandleUtility.niceMouseDeltaZoom * ((!evt.shift) ? 0.5f : 2f),previewRect);
-                        break;
-                    case EventType.MouseDown:
-                        HandleMouseDown(evt, id, previewRect);
-                        break;
-                    case EventType.MouseUp:
-                        HandleMouseUp(evt, id);
-                        break;
-                    case EventType.MouseDrag:
-                        HandleMouseDrag(evt, id, previewRect);
-                        break;
-                }
-            }
-
-            /// <summary>
-            /// Orbit around
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="previewRect"></param>
-            public void DoAvatarPreviewOrbit(Event evt, Rect previewRect)
-            {
-                Vector2 camAxis = new Vector2(panAngle, -tiltAngle);
-                camAxis -= evt.delta * ((!evt.shift) ? 1 : 3) / Mathf.Min(previewRect.width, previewRect.height) * 140f;
-                camAxis.y = Mathf.Clamp(camAxis.y, -90f, 90f);
-                panAngle = camAxis.x;
-                tiltAngle = -camAxis.y;
-                evt.Use();
-            }
-
-            /// <summary>
-            /// zoom
-            /// </summary>
-            /// <param name="evt"></param>
-            /// <param name="delta"></param>
-            public void DoAvatarPreviewZoom(Event evt, float delta, Rect previewRect)
-            {
-                if (previewRect.Contains(evt.mousePosition))
-                {
-                    float num = (0f - delta) * 0.05f;
-                    zoomFactor += zoomFactor * num;
-                    zoomFactor = Mathf.Max(zoomFactor, targetScale / 10f);
-                    evt.Use();
-                }
-            }
-
-            #endregion
-
-            /// <summary>
-            /// Render the preview.
-            /// </summary>
-            private void RenderPreview(Rect r)
-            {
-                //TODO: Render the preview here.
-                #region approach 1
-                //SphericalHarmonicsL2 ambientProbe = RenderSettings.ambientProbe;
-                //previewRenderer.BeginPreview(r, GUIStyle.none);
-                //Vector3 rootPos = Vector3.zero;
-                //Quaternion targetRot;
-                //Vector3 targetPosition;
-                //Quaternion arrowRot;
-                //if (targetAnimator.isHuman)
-                //{
-                //    targetRot = targetAnimator.rootRotation;
-                //    targetPosition = targetAnimator.rootPosition;
-                //    arrowRot = targetAnimator.bodyRotation;
-                //}else if (targetAnimator.hasRootMotion)
-                //{
-                //    targetRot = targetAnimator.rootRotation;
-                //    targetPosition = targetAnimator.rootPosition;
-                //    arrowRot = Quaternion.identity;
-                //}
-                //else
-                //{
-                //    targetRot = Quaternion.identity;
-                //    targetPosition = Vector3.zero;
-                //    arrowRot = Quaternion.identity;
-                //}
-                ////SetupPreviewLightingAndFx(ambientProbe);
-                //Vector3 forward = arrowRot * Vector3.forward;
-                //forward[1] = 0;
-                //Quaternion arrowRotation = Quaternion.LookRotation(forward);
-                //Vector3 arrowPosition = targetPosition;
-                //PositionPreviewObjects(targetRot, targetPosition, arrowRotation, targetRot, targetPosition, arrowPosition, targetScale);
-                //Quaternion referenceRot = Quaternion.identity;
-                //Vector3 referencePos = target.transform.position;
-                //Matrix4x4 outterMatrix;
-                //RenderTexture renderTex =
-                //    RenderPreviewShadowmap(previewRenderer.lights[0], 128, targetAnimator.bodyPosition, Vector3.zero, out outterMatrix);
-
-                //previewRenderer.camera.nearClipPlane = 0.5f * zoomFactor;
-                //previewRenderer.camera.farClipPlane = 100f * targetScale;
-                //Quaternion rotation = Quaternion.Euler(0f - previewDir.y, 0f - previewDir.x, 0f);
-                //Vector3 position2 = rotation * (Vector3.forward * -5.5f * zoomFactor) 
-                //    + rootPos + pivotOffset;
-                //previewRenderer.camera.transform.position = -Vector3.forward * 10;//position2;
-                //previewRenderer.camera.transform.rotation = Quaternion.LookRotation(target.transform.position -
-                //    previewRenderer.camera.transform.position);//rotation;
-                //SetpreviewCharEnabled(true);
-                //previewRenderer.Render();
-                //SetpreviewCharEnabled(false);
-                //Vector3 position = target.transform.position;
-                //Vector2 floorTexOffset = -new Vector2(position.x, position.z);
-                //Material floorMat = floorMaterial;
-                //Matrix4x4 matrix = Matrix4x4.TRS(position, referenceRot, Vector3.one * 5f * targetScale);
-                //floorMat.mainTextureOffset = floorTexOffset * 5f * 0.08f * (1f / targetScale);
-                //floorMat.SetTexture("_ShadowTexture", renderTex);
-                //floorMat.SetMatrix("_ShadowTextureMatrix", outterMatrix);
-                //floorMat.SetVector("_Alphas", new Vector4(0.5f , 0.3f , 0f, 0f));
-                //floorMat.renderQueue = 1000;
-                //Graphics.DrawMesh(planeMesh, matrix, floorMaterial, 0, previewRenderer.camera, 0);
-
-                //CameraClearFlags clearFlags = previewRenderer.camera.clearFlags;
-                //previewRenderer.camera.clearFlags = CameraClearFlags.Nothing;
-                //previewRenderer.Render();
-                //previewRenderer.camera.clearFlags = clearFlags;
-                //RenderTexture.ReleaseTemporary(renderTex);
-                #endregion
-                #region Approach 2
-                if(cameraPivot == null)
-                {
-
-                }
-
-                //cameraPivot.transform.position = target.transform.position + Vector3.up * 1;
-
-                //if (previewRenderer.camera.transform.parent != cameraPivot)
-                //    previewRenderer.camera.transform.SetParent(cameraPivot.transform);
-                if (previewRenderer == null)
-                    return;
-
-                Animate();
-                //previewAvatar.transform.localToWorldMatrix.SetTRS(previewAvatar.transform.position, previewAvatar.transform.rotation, previewAvatar.transform.localScale);
-                PositionPreviewObjects();
-                AdjustFloor();
-
-                previewRenderer.BeginPreview(r, GUIStyle.none);
-                //render floor plane
-                if (floorPlane && floorMaterial)
-                {
-                    var floorMesh = floorPlane.GetComponent<SkinnedMeshRenderer>();
-                    if (floorMesh)
-                    {
-                        floorMesh.receiveShadows = true;
-                        previewRenderer.DrawMesh(floorMesh.sharedMesh, floorPlane.transform.position, Quaternion.identity, floorMaterial, 0);
-                    }
-                }
-
-                bool fog = RenderSettings.fog;
-                Unsupported.SetRenderSettingsUseFogNoDirty(false);
-                previewRenderer.camera.Render();
-                Unsupported.SetRenderSettingsUseFogNoDirty(fog);
-
-                Texture texture = previewRenderer.EndPreview();
-                GUI.DrawTexture(r, texture);
-
-                #endregion
-            }
-
-            /// <summary>
-            /// Animate the target
-            /// </summary>
-            private void Animate()
-            {
-                if (!previewAvatar || !targetAnimator)
-                    return;
-                bool flag = Event.current.type == EventType.Repaint;
-                targetAnimator.applyRootMotion = isPlaying;
-                if (flag)
-                {
-                    //m_AvatarPreview.timeControl.Update();
-                }
-                AnimationClip animationClip = playBackMotion as AnimationClip;
-                AnimationClipSettings animationClipSettings = AnimationUtility.GetAnimationClipSettings(animationClip);
-                if (isPlaying)
-                {
-                    //playBackTime += (1 / animationClip.frameRate);
-                    playBackTime += 1 / (deltaTime * animationClip.frameRate);
-                    if(playBackTime > animationClipSettings.stopTime)
-                    {
-                        isPlaying = animationClipSettings.loopTime;
-                        playBackTime = 0;
-                    }
-                }
-                if (flag && previewAvatar != null)
-                {
-                    if (!animationClip.legacy && targetAnimator != null)
-                    {
-                        if (animState != null)
-                        {
-                            animState.iKOnFeet = true;
-                        }
-                        //float normalizedTime = (animationClipSettings.stopTime - animationClipSettings.startTime == 0f) ? 0f : ((playBackTime - animationClipSettings.startTime) / (animationClipSettings.stopTime - animationClipSettings.startTime));
-                        float normalizedTime = playBackTime;
-                        targetAnimator.Play(0, 0, normalizedTime);
-                        targetAnimator.Update(deltaTime);
-                    }
-                    else
-                    {
-                        animationClip.SampleAnimation(previewAvatar, playBackTime);
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Initialise the animator controller
-            /// </summary>
-            private void InitController()
-            {
-                if (playBackMotion.legacy || targetAnimator == null)
-                {
-                    return;
-                }
-                bool flag = true;
-                if (rtController == null)
-                {
-                    rtController = new UnityEditor.Animations.AnimatorController();
-                    //rtController.pushUndo = false;
-                    rtController.hideFlags = HideFlags.HideAndDontSave;
-                    rtController.AddLayer("preview");
-                    animStateMachine = rtController.layers[0].stateMachine;
-                    //animState.pushUndo = false;
-                    animStateMachine.hideFlags = HideFlags.HideAndDontSave;
-                    flag = false;
-                }
-                if (animState == null)
-                {
-                    animState = animStateMachine.AddState("preview");
-                    //animState.pushUndo = false;
-                    UnityEditor.Animations.AnimatorControllerLayer[] layers2 = rtController.layers;
-                    animState.motion = playBackMotion;
-                    rtController.layers = layers2;
-                    animState.hideFlags = HideFlags.HideAndDontSave;
-                    flag = false;
-                }
-                UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
-                if (targetAnimator.runtimeAnimatorController != rtController)
-                {
-                    UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
-                }
-                if (!flag)
-                {
-                    targetAnimator.Play(0, 0, 0f);
-                    targetAnimator.Update(0f);
-                }
-            }
-
-
-            /// <summary>
-            /// Render empty preview.
-            /// </summary>
-            private static void RenderNull()
-            {
-                GUILayout.BeginVertical();
-                var r = GUILayoutUtility.GetAspectRect(16f / 9);
-                EditorGUI.DropShadowLabel(r, "No Motion to preview.\nPlease select a valid motion to preview.");
                 GUILayout.EndVertical();
+
+                return pTime;
             }
 
+            #endregion
+
+            #region private Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
             /// <summary>
             /// Initialise the avatar.
             /// </summary>
             /// <param name="_avatar"></param>
-            private bool Initialize(Motion _motion, GameObject _avatar = null, params (GameObject go, HumanBodyBones bone, Vector3 offset)[] accessories)
+            private bool Initialize(Motion _motion, GameObject _avatar = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rotation)[] accessories)
             {
                 if (previewRenderer == null)
                 {
@@ -1140,29 +777,34 @@ namespace PulseEditor
                 }
                 if (!floorPlane)
                 {
-                    floorPlane = (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath);
-                    var originalMesh = Resources.GetBuiltinResource<Mesh>("New-Plane.fbx");
-                    var plMesh = UnityEngine.Object.Instantiate(originalMesh, Vector3.zero, Quaternion.identity);
-                    var renderer = floorPlane.GetComponent<SkinnedMeshRenderer>();
-                    renderer.sharedMesh = plMesh;
+                    floorPlane = UnityEngine.Object.Instantiate((GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath));
+                    floorPlane.hideFlags = HideFlags.HideAndDontSave;
+                    var render = floorPlane.GetComponent<MeshRenderer>();
+                    if (render)
+                    {
+                        render.material = floorMaterial;
+                    }
+                    try { previewRenderer.AddSingleGO(floorPlane); } catch { }
                 }
                 if (!directionArrow)
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/dial_flat.prefab");
                     directionArrow = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    previewRenderer.AddSingleGO(directionArrow);
+                    directionArrow.hideFlags = HideFlags.HideAndDontSave;
+                    try { previewRenderer.AddSingleGO(directionArrow); } catch { }
                 }
                 if (!rootGameObject)
                 {
                     var original = (GameObject)EditorGUIUtility.Load("Avatar/root.fbx");
                     rootGameObject = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    previewRenderer.AddSingleGO(rootGameObject);
+                    rootGameObject.hideFlags = HideFlags.HideAndDontSave;
+                    try { previewRenderer.AddSingleGO(rootGameObject); } catch { }
                 }
                 if (!previewAvatar)
                 {
                     previewAvatar = GetAvatar(ref _avatar);
                     previewAvatar.hideFlags = HideFlags.HideAndDontSave;
-                    previewRenderer.AddSingleGO(previewAvatar);
+                    try { previewRenderer.AddSingleGO(previewAvatar); } catch { }
                     if (previewAvatar)
                     {
                         targetAnimator = previewAvatar.GetComponentInChildren<Animator>();
@@ -1178,32 +820,411 @@ namespace PulseEditor
                         targetAnimator.fireEvents = false;
                         InitController();
                     }
-                    else {
+                    else
+                    {
                         Reset();
                         return false;
                     }
                 }
-                foreach(var accessory in accessories)
+                foreach (var accessory in accessories)
                 {
                     if (accesoriesPool == null)
-                        accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset)>();
-                    for(int i = 0; i < accesoriesPool.Count; i++)
+                        accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset, Quaternion RotOffset)>();
+                    bool found = false;
+                    for (int i = 0; i < accesoriesPool.Count; i++)
                     {
                         var poolItem = accesoriesPool.ElementAt(i);
                         if (poolItem.Key.name == accessory.go.name && poolItem.Value.bone == accessory.bone)
-                            continue;
-                        var acc = UnityEngine.Object.Instantiate(accessory.go);
-                        acc.name = accessory.go.name;
-                        if (!accesoriesPool.ContainsKey(acc))
                         {
-                            accesoriesPool.Add(acc, (accessory.bone, accessory.offset));
-                            previewRenderer.AddSingleGO(acc);
+                            accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
+                            found = true;
                         }
+                    }
+                    if (found)
+                        continue;
+                    var acc = UnityEngine.Object.Instantiate(accessory.go);
+                    acc.name = accessory.go.name;
+                    if (!accesoriesPool.ContainsKey(acc))
+                    {
+                        accesoriesPool.Add(acc, (accessory.bone, accessory.offset, accessory.rotation));
+                        try { previewRenderer.AddSingleGO(acc); } catch { }
                     }
                 }
 
                 return true;
             }
+
+            #region time control ###########################################
+
+            /// <summary>
+            /// the control time interface.
+            /// </summary>
+            private void TimeControl()
+            {
+                //Display controls
+                GUILayout.BeginHorizontal("HelpBox");
+                if (GUILayout.Button(isPlaying ? "||" : ">>", new[] { GUILayout.Width(30), GUILayout.Height(20) }))
+                {
+                    isPlaying = !isPlaying;
+                }
+                if (isPlaying)
+                {
+                    var rect2 = GUILayoutUtility.GetRect(50, 20);
+                    EditorGUI.ProgressBar(rect2, pTime / ((AnimationClip)playBackMotion).length, "");
+                }
+                else
+                {
+                    pTime = EditorGUILayout.Slider(pTime, 0, ((AnimationClip)playBackMotion).length);
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            #endregion
+
+            #region Animation ###########################################
+
+            /// <summary>
+            /// Initialise the animator controller
+            /// </summary>
+            private void InitController()
+            {
+                if (playBackMotion.legacy || targetAnimator == null)
+                {
+                    return;
+                }
+                bool flag = true;
+                if (rtController == null)
+                {
+                    rtController = new UnityEditor.Animations.AnimatorController();
+                    //rtController.pushUndo = false;
+                    rtController.hideFlags = HideFlags.HideAndDontSave;
+                    rtController.AddLayer("preview");
+                    rtController.layers[0].iKPass = true;
+                    animStateMachine = rtController.layers[0].stateMachine;
+                    //animState.pushUndo = false;
+                    animStateMachine.hideFlags = HideFlags.HideAndDontSave;
+                    flag = false;
+                }
+                if (animState == null)
+                {
+                    animState = animStateMachine.AddState("preview");
+                    //animState.pushUndo = false;
+                    UnityEditor.Animations.AnimatorControllerLayer[] layers2 = rtController.layers;
+                    animState.motion = playBackMotion;
+                    rtController.layers = layers2;
+                    animState.hideFlags = HideFlags.HideAndDontSave;
+                    flag = false;
+                }
+                UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
+                if (targetAnimator.runtimeAnimatorController != rtController)
+                {
+                    UnityEditor.Animations.AnimatorController.SetAnimatorController(targetAnimator, rtController);
+                }
+                if (!flag)
+                {
+                    targetAnimator.Play(0, 0, 0f);
+                    targetAnimator.Update(0f);
+                }
+            }
+
+            /// <summary>
+            /// Animate the target
+            /// </summary>
+            private void Animate()
+            {
+                float delta = playBackTime - deltaTime;
+                deltaTime = playBackTime;
+                if (!previewAvatar || !targetAnimator)
+                    return;
+                bool flag = Event.current.type == EventType.Repaint;
+                AnimationClip animationClip = playBackMotion as AnimationClip;
+                AnimationClipSettings animationClipSettings = AnimationUtility.GetAnimationClipSettings(animationClip);
+                animationClipSettings.loopBlend = true;
+                if (flag)
+                {
+                }
+                if (flag && previewAvatar != null)
+                {
+                    if (isPlaying)
+                    {
+                        playBackTime += (14 / animationClip.frameRate) * Time.deltaTime;
+                        pTime = playBackTime;
+                        if(pTime >= animationClipSettings.stopTime)
+                            isPlaying = animationClipSettings.loopTime;
+                        pTime %= animationClipSettings.stopTime;
+                    }
+                    if (!animationClip.legacy && targetAnimator != null)
+                    {
+                        if (animState != null)
+                        {
+                            animState.iKOnFeet = true;
+                        }
+                        float normalizedTime = (animationClipSettings.stopTime - animationClipSettings.startTime == 0f) ? 0f
+                            : ((playBackTime - animationClipSettings.startTime) / (animationClipSettings.stopTime - animationClipSettings.startTime));
+                        targetAnimator.Play(0, 0, normalizedTime);
+                        targetAnimator.Update(isPlaying ? (14 / animationClip.frameRate) * Time.deltaTime : delta);
+                        playBackTime = pTime;
+                    }
+                    else
+                    {
+                        animationClip.SampleAnimation(previewAvatar, playBackTime);
+                    }
+                }
+            }
+
+            #endregion
+
+            #region Rendering ###########################################
+
+            /// <summary>
+            /// Render the preview.
+            /// </summary>
+            private void RenderPreview(Rect r)
+            {
+                if (previewRenderer == null)
+                    return;
+                //Animation
+                Animate();
+                //Positionning objects
+                PositionPreviewObjects();
+                //Positioning floor
+                AdjustFloorPosition();
+                //Start Rendering
+                previewRenderer.BeginPreview(r, GUIStyle.none);
+                bool fog = RenderSettings.fog;
+                Unsupported.SetRenderSettingsUseFogNoDirty(false);
+                previewRenderer.camera.Render();
+                Unsupported.SetRenderSettingsUseFogNoDirty(fog);
+                //End rendering.
+                Texture texture = previewRenderer.EndPreview();
+                GUI.DrawTexture(r, texture);
+            }
+
+            /// <summary>
+            /// Render empty preview.
+            /// </summary>
+            private static void RenderNull()
+            {
+                var r = GUILayoutUtility.GetAspectRect(16f / 9);
+                EditorGUI.DropShadowLabel(new Rect(r.position.x, r.position.y / 2, r.width, r.height), "No Motion to preview.\nPlease select a valid motion to preview.");
+            }
+
+            /// <summary>
+            /// Set up the lights and FX
+            /// </summary>
+            /// <param name="probe"></param>
+            private void SetupPreviewLightingAndFx(SphericalHarmonicsL2 probe)
+            {
+                previewRenderer.lights[0].intensity = 1.4f;
+                previewRenderer.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0f);
+                previewRenderer.lights[1].intensity = 1.4f;
+                RenderSettings.ambientMode = AmbientMode.Custom;
+                RenderSettings.ambientLight = new Color(0.1f, 0.1f, 0.1f, 1f);
+                RenderSettings.ambientProbe = probe;
+            }
+
+            #endregion
+
+            #region World Transforms ###########################################
+
+            /// <summary>
+            /// Position the gameobjects in scene.
+            /// </summary>
+            private void PositionPreviewObjects()
+            {
+                var position = targetAnimator.rootPosition;
+                position.y = Mathf.Clamp(position.y, 0, position.y);
+                previewAvatar.transform.position = position;
+                previewAvatar.transform.rotation = targetAnimator.rootRotation;
+                previewAvatar.transform.localScale = Vector3.one * targetScale;
+                var offset = Vector3.Lerp(pivotOffset, position, 0.016f);
+                pivotOffset = new Vector3(offset.x, pivotOffset.y, offset.z);
+                directionArrow.transform.position = targetAnimator.rootPosition;
+                var rot = Quaternion.Euler(0, targetAnimator.bodyRotation.eulerAngles.y, 0);
+                directionArrow.transform.rotation = rot;
+                directionArrow.transform.localScale = Vector3.one * targetScale * 2f;
+                rootGameObject.transform.position = pivotOffset;
+                rootGameObject.transform.rotation = Quaternion.identity;
+                rootGameObject.transform.localScale = Vector3.one * targetScale * 0.25f;
+
+                foreach (var acc in accesoriesPool)
+                {
+                    if (targetAnimator)
+                    {
+                        var bone = targetAnimator.GetBoneTransform(acc.Value.bone);
+                        acc.Key.transform.position = bone.position + acc.Value.PosOffset;
+                        acc.Key.transform.localRotation = acc.Value.RotOffset;
+                    }
+                }
+            }
+
+
+            /// <summary>
+            /// Adjust floorMaterial.
+            /// </summary>
+            private void AdjustFloorPosition()
+            {
+                if (!floorPlane)
+                    return;
+                float displacement = 5 / ((AnimationClip)playBackMotion).frameRate;
+                Vector3 position = new Vector3(previewAvatar.transform.position.x, previewAvatar.transform.position.y < 0 ? previewAvatar.transform.position.y : 0, previewAvatar.transform.position.z);
+                floorPlane.transform.position = position;
+                if (!floorMaterial)
+                    return;
+                Vector2 floorTexOffset = -new Vector2(position.x * displacement, position.z * displacement);
+                floorMaterial.mainTextureOffset = floorTexOffset;
+            }
+
+            #endregion
+
+            #region Navigation ###########################################
+
+            /// <summary>
+            /// Handle the mouse up event
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="id"></param>
+            private void HandleMouseUp(Event evt, int id)
+            {
+                if (GUIUtility.hotControl == id)
+                {
+                    viewTool = ViewTool.None;
+                    GUIUtility.hotControl = 0;
+                    EditorGUIUtility.SetWantsMouseJumping(0);
+                    viewTool = ViewTool.None;
+                    evt.Use();
+                }
+            }
+
+            /// <summary>
+            /// Handle the mouse down event.
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="id"></param>
+            /// <param name="previewRect"></param>
+            private void HandleMouseDown(Event evt, int id, Rect previewRect)
+            {
+                if (viewTool != 0 && previewRect.Contains(evt.mousePosition))
+                {
+                    EditorGUIUtility.SetWantsMouseJumping(1);
+                    if (evt.button == 0)
+                    {
+                        viewTool = ViewTool.Orbit;
+                    }
+                    else if (evt.button == 2)
+                    {
+                        viewTool = ViewTool.Pan;
+                    }
+                    evt.Use();
+                    GUIUtility.hotControl = id;
+                }
+            }
+
+            /// <summary>
+            /// handle the mouse drag event.
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="id"></param>
+            /// <param name="previewRect"></param>
+            private void HandleMouseDrag(Event evt, int id, Rect previewRect)
+            {
+                if (!(previewRenderer == null) && GUIUtility.hotControl == id)
+                {
+                    switch (viewTool)
+                    {
+                        case ViewTool.Orbit:
+                            DoAvatarPreviewOrbit(evt, previewRect);
+                            break;
+                        case ViewTool.Pan:
+                            DoAvatarPreviewPan(evt, previewRect);
+                            break;
+                        case ViewTool.Zoom:
+                            DoAvatarPreviewZoom(evt, (0f - HandleUtility.niceMouseDeltaZoom) * ((!evt.shift) ? 0.5f : 2f), previewRect);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Pan the camera.
+            /// </summary>
+            /// <param name="evt"></param>
+            private void DoAvatarPreviewPan(Event evt, Rect previewRect)
+            {
+                Vector2 camPivot = new Vector2(0, -pivotOffset.y);
+                camPivot -= evt.delta * ((!evt.shift) ? 1 : 3) / Mathf.Min(previewRect.width, previewRect.height) * 12f;
+                //camPivot.y = Mathf.Clamp(camPivot.y, 0, 2);
+                pivotOffset.y = -camPivot.y;
+                pivotOffset.y = Mathf.Clamp(pivotOffset.y, 0, 2);
+                evt.Use();
+            }
+
+            /// <summary>
+            /// Handle the view tool
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="eventType"></param>
+            /// <param name="id"></param>
+            /// <param name="previewRect"></param>
+            protected void HandleViewTool(Event evt, EventType eventType, int id, Rect previewRect)
+            {
+                switch (eventType)
+                {
+                    case EventType.MouseMove:
+                    case EventType.KeyDown:
+                    case EventType.KeyUp:
+                        break;
+                    case EventType.ScrollWheel:
+                        DoAvatarPreviewZoom(evt, HandleUtility.niceMouseDeltaZoom * ((!evt.shift) ? 0.5f : 2f), previewRect);
+                        break;
+                    case EventType.MouseDown:
+                        HandleMouseDown(evt, id, previewRect);
+                        break;
+                    case EventType.MouseUp:
+                        HandleMouseUp(evt, id);
+                        break;
+                    case EventType.MouseDrag:
+                        HandleMouseDrag(evt, id, previewRect);
+                        break;
+                }
+            }
+
+            /// <summary>
+            /// Orbit around
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="previewRect"></param>
+            public void DoAvatarPreviewOrbit(Event evt, Rect previewRect)
+            {
+                Vector2 camAxis = new Vector2(panAngle, -tiltAngle);
+                camAxis -= evt.delta * ((!evt.shift) ? 1 : 3) / Mathf.Min(previewRect.width, previewRect.height) * 140f;
+                camAxis.y = Mathf.Clamp(camAxis.y, -90f, 90f);
+                panAngle = camAxis.x;
+                tiltAngle = -camAxis.y;
+                evt.Use();
+            }
+
+            /// <summary>
+            /// zoom
+            /// </summary>
+            /// <param name="evt"></param>
+            /// <param name="delta"></param>
+            public void DoAvatarPreviewZoom(Event evt, float delta, Rect previewRect)
+            {
+                if (previewRect.Contains(evt.mousePosition))
+                {
+                    float num = (0f - delta) * 0.05f;
+                    zoomFactor += zoomFactor * num;
+                    zoomFactor = Mathf.Max(zoomFactor, targetScale / 10f);
+                    evt.Use();
+                }
+            }
+
+            #endregion
+
+            #region Misc ###########################################
 
             /// <summary>
             /// get the avatar.
@@ -1230,70 +1251,17 @@ namespace PulseEditor
             }
 
             /// <summary>
-            /// Set up the lights and FX
+            /// Close the rendrepreview
             /// </summary>
-            /// <param name="probe"></param>
-            private void SetupPreviewLightingAndFx(SphericalHarmonicsL2 probe)
+            public void Destroy()
             {
-                previewRenderer.lights[0].intensity = 1.4f;
-                previewRenderer.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0f);
-                previewRenderer.lights[1].intensity = 1.4f;
-                RenderSettings.ambientMode = AmbientMode.Custom;
-                RenderSettings.ambientLight = new Color(0.1f, 0.1f, 0.1f, 1f);
-                RenderSettings.ambientProbe = probe;
-            }
-
-
-            /// <summary>
-            /// Position the gameobjects in scene.
-            /// </summary>
-            private void PositionPreviewObjects()
-            {
-                var position = targetAnimator.rootPosition;
-                position.y = Mathf.Clamp(position.y, 0, position.y);
-                previewAvatar.transform.position = position;
-                previewAvatar.transform.rotation = targetAnimator.rootRotation;
-                previewAvatar.transform.localScale = Vector3.one * targetScale;
-                var offset = Vector3.Lerp(pivotOffset, position, 0.016f);
-                pivotOffset = new Vector3(offset.x, pivotOffset.y, offset.z);
-                directionArrow.transform.position = targetAnimator.rootPosition;
-                var rot = Quaternion.Euler(0, targetAnimator.bodyRotation.eulerAngles.y, 0);
-                directionArrow.transform.rotation = rot;
-                directionArrow.transform.localScale = Vector3.one * targetScale * 2f;
-                rootGameObject.transform.position = pivotOffset;
-                rootGameObject.transform.rotation = Quaternion.identity;
-                rootGameObject.transform.localScale = Vector3.one * targetScale * 0.25f;
-
-                foreach(var acc in accesoriesPool)
-                {
-                    if (targetAnimator)
-                    {
-                        var bone = targetAnimator.GetBoneTransform(acc.Value.bone);
-                        acc.Key.transform.position = bone.position + acc.Value.offset;
-                        acc.Key.transform.rotation = bone.rotation;
-                    }
-                }
-                nextTargetIsForward = !nextTargetIsForward;
-                targetAnimator.SetTarget(AvatarTarget.Root, nextTargetIsForward ? 1 : 0);
-            }
-
-
-            /// <summary>
-            /// Adjust floorMaterial.
-            /// </summary>
-            private void AdjustFloor()
-            {
-                if (!floorPlane)
-                    return;
-                Vector3 position = new Vector3(previewAvatar.transform.position.x, previewAvatar.transform.position.y < 0 ? previewAvatar.transform.position.y : 0, previewAvatar.transform.position.z);
-                floorPlane.transform.position = position;
-                if (!floorMaterial)
-                    return;
-                Vector2 floorTexOffset = -new Vector2(position.x, position.z);
-                floorMaterial.mainTextureOffset = floorTexOffset;
+                Reset();
             }
 
             #endregion
+
+            #endregion
+
         }
 
 

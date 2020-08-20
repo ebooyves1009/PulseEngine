@@ -38,6 +38,15 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         private WeaponType weaponTypeSelected;
 
+        /// <summary>
+        /// the preview.
+        /// </summary>
+        private Previewer preview;
+
+        /// <summary>
+        /// Le scroll de la vue des parts de l'arme.
+        /// </summary>
+        private Vector2 weaponPartsScroll;
 
         #endregion
 
@@ -49,12 +58,14 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         protected override void OnInitialize()
         {
-            base.OnInitialize();
+            if (preview != null)
+                preview.Destroy();
             var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), currentScope);
             allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
             allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) asset = a; });
             if (asset)
                 editedAsset = asset;
+            preview = new Previewer();
         }
 
         #endregion
@@ -98,7 +109,7 @@ namespace PulseEditor.Modules.CombatSystem
             window.dataID = _id;
             window.currentScope = _scope;
             window.weaponTypeSelected = type;
-            window.Show();
+            window.ShowModal();
         }
 
         /// <summary>
@@ -161,6 +172,7 @@ namespace PulseEditor.Modules.CombatSystem
                 asset = null;
                 editedAsset = null;
                 editedData = null;
+                selectDataIndex = -1;
                 OnInitialize();
             }
             return asset != null;
@@ -279,194 +291,251 @@ namespace PulseEditor.Modules.CombatSystem
             };
             if (!listCompatiblesmode())
                 return;
-            ScrollablePanel(() =>
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical();
+            //Global params
+            GroupGUI(() =>
             {
-                GroupGUI(() =>
+                //ID
+                EditorGUILayout.LabelField("ID: " + data.ID, style_label);
+                //ID trad
+                EditorGUILayout.LabelField("ID Trad: " + data.IdTrad, style_label);
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Weapon Type: ", style_label);
+                EditorGUILayout.LabelField(data.TypeArme.ToString());
+                GUILayout.EndHorizontal();
+                string name = string.Empty;
+                string[] names = LocalisationEditor.GetTexts(data.IdTrad, data.TradType);
+                if (names.Length > 0)
+                    name = names[0];
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Name: ", style_label);
+                EditorGUILayout.LabelField(name);
+                if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
                 {
-                    //ID
-                    EditorGUILayout.LabelField("ID: " + data.ID, style_label);
-                    //ID trad
-                    EditorGUILayout.LabelField("ID Trad: " + data.IdTrad, style_label);
-                    GUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("Weapon Type: ", style_label);
-                    EditorGUILayout.LabelField(data.TypeArme.ToString());
-                    GUILayout.EndHorizontal();
-                    string name = string.Empty;
-                    string[] names = LocalisationEditor.GetTexts(data.IdTrad, data.TradType);
-                    if (names.Length > 0)
-                        name = names[0];
-                    GUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("Name: ", style_label);
-                    EditorGUILayout.LabelField(name);
-                    if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
+                    LocalisationEditor.OpenSelector((obj, arg) =>
                     {
-                        LocalisationEditor.OpenSelector((obj, arg) =>
-                        {
-                            var a = arg as EditorEventArgs;
-                            if (a == null)
-                                return;
-                            data.IdTrad = a.ID;
-                        }, data.TradType);
-                    }
-                    if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
-                    {
-                        LocalisationEditor.OpenModifier(data.IdTrad, data.TradType);
-                    }
-                    GUILayout.EndHorizontal();
+                        var a = arg as EditorEventArgs;
+                        if (a == null)
+                            return;
+                        data.IdTrad = a.ID;
+                    }, data.TradType);
+                }
+                if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
+                {
+                    LocalisationEditor.OpenModifier(data.IdTrad, data.TradType);
+                }
+                GUILayout.EndHorizontal();
 
-                    //Degats
-                    data.TypeDegats = (TypeDegatArme)EditorGUILayout.EnumPopup("Damage type: ",data.TypeDegats);
-                    data.Degats = EditorGUILayout.FloatField("Damage Value: ", data.Degats);
-                    data.Degats = Mathf.Clamp(data.Degats, 1, data.Degats);
-                    //portee
-                    data.Portee = EditorGUILayout.FloatField("Max Range: ", data.Portee);
-                    Vector2 ranges = Vector2.zero;
-                    switch (data.TypeArme)
+                //Degats
+                data.TypeDegats = (TypeDegatArme)EditorGUILayout.EnumPopup("Damage type: ", data.TypeDegats);
+                data.Degats = EditorGUILayout.FloatField("Damage Value: ", data.Degats);
+                data.Degats = Mathf.Clamp(data.Degats, 1, data.Degats);
+                //portee
+                data.Portee = EditorGUILayout.FloatField("Max Range: ", data.Portee);
+                Vector2 ranges = Vector2.zero;
+                switch (data.TypeArme)
+                {
+                    case WeaponType.shortRange:
+                        ranges = new Vector2(1, 4);
+                        break;
+                    case WeaponType.LongRange:
+                        ranges = new Vector2(4, float.PositiveInfinity);
+                        break;
+                }
+                data.Portee = Mathf.Clamp(data.Portee, ranges.x, ranges.y);
+                //Valeur
+                data.Valeur = EditorGUILayout.FloatField("Valeur: ", data.Valeur);
+                //Stat Arme
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Weapon's Stats:");
+                if (GUILayout.Button("Edit " + name + " Stats"))
+                {
+                    StatEditor.OpenStatWindow(data.StatWeapon, (obj) => {
+                        var st = obj as StatData;
+                        if (st != null)
+                            data.StatWeapon = st;
+                    }, name + "'s Stats");
+                }
+                GUILayout.EndHorizontal();
+                //Stat Donnees
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Stat given to Owner:");
+                if (GUILayout.Button("Edit given Stats"))
+                {
+                    StatEditor.OpenStatWindow(data.StatOwner, (obj) => {
+                        var st = obj as StatData;
+                        if (st != null)
+                            data.StatOwner = st;
+                    }, "guiven Stats");
+                }
+                GUILayout.EndHorizontal();
+                //Portabilitee
+                data.Portable = EditorGUILayout.Toggle("Is portable? ", data.Portable);
+                //Peux parrer
+                data.CanParry = EditorGUILayout.Toggle("Can Parry Attacks? ", data.CanParry);
+                //animation au repos
+                EditorGUILayout.LabelField("Arm and Disasm animations:");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Equip Animation"))
+                {
+                    Anima.AnimaEditor.OpenSelector((obj, arg) =>
                     {
-                        case WeaponType.shortRange:
-                            ranges = new Vector2(1, 4);
-                            break;
-                        case WeaponType.LongRange:
-                            ranges = new Vector2(4, float.PositiveInfinity);
-                            break;
-                    }
-                    data.Portee = Mathf.Clamp(data.Portee, ranges.x, ranges.y);
-                    //Valeur
-                    data.Valeur = EditorGUILayout.FloatField("Valeur: ", data.Valeur);
-                    //Stat Arme
-                    GUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("Weapon's Stats:");
-                    if (GUILayout.Button("Edit " + name + " Stats"))
-                    {
-                        StatEditor.OpenStatWindow(data.StatWeapon, (obj) => {
-                            var st = obj as StatData;
-                            if (st != null)
-                                data.StatWeapon = st;
-                        }, name + "'s Stats");
-                    }
-                    GUILayout.EndHorizontal();
-                    //Stat Donnees
-                    GUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("Stat given to Owner:");
-                    if (GUILayout.Button("Edit given Stats"))
-                    {
-                        StatEditor.OpenStatWindow(data.StatOwner, (obj) => {
-                            var st = obj as StatData;
-                            if (st != null)
-                                data.StatOwner = st;
-                        }, "guiven Stats");
-                    }
-                    GUILayout.EndHorizontal();
-                    //Portabilitee
-                    data.Portable = EditorGUILayout.Toggle("Is portable? ", data.Portable);
-                    //Peux parrer
-                    data.CanParry = EditorGUILayout.Toggle("Can Parry Attacks? ", data.CanParry);
-                    //animation au repos
-                    EditorGUILayout.LabelField("Arm and Disasm animations:");
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Edit Arm Animation"))
-                    {
-                        //TODO: Anima Editor.
-                    }
-                    if (GUILayout.Button("Edit Disarm Animation"))
-                    {
-                        //TODO: Anima Editor.
-                    }
-                    GUILayout.EndHorizontal();
-                    //Weapon game objects
-                    EditorGUILayout.LabelField("Weapon Parts:");
-                    GUILayout.BeginHorizontal();
-                    if (data.Weapons.Count > 0 && GUILayout.Button("-"))
-                    {
-                        data.Weapons.RemoveAt(data.Weapons.Count - 1);
-                        if (data.Materiaux.Count > 0)
+                        var d = obj as PulseEngine.Modules.Anima.AnimaData;
+                        if (d != null)
                         {
-                            var d = data.Materiaux;
-                            d.RemoveAt(data.Materiaux.Count - 1);
+                            try
+                            {
+                                data.HandleMoves[0] = d;
+                            }
+                            catch
+                            {
+                                while (data.HandleMoves.Count < 2)
+                                {
+                                    data.HandleMoves.Add(null);
+                                }
+                                data.HandleMoves[0] = d;
+                            }
+                        }
+                    });
+                }
+                if (GUILayout.Button("Idle Animation"))
+                {
+                    Anima.AnimaEditor.OpenSelector((obj, arg) =>
+                    {
+                        var d = obj as PulseEngine.Modules.Anima.AnimaData;
+                        if (d != null)
+                        {
+                            data.IdleMove = d;
+                        }
+                    });
+                }
+                if (GUILayout.Button("UnEquip Animation"))
+                {
+                    Anima.AnimaEditor.OpenSelector((obj, arg) =>
+                    {
+                        var d = obj as PulseEngine.Modules.Anima.AnimaData;
+                        if (d != null)
+                        {
+                            try
+                            {
+                                data.HandleMoves[1] = d;
+                            }
+                            catch
+                            {
+                                while (data.HandleMoves.Count < 2)
+                                {
+                                    data.HandleMoves.Add(null);
+                                }
+                                data.HandleMoves[1] = d;
+                            }
+                        }
+                    });
+                }
+                GUILayout.EndHorizontal();
+                //Weapon game objects
+                EditorGUILayout.LabelField("Weapon Parts:");
+                GUILayout.BeginHorizontal();
+                if (data.Weapons.Count > 0 && GUILayout.Button("-"))
+                {
+                    data.Weapons.RemoveAt(data.Weapons.Count - 1);
+                    if (data.Materiaux.Count > 0)
+                    {
+                        var d = data.Materiaux;
+                        d.RemoveAt(data.Materiaux.Count - 1);
+                        data.Materiaux = d;
+                    }
+                    if (data.RestPlaces.Count > 0)
+                        data.RestPlaces.RemoveAt(data.RestPlaces.Count - 1);
+                    if (data.CarryPlaces.Count > 0)
+                        data.CarryPlaces.RemoveAt(data.CarryPlaces.Count - 1);
+                    if (data.ProjectilesOutPoints.Count > 0)
+                        data.ProjectilesOutPoints.RemoveAt(data.ProjectilesOutPoints.Count - 1);
+                }
+                GUILayout.Label("Count: " + data.Weapons.Count);
+                if (data.Weapons.Count < 4 && GUILayout.Button("+"))
+                {
+                    data.Weapons.Add(new GameObject());
+                    var d = data.Materiaux;
+                    d.Add(PhysicMaterials.none);
+                    data.Materiaux = d;
+                    data.RestPlaces.Add(new WeaponPlace());
+                    data.CarryPlaces.Add(new WeaponPlace());
+                    data.ProjectilesOutPoints.Add(new Vector3());
+                }
+                GUILayout.EndHorizontal();
+
+            }, "Common Parameters");
+            //Weapon parts
+            GroupGUInoStyle(() =>
+            {
+                weaponPartsScroll = GUILayout.BeginScrollView(weaponPartsScroll);
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < data.Weapons.Count; i++)
+                {
+                    GroupGUI(() =>
+                    {
+                        data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
+                        if (data.Weapons[i] == null)
+                        {
+                            // if (weaponPartsEditors.ContainsKey(null))
+                            // weaponPartsEditors.Remove(null);
+                            GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
+                            GUILayout.EndArea();
+                        }
+                        else
+                        {
+                            if (!weaponPartsEditors.ContainsKey(data.Weapons[i]))
+                                weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
+                            if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
+                                weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
+                            weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
+                        }
+                        //Materiau
+                        var d = data.Materiaux;
+                        var mat = d[i];
+                        mat = (PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ", mat);
+                        d[i] = mat;
+                        if (mat != data.Materiaux[i])
+                        {
                             data.Materiaux = d;
                         }
-                        if (data.RestPlaces.Count > 0)
-                            data.RestPlaces.RemoveAt(data.RestPlaces.Count - 1);
-                        if (data.CarryPlaces.Count > 0)
-                            data.CarryPlaces.RemoveAt(data.CarryPlaces.Count - 1);
-                        if (data.ProjectilesOutPoints.Count > 0)
-                            data.ProjectilesOutPoints.RemoveAt(data.ProjectilesOutPoints.Count - 1);
-                    }
-                    GUILayout.Label("Count: "+data.Weapons.Count);
-                    if (data.Weapons.Count < 4 && GUILayout.Button("+"))
-                    {
-                        data.Weapons.Add(new GameObject());
-                        var d = data.Materiaux;
-                        d.Add(PhysicMaterials.none);
-                        data.Materiaux = d;
-                        data.RestPlaces.Add(new WeaponPlace());
-                        data.CarryPlaces.Add(new WeaponPlace());
-                        data.ProjectilesOutPoints.Add(new Vector3());
-                    }
-                    GUILayout.EndHorizontal();
+                        //Emplacement repos
+                        EditorGUILayout.LabelField("Rest Place", EditorStyles.boldLabel);
+                        var restPlace = data.RestPlaces[i];
+                        restPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.RestPlaces[i].ParentBone);
+                        restPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.RestPlaces[i].PositionOffset);
+                        restPlace.RotationOffset = Quaternion.Euler(EditorGUILayout.Vector3Field("rotation offset: ", data.RestPlaces[i].RotationOffset.eulerAngles));
+                        data.RestPlaces[i] = restPlace;
+                        //Emplacement armee
+                        EditorGUILayout.LabelField("Carry Place", EditorStyles.boldLabel);
+                        var carryPlace = data.CarryPlaces[i];
+                        carryPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.CarryPlaces[i].ParentBone);
+                        carryPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.CarryPlaces[i].PositionOffset);
+                        carryPlace.RotationOffset = Quaternion.Euler(EditorGUILayout.Vector3Field("rotation offset: ", data.CarryPlaces[i].RotationOffset.eulerAngles));
+                        data.CarryPlaces[i] = carryPlace;
+                        //point sortie projectile
+                        EditorGUILayout.LabelField("Projectile", EditorStyles.boldLabel);
+                        data.ProjectilesOutPoints[i] = EditorGUILayout.Vector3Field("Projectile out Pt: ", data.ProjectilesOutPoints[i]);
 
-                }, "Common Parameters");
+                    }, 180);
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.EndScrollView();
             });
-            ScrollablePanel(() =>
+            GUILayout.EndVertical();
+            //preview.
+            if (data.IdleMove != null && data.IdleMove.Motion)
             {
-                GroupGUInoStyle(() =>
+                List<(GameObject, HumanBodyBones, Vector3, Quaternion)> weaponInfos = new List<(GameObject, HumanBodyBones, Vector3, Quaternion)>();
+                for (int i = 0; i < data.Weapons.Count; i++)
                 {
-                    GUILayout.BeginHorizontal();
-                    for (int i = 0; i < data.Weapons.Count; i++)
-                    {
-                        GroupGUI(() =>
-                        {
-                            data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
-                            if (data.Weapons[i] == null)
-                            {
-                                // if (weaponPartsEditors.ContainsKey(null))
-                                // weaponPartsEditors.Remove(null);
-                                GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
-                                GUILayout.EndArea();
-                            }
-                            else
-                            {
-                                if (!weaponPartsEditors.ContainsKey(data.Weapons[i]))
-                                    weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
-                                if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
-                                    weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
-                                weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
-                            }
-                            //Materiau
-                            var d = data.Materiaux;
-                            var mat = d[i];
-                            mat = (PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ",mat);
-                            d[i] = mat;
-                            if (mat != data.Materiaux[i])
-                            {
-                                data.Materiaux = d;
-                            }
-                            //Emplacement repos
-                            EditorGUILayout.LabelField("Rest Place", EditorStyles.boldLabel);
-                            var restPlace = data.RestPlaces[i];
-                            restPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.RestPlaces[i].ParentBone);
-                            restPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.RestPlaces[i].PositionOffset);
-                            restPlace.RotationOffset.eulerAngles = EditorGUILayout.Vector3Field("rotation offset: ", data.RestPlaces[i].RotationOffset.eulerAngles);
-                            data.RestPlaces[i] = restPlace;
-                            //Emplacement armee
-                            EditorGUILayout.LabelField("Carry Place", EditorStyles.boldLabel);
-                            var carryPlace = data.CarryPlaces[i];
-                            carryPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone",data.CarryPlaces[i].ParentBone);
-                            carryPlace.PositionOffset = EditorGUILayout.Vector3Field("position offset: ", data.CarryPlaces[i].PositionOffset);
-                            carryPlace.RotationOffset.eulerAngles = EditorGUILayout.Vector3Field("rotation offset: ", data.CarryPlaces[i].RotationOffset.eulerAngles);
-                            data.CarryPlaces[i] = carryPlace;
-                            //point sortie projectile
-                            EditorGUILayout.LabelField("Projectile", EditorStyles.boldLabel);
-                            data.ProjectilesOutPoints[i] = EditorGUILayout.Vector3Field("Projectile out Pt: ", data.ProjectilesOutPoints[i]);
-
-                        }, 180);
-                    }
-                    GUILayout.EndHorizontal();
-                });
-            });
-            ScrollablePanel(() =>
-            {
-            });
+                    weaponInfos.Add((data.Weapons[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].PositionOffset, data.CarryPlaces[i].RotationOffset));
+                }
+                if (preview != null)
+                    preview.Previsualize(data.IdleMove.Motion, 4 / 3, null, weaponInfos.ToArray());
+            }
+            GUILayout.EndHorizontal();
         }
 
         #endregion

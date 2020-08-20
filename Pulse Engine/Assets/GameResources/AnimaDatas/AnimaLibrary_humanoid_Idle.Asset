@@ -17,9 +17,13 @@ MonoBehaviour:
     isHumanMotion: 1
     animLayer: 0
     eventList: []
-    phaseAnims: []
+    phaseAnims:
+    - phase: 0
+      timeStamp:
+        time: 0
+        duration: 0.033333335
     physicPlace: 1
-    motion: {fileID: 0}
+    motion: {fileID: 7400000, guid: bf76f3dd17f5c4740a03b26967222211, type: 2}
   animCategory: 0
   animType: 0
   dataType: 4

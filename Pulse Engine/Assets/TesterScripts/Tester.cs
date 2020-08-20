@@ -5,12 +5,8 @@ using UnityEditor;
 using eWindow = UnityEditor.EditorGUILayout;
 using Window = UnityEngine.GUILayout;
 using System;
-using PulseEngine.Module.CharacterCreator;
-using UnityEngine.AddressableAssets;
-using System.Globalization;
-using UnityEditor.Animations;
-using UnityEngine.Assertions;
-using UnityEngine.Rendering;
+using PulseEngine.Globals;
+using PulseEngine.Modules.Anima;
 
 public class Tester : MonoBehaviour
 {
@@ -180,138 +176,6 @@ public class InspectorTest : Editor
 }
 
 
-public class EditorTest : EditorWindow
-{
-    private UnityEditor.Animations.AnimatorController controller;
-    private UnityEditor.Animations.AnimatorState treeState;
-    private UnityEditor.Animations.BlendTree tree;
-    private Motion motion;
-    private GameObject go;
-
-    [MenuItem("Test editor/test")]
-    public static void ShowWindow()
-    {
-        var win = GetWindow<EditorTest>();
-        win.Show();
-    }
-
-    private void OnEnable()
-    {
-        //controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>("Assets/control.controller");
-        //if (!controller)
-        //{
-        //    controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath("Assets/control.controller");
-        //}
-        //controller.name = "controller1";
-    }
-
-    private void Update()
-    {
-        Repaint();
-    }
-
-    private void OnGUI()
-    {
-        go = eWindow.ObjectField(go, typeof(GameObject), false) as GameObject;
-        motion = eWindow.ObjectField(motion, typeof(Motion), false) as Motion;
-        var clip = motion as AnimationClip;
-        if (go && clip)
-        {
-            if (!AnimationMode.InAnimationMode())
-                AnimationMode.StartAnimationMode();
-            time = eWindow.Slider(time, 0, clip.length);
-            AnimationMode.BeginSampling();
-            AnimationMode.SampleAnimationClip(go, clip, time);
-            AnimationMode.EndSampling();
-            GUILayout.Label("processing...");
-            try
-            {
-                DrawPreview(GUILayoutUtility.GetAspectRect(16 / 9));
-                GUILayout.Label("Done");
-            }
-            catch {
-                GUILayout.Label("Error");
-            }
-        }
-        //if (!controller) return;
-        //eWindow.LabelField(controller.name);
-        //motion = (Motion)eWindow.ObjectField(motion,typeof(Motion), false);
-        //if (Window.Button("Add Layer"))
-        //    controller.AddLayer("New Layer");
-        //if (Window.Button("Add State"))
-        //    controller.AddMotion(motion);
-        //if (Window.Button("Add BlendTree"))
-        //    treeState = controller.CreateBlendTreeInController("new tree", out tree);
-        //if (tree && Window.Button("Add BlendTree child"))
-        //    tree.AddChild(motion);
-        //if (Window.Button("Add Parameter"))
-        //    controller.AddParameter("New Param", AnimatorControllerParameterType.Int);
-        //if (Window.Button("Save"))
-        //    AssetDatabase.SaveAssets();
-    }
-
-    PreviewRenderUtility preview;
-    Mesh mesh;
-    Material material;
-    float time;
-
-    private void OnDisable()
-    {
-        if (AnimationMode.InAnimationMode())
-            AnimationMode.StopAnimationMode();
-    }
-
-    public void DrawPreview(Rect rect)
-    {
-        //---------------------------------------------------------------------
-        if (preview == null)
-            preview = new PreviewRenderUtility();
-
-        preview.camera.transform.position = Vector3.forward * -15f;
-        preview.camera.transform.LookAt(Vector3.zero, Vector3.up);
-        preview.camera.farClipPlane = 30;
-
-        preview.lights[0].intensity = 0.5f;
-        preview.lights[0].transform.rotation = Quaternion.Euler(30, 30, 0);
-        preview.lights[1].intensity = 0.5f;
-
-        go.transform.worldToLocalMatrix.SetTRS(go.transform.position, go.transform.rotation, go.transform.localScale);
-
-        preview.BeginPreview(rect, GUIStyle.none);
-        //---------------------------------------------------------------------------
-
-        if (go)
-        {
-            SkinnedMeshRenderer[] meshfilters = go.GetComponentsInChildren<SkinnedMeshRenderer>();
-            for(int i = 0; i < meshfilters.Length; i++)
-            {
-                var filter = meshfilters[i];
-                if (filter.sharedMesh)
-                {
-                    SkinnedMeshRenderer meshRender = filter.gameObject.GetComponent<SkinnedMeshRenderer>();
-                    for(int j = 0; j < filter.sharedMesh.subMeshCount; j++)
-                    {
-                        if(meshRender != null)
-                        {
-                            Matrix4x4 matrix = meshRender.transform.localToWorldMatrix * go.transform.worldToLocalMatrix;
-                            Material mat = meshRender.sharedMaterials[j];
-                            preview.DrawMesh(filter.sharedMesh, matrix, mat, j);
-                        }
-                    }
-                }
-            }
-        }
-               
-        //--------------------------------------------------------------------------
-        bool fog = RenderSettings.fog;
-        Unsupported.SetRenderSettingsUseFogNoDirty(false);
-        preview.camera.Render();
-        Unsupported.SetRenderSettingsUseFogNoDirty(fog);
-        Texture render = preview.EndPreview();
-
-        GUI.DrawTexture(rect, render);
-    }
-}
 
 
 

@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor;
 using PulseEngine.Modules.Anima;
 using PulseEngine.Modules;
 using PulseEditor.Globals;
@@ -69,6 +67,7 @@ namespace PulseEditor.Modules.Anima
             allAssets.Clear();
             editedAsset = null;
             editedData = null;
+            selectDataIndex = -1;
             if (animPreview != null)
                 animPreview.Destroy();
             foreach (AnimaCategory category in Enum.GetValues(typeof(AnimaCategory)))
@@ -86,6 +85,10 @@ namespace PulseEditor.Modules.Anima
             {
                 editedAsset = asset;
             }
+            if(windowOpenMode == EditorMode.ItemEdition && dataID >= 0)
+            {
+                editedData = ((AnimaLibrary)editedAsset).DataList.Find(dd => { return dd.ID == dataID; });
+            }
             animPreview = new Previewer();
         }
 
@@ -94,7 +97,8 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         private void onSelect()
         {
-            throw new NotImplementedException();
+            if (onSelectionEvent != null)
+                onSelectionEvent.Invoke(editedData, null);
         }
 
         #endregion
@@ -133,11 +137,12 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         public static void OpenModifier(int _id, AnimaCategory _cat, AnimaType _typ)
         {
-            var window = GetWindow<AnimaEditor>();
+            var window = GetWindow<AnimaEditor>(true);
             window.windowOpenMode = EditorMode.ItemEdition;
             window.selectedCategory = _cat;
             window.selectedType = _typ;
             window.dataID = _id;
+            window.Initialisation();
             window.ShowAuxWindow();
         }
 
@@ -152,20 +157,29 @@ namespace PulseEditor.Modules.Anima
         protected override void OnRedraw()
         {
             base.OnRedraw();
-            if (Header())
+            if (windowOpenMode != EditorMode.ItemEdition)
             {
-                GUILayout.BeginHorizontal();
+                if (!Header())
+                {
+                    return;
+                }
+            }
+            GUILayout.BeginHorizontal();
+            if (windowOpenMode != EditorMode.ItemEdition)
+            {
                 ScrollablePanel(() =>
                 {
                     ListAnimations((AnimaLibrary)editedAsset);
                     Foot();
-                },true);
-                ScrollablePanel(() =>
-                {
-                    AnimDetails((AnimaData)editedData);
-                });
-                GUILayout.EndHorizontal();
+                }, true);
             }
+            ScrollablePanel(() =>
+            {
+                AnimDetails((AnimaData)editedData);
+                if (windowOpenMode == EditorMode.ItemEdition)
+                    Foot();
+            });
+            GUILayout.EndHorizontal();
         }
 
         /// <summary>
@@ -173,7 +187,6 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         protected override void OnInitialize()
         {
-            base.OnInitialize();
             Initialisation();
         }
 
@@ -293,8 +306,6 @@ namespace PulseEditor.Modules.Anima
             }
         }
 
-
-
         /// <summary>
         /// details.
         /// </summary>
@@ -307,9 +318,19 @@ namespace PulseEditor.Modules.Anima
             {
                 //ID
                 EditorGUILayout.LabelField("ID: " + data.ID, EditorStyles.boldLabel);
-                //Motion
-                if (animPreview != null)
-                    timeInCurrentAnimation = animPreview.Previsualize(data.Motion);
+                if (windowOpenMode == EditorMode.Selector)
+                {
+                    //Motion
+                    if (animPreview != null)
+                        timeInCurrentAnimation = animPreview.Previsualize(data.Motion, 4 / 3);
+                    return;
+                }
+                else
+                {
+                    //Motion
+                    if (animPreview != null)
+                        timeInCurrentAnimation = animPreview.Previsualize(data.Motion, 16 / 9);
+                }
                 var newMotion = EditorGUILayout.ObjectField("Motion ", data.Motion, typeof(AnimationClip), false) as AnimationClip;
                 if (newMotion != data.Motion)
                 {
@@ -498,7 +519,7 @@ namespace PulseEditor.Modules.Anima
                 GUILayout.EndHorizontal();
                 GUILayout.Space(5);
 
-                eventListScroll = GUILayout.BeginScrollView(eventListScroll);
+                eventListScroll = GUILayout.BeginScrollView(eventListScroll, new[] { GUILayout.MinHeight(100)});
                 GUILayout.BeginHorizontal();
                 int k = 0;
                 for(int i = 0; i < data.EventList.Count; i++)
@@ -554,6 +575,7 @@ namespace PulseEditor.Modules.Anima
                         GUILayout.EndHorizontal();
                         if (GUILayout.Button("Customize Event"))
                         {
+                            throw new NotImplementedException("You have to open the command modifier here");
                             //evEnt.command//TODO: Editor of Commands => action.
                         }
                         GUILayout.EndVertical();
@@ -570,6 +592,10 @@ namespace PulseEditor.Modules.Anima
 
             }, "Details");
         }
+
+        #endregion
+
+        #region Mono #########################################################################################
 
         private void Update()
         {
