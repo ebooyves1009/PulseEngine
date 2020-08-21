@@ -212,6 +212,7 @@ namespace PulseEditor
 
             private void OnDisable()
             {
+                OnQuit();
                 CloseWindow();
             }
 
@@ -219,6 +220,14 @@ namespace PulseEditor
             /// Appellee au demarrage de la fenetre, a utiliser a la place de OnEnable dans les fenetres heritantes
             /// </summary>
             protected virtual void OnInitialize()
+            {
+
+            }
+
+            /// <summary>
+            /// Appellee lorsqu'on ferme la fenetre.
+            /// </summary>
+            protected virtual void OnQuit()
             {
 
             }
@@ -500,7 +509,7 @@ namespace PulseEditor
             /// <summary>
             /// ferme la fenetre
             /// </summary>
-            protected virtual void CloseWindow()
+            private void CloseWindow()
             {
                 onSelectionEvent = delegate { };
                 EditorUtility.UnloadUnusedAssetsImmediate();
@@ -834,15 +843,16 @@ namespace PulseEditor
                     for (int i = 0; i < accesoriesPool.Count; i++)
                     {
                         var poolItem = accesoriesPool.ElementAt(i);
-                        if (poolItem.Key.name == accessory.go.name && poolItem.Value.bone == accessory.bone)
+                        if (poolItem.Key.name == accessory.go.name )//&& poolItem.Value.bone == accessory.bone)
                         {
                             accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
                             found = true;
                         }
                     }
-                    if (found)
+                    if (found || !accessory.go)
                         continue;
                     var acc = UnityEngine.Object.Instantiate(accessory.go);
+                    acc.hideFlags = HideFlags.HideAndDontSave;
                     acc.name = accessory.go.name;
                     if (!accesoriesPool.ContainsKey(acc))
                     {
@@ -1037,7 +1047,7 @@ namespace PulseEditor
                 previewAvatar.transform.position = position;
                 previewAvatar.transform.rotation = targetAnimator.rootRotation;
                 previewAvatar.transform.localScale = Vector3.one * targetScale;
-                var offset = Vector3.Lerp(pivotOffset, position, 0.016f);
+                var offset = Vector3.Lerp(pivotOffset, position, Time.deltaTime * 10);
                 pivotOffset = new Vector3(offset.x, pivotOffset.y, offset.z);
                 directionArrow.transform.position = targetAnimator.rootPosition;
                 var rot = Quaternion.Euler(0, targetAnimator.bodyRotation.eulerAngles.y, 0);
@@ -1052,7 +1062,9 @@ namespace PulseEditor
                     if (targetAnimator)
                     {
                         var bone = targetAnimator.GetBoneTransform(acc.Value.bone);
-                        acc.Key.transform.position = bone.position + acc.Value.PosOffset;
+                        if (acc.Key.transform.parent != bone)
+                            acc.Key.transform.SetParent(bone);
+                        acc.Key.transform.localPosition = acc.Value.PosOffset;
                         acc.Key.transform.localRotation = acc.Value.RotOffset;
                     }
                 }

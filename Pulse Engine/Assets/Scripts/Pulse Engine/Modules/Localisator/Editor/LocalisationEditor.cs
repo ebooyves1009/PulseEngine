@@ -215,7 +215,7 @@ namespace PulseEditor.Modules.Localisator
             {
                 case EditorMode.Normal:
                     SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save & Close", ()=> { Save(true);}),
+                        new KeyValuePair<string, Action>("Save", ()=> { Save(false);}),
                         new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                     break;

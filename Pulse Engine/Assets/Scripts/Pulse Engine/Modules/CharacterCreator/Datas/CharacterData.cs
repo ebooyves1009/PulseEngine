@@ -32,7 +32,7 @@ namespace PulseEngine.Modules.CharacterCreator
         [SerializeField]
         private Avatar animatorAvatar;
         [SerializeField]
-        private List<Vector2Int> armurie;
+        private List<Vector3Int> armurie;
 
         #endregion
 
@@ -74,9 +74,9 @@ namespace PulseEngine.Modules.CharacterCreator
         public Avatar AnimatorAvatar{get=>animatorAvatar;set=>animatorAvatar = value;}
 
         /// <summary>
-        /// La liste des armes detenues par le personnage.
+        /// La liste des armes detenues par le personnage; IDs, types et scope.
         /// </summary>
-        public List<Vector2Int> Armurie{ get => armurie; set => armurie = value;}
+        public List<Vector3Int> Armurie{ get => armurie; set => armurie = value;}
 
         #endregion
 

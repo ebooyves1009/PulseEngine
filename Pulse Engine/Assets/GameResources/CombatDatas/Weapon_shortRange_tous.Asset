@@ -14,16 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dataList:
   - id: 1
-    idTrad: 1
+    idTrad: 2
     tradDataType: 12
     typeArme: 1
-    portee: 1
-    typeDegats: 0
-    degats: 3
-    valeur: 0
-    materiaux: 00000000
+    portee: 2.5
+    typeDegats: 1
+    degats: 25
+    valeur: 370
+    materiaux: 0500000004000000
     weapons:
-    - {fileID: 0}
+    - {fileID: 919132149155446097, guid: 05610bddd3b6bbb4c8454a24f48c6dd3, type: 3}
+    - {fileID: 919132149155446097, guid: ce6abeccb77693748bda72149a12cd8c, type: 3}
     stat_weapon:
       sante: 0
       santeMax: 0
@@ -35,7 +36,7 @@ MonoBehaviour:
       souffle: 0
       souffleMax: 0
       dexterite: 0
-      masse: 0
+      masse: 150
       taille: 0
       age: 0
       karma: 0
@@ -48,8 +49,8 @@ MonoBehaviour:
       intelligence: 0
       sagesse: 0
       force: 0
-      endurance: 0
-      enduranceMax: 0
+      endurance: -70
+      enduranceMax: -70
       souffle: 0
       souffleMax: 0
       dexterite: 0
@@ -60,20 +61,93 @@ MonoBehaviour:
       paranormal: 0
       fierte: 0
       engoument: 0
-    handle_moves: []
+    handle_moves:
+    - id: 1
+      isHumanMotion: 1
+      animLayer: 2
+      eventList:
+      - command:
+          code: 0
+          primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+          secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        timeStamp:
+          time: 0.426
+          duration: 0.033333335
+        isOneTimeAction: 1
+      phaseAnims:
+      - phase: 0
+        timeStamp:
+          time: 0
+          duration: 0.033333335
+      - phase: 2
+        timeStamp:
+          time: 0.426
+          duration: 0.033333335
+      - phase: 0
+        timeStamp:
+          time: 1.146
+          duration: 0.033333335
+      physicPlace: 1
+      motion: {fileID: 7400000, guid: caa74fde3885b2240beab4408b9054e3, type: 2}
+    - id: 1
+      isHumanMotion: 1
+      animLayer: 2
+      eventList:
+      - command:
+          code: 0
+          primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+          secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        timeStamp:
+          time: 0.426
+          duration: 0.033333335
+        isOneTimeAction: 1
+      phaseAnims:
+      - phase: 0
+        timeStamp:
+          time: 0
+          duration: 0.033333335
+      - phase: 2
+        timeStamp:
+          time: 0.426
+          duration: 0.033333335
+      - phase: 0
+        timeStamp:
+          time: 1.146
+          duration: 0.033333335
+      physicPlace: 1
+      motion: {fileID: 7400000, guid: caa74fde3885b2240beab4408b9054e3, type: 2}
+    idle_move:
+      id: 1
+      isHumanMotion: 1
+      animLayer: 0
+      eventList: []
+      phaseAnims:
+      - phase: 0
+        timeStamp:
+          time: 0
+          duration: 0.033333335
+      physicPlace: 1
+      motion: {fileID: 7400000, guid: bf76f3dd17f5c4740a03b26967222211, type: 2}
     attackDatas: []
     defenseDatas: []
     canParry: 0
     portable: 1
     restPlaces:
+    - parentBone: 8
+      PositionOffset: {x: 0, y: -0.01, z: -0.15}
+      RotationOffset: {x: -0.06502317, y: -0.058035422, z: 0.6633482, w: -0.74321806}
     - parentBone: 0
-      PositionOffset: {x: 0, y: 0, z: 0}
-      RotationOffset: {x: 0, y: 0, z: 0, w: 1}
+      PositionOffset: {x: 0, y: 0, z: -0.15}
+      RotationOffset: {x: 0, y: 1, z: 0, w: -0.00000004371139}
     carryPlaces:
-    - parentBone: 0
-      PositionOffset: {x: 0, y: 0, z: 0}
-      RotationOffset: {x: 0, y: 0, z: 0, w: 1}
+    - parentBone: 17
+      PositionOffset: {x: 0.42, y: 0.25, z: -0.13}
+      RotationOffset: {x: 0.16718285, y: -0.1299994, z: -0.24160625, w: -0.94698274}
+    - parentBone: 18
+      PositionOffset: {x: 0.36, y: 0.03, z: -0.04}
+      RotationOffset: {x: -0.9947888, y: 0.004863909, z: 0.057620484, w: 0.083972216}
     projectilesOutPoints:
+    - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
   libraryWeaponType: 1
   libraryDataType: 3
