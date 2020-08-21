@@ -33,6 +33,26 @@ namespace PulseEditor.Modules.CharacterCreator
         #endregion
         #region Visual Attributes ################################################################
 
+        /// <summary>
+        /// the preview panel.
+        /// </summary>
+       private Previewer previewer;
+        
+        /// <summary>
+        /// the currently playing motion.
+        /// </summary>
+       private Motion selectedmotion;
+        
+        /// <summary>
+        /// the index of selected layer.
+        /// </summary>
+       private int layerAnimIndex;
+        
+        /// <summary>
+        /// the index of selected State.
+        /// </summary>
+       private int StateAnimIndex;
+
         #endregion
         #region Fonctionnal Methods ################################################################
 
@@ -141,6 +161,7 @@ namespace PulseEditor.Modules.CharacterCreator
                 if (asset)
                     editedAsset = asset;
             }
+            RefreshPreview();
         }
 
         protected override void OnRedraw()
@@ -158,8 +179,23 @@ namespace PulseEditor.Modules.CharacterCreator
             ScrollablePanel(() =>
             {
                 Details((CharacterData)editedData);
+                GUILayout.Space(5);
+                AnimationsPreview((CharacterData)editedData);
             });
             GUILayout.EndHorizontal();
+        }
+
+        protected override void OnQuit()
+        {
+            if (previewer != null)
+                previewer.Destroy();
+        }
+
+        private void RefreshPreview()
+        {
+            if (previewer != null)
+                previewer.Destroy();
+            previewer = new Previewer();
         }
 
         #endregion
@@ -240,7 +276,10 @@ namespace PulseEditor.Modules.CharacterCreator
                         string title = new string(titleChars) + pointDeSuspension;
                         listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
                     }
-                    selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                    int newOne = ListItems(selectDataIndex, listContent.ToArray());
+                    if (newOne != selectDataIndex)
+                        RefreshPreview();
+                    selectDataIndex = newOne;
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("+"))
@@ -322,7 +361,10 @@ namespace PulseEditor.Modules.CharacterCreator
                 GUILayout.EndHorizontal();
                 EditorGUILayout.LabelField("Character:", style_label);
                 GUILayout.Space(5);
-                data.Character = EditorGUILayout.ObjectField(data.Character, typeof(GameObject), false) as GameObject;
+                var Char = EditorGUILayout.ObjectField(data.Character, typeof(GameObject), false) as GameObject;
+                if (Char != data.Character)
+                    RefreshPreview();
+                data.Character = Char;
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
 
@@ -353,7 +395,26 @@ namespace PulseEditor.Modules.CharacterCreator
                 EditorGUILayout.LabelField("Weaponry:", style_label);
                 if (GUILayout.Button("Edit " + name + "'s Weaponry"))
                 {
-                    //TODO: Open the Weapon mini editor Here.
+                    List<(int, WeaponType, Scopes)> ps = new List<(int, WeaponType, Scopes)>();
+                    for(int i = 0; i < data.Armurie.Count; i++)
+                    {
+                        var weap = data.Armurie[i];
+                        ps.Add((weap.x, (WeaponType)weap.y, (Scopes)weap.z));
+                    }
+                    CombatSystem.WeaponEditor.WeaponryEditor.Open(ps, (obj,arg)=>
+                    {
+                        var result = obj as List<(int, WeaponType, Scopes)>;
+                        if(result != null)
+                        {
+                            List<Vector3Int> sp = new List<Vector3Int>();
+                            for (int i = 0; i < result.Count; i++)
+                            {
+                                var weap = result[i];
+                                sp.Add(new Vector3Int(weap.Item1, (int)weap.Item2, (int)weap.Item3));
+                            }
+                            data.Armurie = sp;
+                        }
+                    });
                 }
                 GUILayout.EndHorizontal();
 
@@ -362,7 +423,13 @@ namespace PulseEditor.Modules.CharacterCreator
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Edit " + name + " Runtime Controller"))
                 {
-                    //TODO: Open the Animator controller editor Here.
+                    Anima.AnimaEditor.AnimaMachineEditor.Open(data.AnimatorController, name, (obj, arg) =>
+                    {
+                        var rt = obj as RuntimeAnimatorController;
+                        if (rt != null)
+                            data.AnimatorController = rt;
+                        RefreshPreview();
+                    });
                 }
                 GUILayout.EndHorizontal();
 
@@ -372,40 +439,55 @@ namespace PulseEditor.Modules.CharacterCreator
         }
 
         /// <summary>
+        /// Affiche une previsualisation.
+        /// </summary>
+        /// <param name="data"></param>
+        private void AnimationsPreview(CharacterData data)
+        {
+            GroupGUI(() =>
+            {
+                if (data.AnimatorController == null)
+                    return;
+                var controller = (UnityEditor.Animations.AnimatorController)data.AnimatorController;
+                var layerlist = controller.layers;
+                string[] layerNames = new string[layerlist.Length];
+                for (int i = 0; i < layerlist.Length; i++)
+                    layerNames[i] = layerlist[i].name;
+                layerAnimIndex = EditorGUILayout.Popup("Layers", layerAnimIndex, layerNames);
+                UnityEditor.Animations.ChildAnimatorState[] stateList = null;
+                if (layerAnimIndex < controller.layers.Length && layerAnimIndex >= 0)
+                {
+                    stateList = controller.layers[layerAnimIndex].stateMachine.states;
+                }
+                if(stateList != null)
+                {
+                    string[] stateNames = new string[layerlist.Length];
+                    for (int i = 0; i < stateList.Length; i++)
+                        stateNames[i] = stateList[i].state.name;
+                    StateAnimIndex = EditorGUILayout.Popup("States", StateAnimIndex, stateNames);
+                    if (StateAnimIndex < stateList.Length && StateAnimIndex >= 0)
+                        selectedmotion = stateList[StateAnimIndex].state.motion;
+                }
+                if (previewer != null)
+                    previewer.Previsualize(selectedmotion, 18 / 9, data.Character);
+
+            }, "Animation preview");
+        }
+
+        /// <summary>
         /// la panel de sauvegarde.
         /// </summary>
         private void SaveAndCancel()
         {
             if (editedAsset == null)
                 return;
-            switch (windowOpenMode)
-            {
-                case EditorMode.Normal:
-                    SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save & Close", ()=> { Save();}),
-                        new KeyValuePair<string, Action>("Close", ()=> { Cancel("Les Modifications ne seront pas sauvegardees.\nContinuer?"); })
-                    });
-                    break;
-                case EditorMode.Selector:
-                    SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { Select((CharacterData)editedData);}),
-                        new KeyValuePair<string, Action>("Cancel", ()=> { Cancel("La selection ne sera pas prise en compte.\nContinuer?");})
-                    });
-                    break;
-                case EditorMode.ItemEdition:
-                    break;
-                case EditorMode.Preview:
-                    break;
-                case EditorMode.Node:
-                    break;
-                case EditorMode.Group:
-                    break;
-            }
+            SaveBarPanel(editedAsset, asset, () => { Select((CharacterData)editedData); });
         }
 
 
         #endregion
         #region Helpers & Tools ################################################################
+
 
         #endregion
     }

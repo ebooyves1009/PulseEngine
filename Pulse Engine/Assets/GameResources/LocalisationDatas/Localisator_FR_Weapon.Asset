@@ -82,6 +82,75 @@ MonoBehaviour:
       s_textField: 
       s_imageField: {fileID: 0}
       s_audioField: {fileID: 0}
+  - trad_ID: 2
+    title:
+      s_textField: Double Lames de la mort qui tue
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    header:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    banner:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    groupName:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    toolTip:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    description:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    details:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    infos:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child1:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child2:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child3:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child4:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child5:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    child6:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    footPage:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    conclusion:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
+    end:
+      s_textField: 
+      s_imageField: {fileID: 0}
+      s_audioField: {fileID: 0}
   libraryLanguage: 0
   libraryScope: 0
   libraryDataType: 1

@@ -190,6 +190,15 @@ namespace PulseEditor.Modules.Anima
             Initialisation();
         }
 
+        /// <summary>
+        /// a la fermeture.
+        /// </summary>
+        protected override void OnQuit()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+        }
+
 
         #endregion
 
@@ -329,7 +338,7 @@ namespace PulseEditor.Modules.Anima
                 {
                     //Motion
                     if (animPreview != null)
-                        timeInCurrentAnimation = animPreview.Previsualize(data.Motion, 16 / 9);
+                        timeInCurrentAnimation = animPreview.Previsualize(data.Motion, 18 / 9);
                 }
                 var newMotion = EditorGUILayout.ObjectField("Motion ", data.Motion, typeof(AnimationClip), false) as AnimationClip;
                 if (newMotion != data.Motion)
@@ -597,22 +606,126 @@ namespace PulseEditor.Modules.Anima
 
         #region Mono #########################################################################################
 
-        private void Update()
-        {
-            if (editedData == null)
-                return;
-            Repaint();
-        }
-
-        private void OnDisable()
-        {
-            if (animPreview != null)
-                animPreview.Destroy();
-        }
 
         #endregion
 
         #region Helpers & Tools ################################################################
+
+        /// <summary>
+        /// Cree et configure des Runtime Animator controllers.
+        /// </summary>
+        public class AnimaMachineEditor : PulseEditorMgr
+        {
+            #region Attributs >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+            /// <summary>
+            /// The current animator runtimeController.
+            /// </summary>
+            private UnityEditor.Animations.AnimatorController rtController;
+
+            /// <summary>
+            /// The target's animator runtimeController's state machine.
+            /// </summary>
+            private UnityEditor.Animations.AnimatorStateMachine animStateMachine;
+
+            /// <summary>
+            /// The target's animator runtimeController's Layer.
+            /// </summary>
+            private UnityEditor.Animations.AnimatorControllerLayer animLayer;
+
+            /// <summary>
+            /// The target's animator runtimeController's state.
+            /// </summary>
+            private UnityEditor.Animations.AnimatorState animState;
+
+            /// <summary>
+            /// the selected layer index
+            /// </summary>
+            private int layerIndex;
+
+            /// <summary>
+            /// the selected state index
+            /// </summary>
+            private int stateIndex;
+
+            #endregion
+
+            #region Statics >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// Open the Editor.
+            /// </summary>
+            /// <param name="rtc"></param>
+            /// <param name="ownwerName"></param>
+            public static void Open(RuntimeAnimatorController rtc, string ownwerName, Action<object,EventArgs> onDone)
+            {
+                var window = GetWindow<AnimaMachineEditor>();
+                string path = ModuleConstants.AssetsPath;
+                string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path,"AnimatorControllers");
+                if (rtc != null)
+                    window.rtController = rtc as UnityEditor.Animations.AnimatorController;
+                else
+                {
+                    window.rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(folderPath);
+                    window.rtController.name = ownwerName + "_COntroller";
+                }
+                if (onDone != null)
+                    window.onSelectionEvent += (obj, arg) =>
+                    {
+                        onDone.Invoke(obj, arg);
+                    };
+                window.Show();
+            }
+
+            #endregion
+
+            #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// Appellee a la validation des modifications.
+            /// </summary>
+            protected void OnDone()
+            {
+                if (onSelectionEvent != null)
+                    onSelectionEvent.Invoke((RuntimeAnimatorController)rtController, null);
+            }
+
+            protected override void OnRedraw()
+            {
+
+            }
+
+            #endregion
+
+            #region GUI Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+             
+            /// <summary>
+            /// The Layer view.
+            /// </summary>
+            protected void LayerView()
+            {
+
+            }
+
+            /// <summary>
+            /// The Parameters view.
+            /// </summary>
+            protected void Parameters()
+            {
+
+            }
+
+            /// <summary>
+            /// The StateDetails view.
+            /// </summary>
+            protected void StateDetails()
+            {
+
+            }
+
+            #endregion
+        }
 
         #endregion
     }

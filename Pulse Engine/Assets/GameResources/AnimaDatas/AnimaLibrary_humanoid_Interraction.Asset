@@ -12,7 +12,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 340334532b1b21e4992aaf2972209b7c, type: 3}
   m_Name: AnimaLibrary_humanoid_Interraction
   m_EditorClassIdentifier: 
-  datasList: []
+  datasList:
+  - id: 1
+    isHumanMotion: 1
+    animLayer: 2
+    eventList:
+    - command:
+        code: 0
+        primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      timeStamp:
+        time: 0.426
+        duration: 0.033333335
+      isOneTimeAction: 1
+    phaseAnims:
+    - phase: 0
+      timeStamp:
+        time: 0
+        duration: 0.033333335
+    - phase: 2
+      timeStamp:
+        time: 0.426
+        duration: 0.033333335
+    - phase: 0
+      timeStamp:
+        time: 1.146
+        duration: 0.033333335
+    physicPlace: 1
+    motion: {fileID: 7400000, guid: caa74fde3885b2240beab4408b9054e3, type: 2}
   animCategory: 0
   animType: 2
   dataType: 4

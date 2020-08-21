@@ -48,6 +48,11 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         private Vector2 weaponPartsScroll;
 
+        /// <summary>
+        /// either show weapon parts on rest position or not.
+        /// </summary>
+        private bool showRestPosition;
+
         #endregion
 
         #region Fonctionnal Methods ################################################################
@@ -58,14 +63,23 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         protected override void OnInitialize()
         {
-            if (preview != null)
-                preview.Destroy();
             var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), currentScope);
             allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
             allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) asset = a; });
             if (asset)
                 editedAsset = asset;
-            preview = new Previewer();
+            RefreshPreview();
+        }
+
+        /// <summary>
+        /// Executed at item selection in selection mode
+        /// </summary>
+        protected void SelectItem()
+        {
+            if(onSelectionEvent != null)
+            {
+                onSelectionEvent.Invoke(editedData, new EditorEventArgs { Scope = editedAsset != null ? (int)((WeaponLibrary)editedAsset).Scope : 0 });
+            }
         }
 
         #endregion
@@ -112,16 +126,6 @@ namespace PulseEditor.Modules.CombatSystem
             window.ShowModal();
         }
 
-        /// <summary>
-        /// Affiche l'arsenal correspondant aux id qu'il recoit.
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="winName"></param>
-        public static void ShowArmury(List<int> weaponsId, Action<object> returneWeaponry, string winName = "")
-        {
-
-        }
-
         #endregion
 
         #region Visual Methods ################################################################
@@ -135,17 +139,34 @@ namespace PulseEditor.Modules.CombatSystem
             base.OnRedraw();
 
             GUILayout.BeginHorizontal();
-            ScrollablePanel(() =>
+            if (windowOpenMode != EditorMode.ItemEdition)
             {
-                Header();
-                WeaponList((WeaponLibrary)editedAsset);
-                Foot();
-            },true);
+                ScrollablePanel(() =>
+                {
+                    Header();
+                    WeaponList((WeaponLibrary)editedAsset);
+                    Foot();
+                }, true);
+            }
+            else if(editedAsset != null && editedData == null)
+            {
+                editedData = ((WeaponLibrary)editedAsset).DataList.Find(d => { return d.ID == dataID; });
+            }
             ScrollablePanel(() =>
             {
                 WeaponDetails((WeaponData)editedData);
             });
             GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// Refresh the preview
+        /// </summary>
+        private void RefreshPreview()
+        {
+            if (preview != null)
+                preview.Destroy();
+            preview = new Previewer();
         }
 
         #endregion
@@ -183,7 +204,7 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         protected void Foot()
         {
-            SaveBarPanel(editedAsset, asset);
+            SaveBarPanel(editedAsset, asset, SelectItem);
         }
 
         /// <summary>
@@ -273,6 +294,43 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if (data == null)
                 return;
+            if(windowOpenMode == EditorMode.Selector)
+            {
+                GroupGUInoStyle(() =>
+                {
+                    weaponPartsScroll = GUILayout.BeginScrollView(weaponPartsScroll);
+                    GUILayout.BeginHorizontal();
+                    for (int i = 0; i < data.Weapons.Count; i++)
+                    {
+                        GroupGUI(() =>
+                        {
+                            var obj = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
+                            if (obj != data.Weapons[i])
+                                RefreshPreview();
+                            data.Weapons[i] = obj;
+                            if (data.Weapons[i] == null)
+                            {
+                                // if (weaponPartsEditors.ContainsKey(null))
+                                // weaponPartsEditors.Remove(null);
+                                GUILayout.BeginArea(GUILayoutUtility.GetRect(100, 100));
+                                GUILayout.EndArea();
+                            }
+                            else
+                            {
+                                if (!weaponPartsEditors.ContainsKey(data.Weapons[i]))
+                                    weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
+                                if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
+                                    weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
+                                weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(100, 100), null);
+                            }
+
+                        }, 180);
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndScrollView();
+                });
+                return;
+            }
             Func<bool> listCompatiblesmode = () =>
             {
                 switch (windowOpenMode)
@@ -407,6 +465,7 @@ namespace PulseEditor.Modules.CombatSystem
                         if (d != null)
                         {
                             data.IdleMove = d;
+                            RefreshPreview();
                         }
                     });
                 }
@@ -466,6 +525,27 @@ namespace PulseEditor.Modules.CombatSystem
                 GUILayout.EndHorizontal();
 
             }, "Common Parameters");
+            //preview.
+            if (data.IdleMove != null && data.IdleMove.Motion)
+            {
+                GroupGUI(() =>
+                {
+                    GUILayout.BeginVertical();
+                    showRestPosition = EditorGUILayout.Toggle("At rest places", showRestPosition);
+                    List<(GameObject, HumanBodyBones, Vector3, Quaternion)> weaponInfos = new List<(GameObject, HumanBodyBones, Vector3, Quaternion)>();
+                    for (int i = 0; i < data.Weapons.Count; i++)
+                    {
+                        if (showRestPosition)
+                            weaponInfos.Add((data.Weapons[i], data.RestPlaces[i].ParentBone, data.RestPlaces[i].PositionOffset, data.RestPlaces[i].RotationOffset));
+                        else
+                            weaponInfos.Add((data.Weapons[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].PositionOffset, data.CarryPlaces[i].RotationOffset));
+                    }
+                    if (preview != null)
+                        preview.Previsualize(data.IdleMove.Motion, 18/9, null, weaponInfos.ToArray());
+                    GUILayout.EndVertical();
+                }, "Preview");
+            }
+            GUILayout.EndVertical();
             //Weapon parts
             GroupGUInoStyle(() =>
             {
@@ -475,12 +555,15 @@ namespace PulseEditor.Modules.CombatSystem
                 {
                     GroupGUI(() =>
                     {
-                        data.Weapons[i] = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
+                        var obj = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
+                        if (obj != data.Weapons[i])
+                            RefreshPreview();
+                        data.Weapons[i] = obj;
                         if (data.Weapons[i] == null)
                         {
                             // if (weaponPartsEditors.ContainsKey(null))
                             // weaponPartsEditors.Remove(null);
-                            GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
+                            GUILayout.BeginArea(GUILayoutUtility.GetRect(100, 100));
                             GUILayout.EndArea();
                         }
                         else
@@ -489,7 +572,8 @@ namespace PulseEditor.Modules.CombatSystem
                                 weaponPartsEditors.Add(data.Weapons[i], Editor.CreateEditor(data.Weapons[i]));
                             if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
                                 weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
-                            weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
+                            weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(100, 100), null);
+                            data.Weapons[i].transform.localScale = EditorGUILayout.Vector3Field("Scale: ", data.Weapons[i].transform.localScale);
                         }
                         //Materiau
                         var d = data.Materiaux;
@@ -523,18 +607,6 @@ namespace PulseEditor.Modules.CombatSystem
                 GUILayout.EndHorizontal();
                 GUILayout.EndScrollView();
             });
-            GUILayout.EndVertical();
-            //preview.
-            if (data.IdleMove != null && data.IdleMove.Motion)
-            {
-                List<(GameObject, HumanBodyBones, Vector3, Quaternion)> weaponInfos = new List<(GameObject, HumanBodyBones, Vector3, Quaternion)>();
-                for (int i = 0; i < data.Weapons.Count; i++)
-                {
-                    weaponInfos.Add((data.Weapons[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].PositionOffset, data.CarryPlaces[i].RotationOffset));
-                }
-                if (preview != null)
-                    preview.Previsualize(data.IdleMove.Motion, 4 / 3, null, weaponInfos.ToArray());
-            }
             GUILayout.EndHorizontal();
         }
 
@@ -561,6 +633,135 @@ namespace PulseEditor.Modules.CombatSystem
                     inputLibrary.Add(WeaponLibrary.Load(type, _scope));
             }
             return inputLibrary;
+        }
+
+
+        /// <summary>
+        /// The weaponry editor
+        /// </summary>
+        public class WeaponryEditor : PulseEditorMgr
+        {
+            #region Attributes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// the passed weapons IDs Data Base.
+            /// </summary>
+            List<(WeaponData, Scopes)> dataBase = new List<(WeaponData, Scopes)>();
+
+            #endregion
+
+            #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            public static void Open(List<(int _id, WeaponType type, Scopes _scope)> weaponRefs, Action<object,EventArgs> onSelect)
+            {
+                var window = GetWindow<WeaponryEditor>();
+                window.Init(weaponRefs);
+                if (onSelect != null)
+                    window.onSelectionEvent += (obj,arg)=>
+                    {
+                        onSelect.Invoke(obj, arg);
+                    };
+                window.Show();
+            }
+
+
+            protected void Init(List<(int _id, WeaponType type, Scopes _scope)> Refs)
+            {
+                List<WeaponLibrary> all = new List<WeaponLibrary>();
+                foreach (Scopes sc in Enum.GetValues(typeof(Scopes))) {
+                    all.AddRange(LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), sc));
+                }
+                for(int i = 0; i < Refs.Count; i++)
+                {
+                    WeaponData data = null;
+                    Scopes _scope = Scopes.tous;
+                    for(int j = 0; j < all.Count; j++)
+                    {
+                        var Library = all[j];
+                        if(Library.Scope == Refs[i]._scope)
+                        {
+                            var d = Library.DataList.Find(d2 => { return d2.ID == Refs[i]._id; });
+                            if (d != null)
+                            {
+                                data = d;
+                                _scope = Library.Scope;
+                            }
+                        }
+                    }
+                    if (data != null)
+                        dataBase.Add((data,_scope));
+                }
+            }
+
+            protected override void OnRedraw()
+            {
+                //List
+                GroupGUI(() =>
+                {
+                    GUILayout.BeginVertical();
+                    List<GUIContent> listContent = new List<GUIContent>();
+                    int maxId = 0;
+                    for (int i = 0; i < dataBase.Count; i++)
+                    {
+                        var data = dataBase[i];
+                        var nameList = LocalisationEditor.GetTexts(data.Item1.IdTrad, data.Item1.TradType);
+                        string name = nameList.Length > 0 ? nameList[0] : string.Empty;
+                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
+                        string pointDeSuspension = string.Empty;
+                        try
+                        {
+                            if (data.Item1.ID > maxId) maxId = data.Item1.ID;
+                            for (int j = 0; j < titleChars.Length; j++)
+                                if (j < name.Length)
+                                    titleChars[j] = name[j];
+                            if (name.Length >= titleChars.Length)
+                                pointDeSuspension = "...";
+                        }
+                        catch { }
+                        string title = new string(titleChars) + pointDeSuspension;
+                        listContent.Add(new GUIContent { text = data.Item1 != null ? data.Item1.ID + "-" + title : "null data" });
+                    }
+                    selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                    GUILayout.Space(5);
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("+"))
+                    {
+                        OpenSelector((obj, arg) =>
+                        {
+                            var data = obj as WeaponData;
+                            var scope = arg as EditorEventArgs;
+                            if (data != null && scope != null)
+                                dataBase.Add((data, (Scopes)scope.Scope));
+                        });
+                    }
+                    if (selectDataIndex >= 0 && selectDataIndex < dataBase.Count)
+                    {
+                        if (GUILayout.Button("Edit"))
+                        {
+                            var infos = dataBase[selectDataIndex];
+                            OpenModifier(infos.Item1.ID, infos.Item1.TypeArme, infos.Item2);
+                        }
+                        if (GUILayout.Button("-"))
+                        {
+                            dataBase.RemoveAt(selectDataIndex);
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndVertical();
+                }, "Weaponry");
+                //Foot
+                GroupGUInoStyle(() =>
+                {
+                    if (GUILayout.Button("Close"))
+                    {
+                        if (onSelectionEvent != null)
+                            onSelectionEvent.Invoke(dataBase, null);
+                        Close();
+                    }
+                },"",50);
+            }
+
+            #endregion
         }
 
         #endregion
