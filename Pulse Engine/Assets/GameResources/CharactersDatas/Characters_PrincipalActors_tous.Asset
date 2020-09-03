@@ -36,7 +36,8 @@ MonoBehaviour:
       engoument: 0
     character: {fileID: 919132149155446097, guid: b47dd38ef519baa4d8b77a7ef887fa94,
       type: 3}
-    animatorController: {fileID: 0}
+    animatorController: {fileID: 9100000, guid: 25fe6a5e645639d48a03fe6adbe9c570,
+      type: 2}
     animatorAvatar: {fileID: 9000000, guid: b47dd38ef519baa4d8b77a7ef887fa94, type: 3}
     armurie: []
   libraryDataType: 2

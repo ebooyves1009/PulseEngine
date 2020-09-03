@@ -444,6 +444,8 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <param name="data"></param>
         private void AnimationsPreview(CharacterData data)
         {
+            if (data == null)
+                return;
             GroupGUI(() =>
             {
                 if (data.AnimatorController == null)

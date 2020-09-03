@@ -26,6 +26,14 @@ namespace PulseEditor
             Normal, Selector, ItemEdition, Preview, Node, Group
         }
 
+        /// <summary>
+        /// The differents sides of a node.
+        /// </summary>
+        public enum NodeEdgeSide
+        {
+            upper, lower, lefty, righty
+        }
+
         #endregion
         #region Class #################################################################################
 
@@ -73,17 +81,17 @@ namespace PulseEditor
             /// <summary>
             /// Toutes les assets manipulees par le module.
             /// </summary>
-            protected List<ScriptableObject> allAssets = new List<ScriptableObject>(); 
+            protected List<ScriptableObject> allAssets = new List<ScriptableObject>();
 
             /// <summary>
             /// l'asset selectionne.
             /// </summary>
-            protected ScriptableObject asset; 
+            protected ScriptableObject asset;
 
             /// <summary>
             /// L'asset en cours de modification.
             /// </summary>
-            protected ScriptableObject editedAsset; 
+            protected ScriptableObject editedAsset;
 
             /// <summary>
             /// La data en cours de modification.
@@ -529,6 +537,50 @@ namespace PulseEditor
                 return default;
             }
 
+            /// <summary>
+            /// Return the corresponding egde's mid-point of a rect.
+            /// </summary>
+            /// <param name="_side">The specicied node edge</param>
+            /// <returns></returns>
+            public static Vector2 GetNodeEdge(Rect _rect, NodeEdgeSide _side)
+            {
+                Vector2 point = _rect.position;
+                switch (_side)
+                {
+                    case NodeEdgeSide.upper:
+                        point = _rect.position + Vector2.right * (_rect.width * 0.5f);
+                        break;
+                    case NodeEdgeSide.lower:
+                        point = _rect.position + Vector2.right * (_rect.width * 0.5f) - Vector2.up * _rect.height;
+                        break;
+                    case NodeEdgeSide.lefty:
+                        point = _rect.position - Vector2.up * (_rect.height * 0.5f);
+                        break;
+                    case NodeEdgeSide.righty:
+                        point = _rect.position + Vector2.right * (_rect.width * 0.5f) - Vector2.up * _rect.height;
+                        break;
+                }
+                return point;
+            }
+
+            /// <summary>
+            /// Get the closest node's Edge
+            /// </summary>
+            /// <param name="_point">the point from wich calculation begins</param>
+            /// <param name="_nodeRect">the node's rect where to find edge</param>
+            /// <returns></returns>
+            public static Vector2 GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
+            {
+                List<Vector2> sides = new List<Vector2>();
+                sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.lefty));
+                sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.righty));
+                sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.upper));
+                sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.lower));
+                sides.Sort((side1, side2) => { return ((side2 - _point).sqrMagnitude.CompareTo((side1 - _point).sqrMagnitude)); });
+                return sides[0];
+            }
+
+
             #endregion
         }
 
@@ -843,7 +895,7 @@ namespace PulseEditor
                     for (int i = 0; i < accesoriesPool.Count; i++)
                     {
                         var poolItem = accesoriesPool.ElementAt(i);
-                        if (poolItem.Key.name == accessory.go.name )//&& poolItem.Value.bone == accessory.bone)
+                        if (poolItem.Key.name == accessory.go.name)//&& poolItem.Value.bone == accessory.bone)
                         {
                             accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
                             found = true;
@@ -959,7 +1011,7 @@ namespace PulseEditor
                     {
                         playBackTime += (14 / animationClip.frameRate) * Time.deltaTime;
                         pTime = playBackTime;
-                        if(pTime >= animationClipSettings.stopTime)
+                        if (pTime >= animationClipSettings.stopTime)
                             isPlaying = animationClipSettings.loopTime;
                         pTime %= animationClipSettings.stopTime;
                     }

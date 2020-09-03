@@ -6,6 +6,7 @@ using PulseEditor.Globals;
 using PulseEngine.Globals;
 using System;
 using UnityEditor;
+using UnityEditor.Animations;
 
 namespace PulseEditor.Modules.Anima
 {
@@ -622,22 +623,27 @@ namespace PulseEditor.Modules.Anima
             /// <summary>
             /// The current animator runtimeController.
             /// </summary>
-            private UnityEditor.Animations.AnimatorController rtController;
+            private AnimatorController rtController;
 
             /// <summary>
             /// The target's animator runtimeController's state machine.
             /// </summary>
-            private UnityEditor.Animations.AnimatorStateMachine animStateMachine;
+            private AnimatorStateMachine animStateMachine;
 
             /// <summary>
             /// The target's animator runtimeController's Layer.
             /// </summary>
-            private UnityEditor.Animations.AnimatorControllerLayer animLayer;
+            private AnimatorControllerLayer animLayer;
 
             /// <summary>
             /// The target's animator runtimeController's state.
             /// </summary>
-            private UnityEditor.Animations.AnimatorState animState;
+            private AnimatorState animState;
+
+            /// <summary>
+            /// The selected transition.
+            /// </summary>
+            private AnimatorTransition animtransition;
 
             /// <summary>
             /// the selected layer index
@@ -648,6 +654,21 @@ namespace PulseEditor.Modules.Anima
             /// the selected state index
             /// </summary>
             private int stateIndex;
+
+            /// <summary>
+            /// the selected parameter index
+            /// </summary>
+            private int paramIndex;
+
+            /// <summary>
+            /// boolean enabled when creating a new parameter.
+            /// </summary>
+            private bool addingParam;
+
+            /// <summary>
+            /// le nom, en cours d'edition d'un parametre.
+            /// </summary>
+            private string paramName;
 
             #endregion
 
@@ -660,15 +681,23 @@ namespace PulseEditor.Modules.Anima
             /// <param name="ownwerName"></param>
             public static void Open(RuntimeAnimatorController rtc, string ownwerName, Action<object,EventArgs> onDone)
             {
-                var window = GetWindow<AnimaMachineEditor>();
+                var window = GetWindow<AnimaMachineEditor>(true);
                 string path = ModuleConstants.AssetsPath;
                 string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path,"AnimatorControllers");
                 if (rtc != null)
                     window.rtController = rtc as UnityEditor.Animations.AnimatorController;
                 else
                 {
-                    window.rtController = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(folderPath);
-                    window.rtController.name = ownwerName + "_COntroller";
+                    if (!AssetDatabase.IsValidFolder(folderPath))
+                        AssetDatabase.CreateFolder(string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path), "AnimatorControllers");
+                    window.rtController = AnimatorController.CreateAnimatorControllerAtPath(folderPath+"/"+ ownwerName + "_Controller.controller");
+                    //Configuring
+                    window.rtController.name = ownwerName + "_Controller";
+                    foreach(AnimaLayer layer in Enum.GetValues(typeof(AnimaLayer)))
+                    {
+                        window.rtController.AddLayer(layer.ToString());
+                    }
+                    AssetDatabase.SaveAssets();
                 }
                 if (onDone != null)
                     window.onSelectionEvent += (obj, arg) =>
@@ -689,29 +718,149 @@ namespace PulseEditor.Modules.Anima
             {
                 if (onSelectionEvent != null)
                     onSelectionEvent.Invoke((RuntimeAnimatorController)rtController, null);
+                Close();
             }
 
             protected override void OnRedraw()
             {
-
+                GUILayout.BeginVertical();
+                GUILayout.BeginHorizontal();
+                //First column
+                ScrollablePanel(() =>
+                {
+                    ParametersList(rtController);
+                    animLayer = LayerSelect(rtController);
+                    animState = StateList(animLayer);
+                });
+                //Second Column
+                ScrollablePanel(() =>
+                {
+                    StateDetails(animState);
+                    animtransition = TransitionsList(animState);
+                    TransitionDetails(animtransition);
+                });
+                //
+                GUILayout.EndHorizontal();
+                if (GUILayout.Button("Done"))
+                {
+                    OnDone();
+                }
+                GUILayout.EndVertical();
             }
 
             #endregion
 
             #region GUI Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-             
-            /// <summary>
-            /// The Layer view.
-            /// </summary>
-            protected void LayerView()
-            {
-
-            }
 
             /// <summary>
             /// The Parameters view.
             /// </summary>
-            protected void Parameters()
+            protected void ParametersList(AnimatorController _controller)
+            {
+                if (_controller == null)
+                    return;
+                GroupGUI(() =>
+                {
+                    GUILayout.BeginVertical();
+                    List<GUIContent> listContent = new List<GUIContent>();
+                    for (int i = 0; i < _controller.parameters.Length; i++)
+                    {
+                        var parameter = _controller.parameters[i];
+                        var name = parameter.name;
+                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
+                        string pointDeSuspension = string.Empty;
+                        try
+                        {
+                            for (int j = 0; j < titleChars.Length; j++)
+                                if (j < name.Length)
+                                    titleChars[j] = name[j];
+                            if (name.Length >= titleChars.Length)
+                                pointDeSuspension = "...";
+                        }
+                        catch { }
+                        string title = new string(titleChars) + pointDeSuspension;
+                        listContent.Add(new GUIContent { text = title });
+                    }
+                    paramIndex = ListItems(paramIndex, listContent.ToArray());
+                    GUILayout.Space(5);
+                    if (addingParam)
+                    {
+                        GUILayout.BeginHorizontal();
+                        paramName = EditorGUILayout.TextField("Parameter Name ", paramName);
+                        if (GUILayout.Button("+B"))
+                        {
+                            _controller.AddParameter(paramName, AnimatorControllerParameterType.Bool);
+                            addingParam = false;
+                        }
+                        if (GUILayout.Button("+T"))
+                        {
+                            _controller.AddParameter(paramName, AnimatorControllerParameterType.Trigger);
+                            addingParam = false;
+                        }
+                        if (GUILayout.Button("+I"))
+                        {
+                            _controller.AddParameter(paramName, AnimatorControllerParameterType.Int);
+                            addingParam = false;
+                        }
+                        if (GUILayout.Button("+F"))
+                        {
+                            _controller.AddParameter(paramName, AnimatorControllerParameterType.Float);
+                            addingParam = false;
+                        }
+                        GUILayout.EndHorizontal();
+                    }
+                    GUILayout.BeginHorizontal();
+                    if (!addingParam)
+                    {
+                        if (GUILayout.Button("+"))
+                        {
+                            addingParam = true;
+                        }
+                        if (paramIndex >= 0 && paramIndex < _controller.parameters.Length)
+                        {
+                            if (GUILayout.Button("-"))
+                            {
+                                _controller.RemoveParameter(_controller.parameters[paramIndex]);
+                            }
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndVertical();
+                }, "Parameters");
+            }
+
+            /// <summary>
+            /// The layer select view
+            /// </summary>
+            /// <param name="_controller"></param>
+            /// <returns>returns the selected AnimatorcontrollerLayer selected</returns>
+            protected AnimatorControllerLayer LayerSelect(AnimatorController _controller)
+            {
+                if (_controller == null)
+                    return null;
+                AnimatorControllerLayer layer = null;
+                GroupGUI(() =>
+                {
+
+                }, "Layers");
+                return layer;
+            }
+
+            /// <summary>
+            /// List all the states on the specified layer.
+            /// </summary>
+            /// <param name="_animLayer"></param>
+            /// <returns></returns>
+            protected AnimatorState StateList(AnimatorControllerLayer _animLayer)
+            {
+                return null;
+            }
+
+            /// <summary>
+            /// Preview of the state's motion
+            /// </summary>
+            /// <param name="_animStetMotion"></param>
+            protected void Preview(AnimatorState _animStetMotion)
             {
 
             }
@@ -719,7 +868,25 @@ namespace PulseEditor.Modules.Anima
             /// <summary>
             /// The StateDetails view.
             /// </summary>
-            protected void StateDetails()
+            protected void StateDetails(AnimatorState _animState)
+            {
+
+            }
+
+            /// <summary>
+            /// The transition list of the state
+            /// </summary>
+            /// <param name="_animTransition"></param>
+            protected AnimatorTransition TransitionsList(AnimatorState _animState)
+            {
+                return null;
+            }
+
+            /// <summary>
+            /// The transition inspector
+            /// </summary>
+            /// <param name="_animTransition"></param>
+            protected void TransitionDetails(AnimatorTransition _animTransition)
             {
 
             }
