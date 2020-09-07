@@ -7,6 +7,7 @@ using PulseEngine.Globals;
 using System;
 using UnityEditor;
 using UnityEditor.Animations;
+using System.Linq;
 
 namespace PulseEditor.Modules.Anima
 {
@@ -839,10 +840,15 @@ namespace PulseEditor.Modules.Anima
                 if (_controller == null)
                     return null;
                 AnimatorControllerLayer layer = null;
+                var layerNames = from l in _controller.layers
+                                 select l.name;
                 GroupGUI(() =>
                 {
+                    layerIndex = EditorGUILayout.Popup("Layer", layerIndex, layerNames.ToArray());
+                }, "Layers",25);
 
-                }, "Layers");
+                if (layerIndex >= 0 && layerIndex < _controller.layers.Length)
+                    layer = _controller.layers[layerIndex];
                 return layer;
             }
 
@@ -853,7 +859,51 @@ namespace PulseEditor.Modules.Anima
             /// <returns></returns>
             protected AnimatorState StateList(AnimatorControllerLayer _animLayer)
             {
-                return null;
+                AnimatorState state = null;
+                var machine = _animLayer.stateMachine;
+                if (machine == null)
+                    return null;
+                var states = machine.states;
+                GroupGUI(() =>
+                {
+                    GUILayout.BeginVertical();
+                    List<GUIContent> listContent = new List<GUIContent>();
+                    for (int i = 0; i < states.Length; i++)
+                    {
+                        var stateX = states[i].state;
+                        var name = stateX.name;
+                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
+                        string pointDeSuspension = string.Empty;
+                        try
+                        {
+                            for (int j = 0; j < titleChars.Length; j++)
+                                if (j < name.Length)
+                                    titleChars[j] = name[j];
+                            if (name.Length >= titleChars.Length)
+                                pointDeSuspension = "...";
+                        }
+                        catch { }
+                        string title = new string(titleChars) + pointDeSuspension;
+                        listContent.Add(new GUIContent { text = title });
+                    }
+                    stateIndex = ListItems(stateIndex, listContent.ToArray());
+                    GUILayout.Space(5);
+                    GUILayout.BeginHorizontal();
+                    //if (GUILayout.Button("+"))
+                    //{
+                    //    addingParam = true;
+                    //}
+                    //if (paramIndex >= 0 && paramIndex < _controller.parameters.Length)
+                    //{
+                    //    if (GUILayout.Button("-"))
+                    //    {
+                    //        _controller.RemoveParameter(_controller.parameters[paramIndex]);
+                    //    }
+                    //}
+                    GUILayout.EndHorizontal();
+                    GUILayout.EndVertical();
+                }, "Parameters");
+                return state;
             }
 
             /// <summary>
