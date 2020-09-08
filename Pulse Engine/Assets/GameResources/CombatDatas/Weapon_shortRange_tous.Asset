@@ -134,18 +134,18 @@ MonoBehaviour:
     portable: 1
     restPlaces:
     - parentBone: 8
-      PositionOffset: {x: 0, y: -0.01, z: -0.15}
+      PositionOffset: {x: 0, y: 0, z: -0.2}
       RotationOffset: {x: -0.06502317, y: -0.058035422, z: 0.6633482, w: -0.74321806}
     - parentBone: 0
-      PositionOffset: {x: 0, y: 0, z: -0.15}
+      PositionOffset: {x: 0, y: 0, z: -0.2}
       RotationOffset: {x: 0, y: 1, z: 0, w: -0.00000004371139}
     carryPlaces:
     - parentBone: 17
-      PositionOffset: {x: 0.42, y: 0.25, z: -0.13}
-      RotationOffset: {x: 0.16718285, y: -0.1299994, z: -0.24160625, w: -0.94698274}
+      PositionOffset: {x: -0.05, y: 0, z: 0.5}
+      RotationOffset: {x: -0.49999997, y: 0.49999997, z: -0.49999997, w: -0.49999997}
     - parentBone: 18
-      PositionOffset: {x: 0.36, y: 0.03, z: -0.04}
-      RotationOffset: {x: -0.9947888, y: 0.004863909, z: 0.057620484, w: 0.083972216}
+      PositionOffset: {x: 0.03, y: 0, z: 0.37}
+      RotationOffset: {x: -0.49999997, y: 0.49999997, z: -0.49999997, w: -0.49999997}
     projectilesOutPoints:
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}

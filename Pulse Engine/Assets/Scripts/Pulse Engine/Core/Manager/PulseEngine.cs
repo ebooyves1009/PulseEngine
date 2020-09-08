@@ -53,7 +53,7 @@ namespace PulseEngine
         /// Tampon temporel, pouvant garder utile dans les logs et animations. 
         /// </summary>
         [System.Serializable]
-        public struct TimeStamp
+        public struct TimeStamp : IEquatable<TimeStamp>
         {
             /// <summary>
             /// Le temps.
@@ -69,6 +69,11 @@ namespace PulseEngine
             /// la duree.
             /// </summary>
             public float duration;
+
+            public bool Equals(TimeStamp other)
+            {
+                return time == other.time && duration == other.duration;
+            }
         }
 
         #endregion
@@ -111,6 +116,11 @@ namespace PulseEngine
         public static class PulseEngineMgr
         {
             #region Attributs ###############################################################
+
+            /// <summary>
+            /// Le booleen pour activer/ desactiver le mode debug en runtime.
+            /// </summary>
+            public const bool DEBUG_MODE_Runtime = true; //HACK: Enable or disable runtime debug mode.
 
             /// <summary>
             /// Le repertoire ou seront stockes et d'ou seront charges les Assets du jeu in game et dans l'editeur. il sera Addressable.
@@ -574,21 +584,31 @@ namespace PulseEngine
         /// La commande temporelle d'une animation.
         /// </summary>
         [System.Serializable]
-        public struct AnimeCommand
+        public struct AnimeCommand : IEquatable<AnimeCommand>
         {
             public CommandAction command;
             public TimeStamp timeStamp;
             public bool isOneTimeAction;
+
+            public bool Equals(AnimeCommand other)
+            {
+                return command.Equals(other.command) && timeStamp.Equals(other.timeStamp) && isOneTimeAction == other.isOneTimeAction;
+            }
         }
 
         /// <summary>
         /// Les phases d'une animation.
         /// </summary>
         [System.Serializable]
-        public struct AnimePhaseTimeStamp
+        public struct AnimePhaseTimeStamp : IEquatable<AnimePhaseTimeStamp>
         {
             public AnimaPhase phase;
             public TimeStamp timeStamp;
+
+            public bool Equals(AnimePhaseTimeStamp other)
+            {
+                return phase == other.phase && timeStamp.Equals(other.timeStamp);
+            }
         }
 
         #endregion

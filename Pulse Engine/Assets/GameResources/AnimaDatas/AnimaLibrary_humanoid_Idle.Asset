@@ -24,6 +24,14 @@ MonoBehaviour:
         duration: 0.033333335
     physicPlace: 1
     motion: {fileID: 7400000, guid: bf76f3dd17f5c4740a03b26967222211, type: 2}
+  - id: 2
+    isHumanMotion: 1
+    animLayer: 0
+    eventList: []
+    phaseAnims: []
+    physicPlace: 0
+    motion: {fileID: -203655887218126122, guid: 05e90f6eb030efb41bd751945e8b53f6,
+      type: 3}
   animCategory: 0
   animType: 0
   dataType: 4

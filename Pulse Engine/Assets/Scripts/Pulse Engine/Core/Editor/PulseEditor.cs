@@ -23,7 +23,7 @@ namespace PulseEditor
         /// </summary>
         public enum EditorMode
         {
-            Normal, Selector, ItemEdition, Preview, Node, Group
+            Normal, Selector, ItemEdition, Preview, Node, Group, specialSelect
         }
 
         /// <summary>
@@ -43,6 +43,11 @@ namespace PulseEditor
         public class PulseEditorMgr : EditorWindow
         {
             #region Constants #################################################################
+
+            /// <summary>
+            /// Le booleen pour activer/ desactiver le mode debug en Editeur.
+            /// </summary>
+            public const bool DEBUG_MODE_Editor = true; //HACK: Enable or disable editor debug mode.
 
             /// <summary>
             /// Le nombre de charactere maximal d'une liste.
@@ -413,6 +418,12 @@ namespace PulseEditor
                     case EditorMode.Node:
                         break;
                     case EditorMode.Group:
+                        break;
+                    case EditorMode.specialSelect:
+                        SaveCancelPanel(new[] {
+                        new KeyValuePair<string, Action>("Select", ()=> { SaveAsset(_toSave, _whereSave); if(SelectAction != null) SelectAction.Invoke(); Close(); }),
+                        new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                    });
                         break;
                 }
             }
@@ -797,7 +808,7 @@ namespace PulseEditor
                     previewRenderer = new PreviewRenderUtility();
                     pivotOffset = new Vector3(0, 1, 0);
                 }
-                else
+                else if(previewRenderer.camera != null)
                 {
                     //Camera Transform
                     var cx = zoomFactor * Mathf.Cos(panAngle * Mathf.Deg2Rad);
@@ -817,99 +828,106 @@ namespace PulseEditor
                         SphericalHarmonicsL2 ambientProbe = RenderSettings.ambientProbe;
                         SetupPreviewLightingAndFx(ambientProbe);
                     }
-                }
-                if (!playBackMotion || (playBackMotion != _motion && _motion != null))
-                {
-                    playBackMotion = _motion;
-                }
-                if (floorTexture == null)
-                {
-                    floorTexture = (Texture2D)EditorGUIUtility.Load("Avatar/Textures/AvatarFloor.png");
-                }
-                if (floorMaterial == null)
-                {
-                    Shader shader = EditorGUIUtility.LoadRequired("Previews/PreviewPlaneWithShadow.shader") as Shader;
-                    floorMaterial = new Material(shader);
-                    floorMaterial.mainTexture = floorTexture;
-                    floorMaterial.mainTextureScale = Vector2.one * 5f * 4f;
-                    floorMaterial.SetVector("_Alphas", new Vector4(0.5f, 0.3f, 0f, 0f));
-                    floorMaterial.hideFlags = HideFlags.HideAndDontSave;
-                    floorMaterial = new Material(floorMaterial);
-                }
-                if (!floorPlane)
-                {
-                    floorPlane = UnityEngine.Object.Instantiate((GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath));
-                    floorPlane.hideFlags = HideFlags.HideAndDontSave;
-                    var render = floorPlane.GetComponent<MeshRenderer>();
-                    if (render)
+                    if (!playBackMotion || (playBackMotion != _motion && _motion != null))
                     {
-                        render.material = floorMaterial;
+                        playBackMotion = _motion;
                     }
-                    try { previewRenderer.AddSingleGO(floorPlane); } catch { }
-                }
-                if (!directionArrow)
-                {
-                    var original = (GameObject)EditorGUIUtility.Load("Avatar/dial_flat.prefab");
-                    directionArrow = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    directionArrow.hideFlags = HideFlags.HideAndDontSave;
-                    try { previewRenderer.AddSingleGO(directionArrow); } catch { }
-                }
-                if (!rootGameObject)
-                {
-                    var original = (GameObject)EditorGUIUtility.Load("Avatar/root.fbx");
-                    rootGameObject = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
-                    rootGameObject.hideFlags = HideFlags.HideAndDontSave;
-                    try { previewRenderer.AddSingleGO(rootGameObject); } catch { }
-                }
-                if (!previewAvatar)
-                {
-                    previewAvatar = GetAvatar(ref _avatar);
-                    previewAvatar.hideFlags = HideFlags.HideAndDontSave;
-                    try { previewRenderer.AddSingleGO(previewAvatar); } catch { }
-                    if (previewAvatar)
+                    if (floorTexture == null)
                     {
-                        targetAnimator = previewAvatar.GetComponentInChildren<Animator>();
-                        if (!targetAnimator)
+                        floorTexture = (Texture2D)EditorGUIUtility.Load("Avatar/Textures/AvatarFloor.png");
+                    }
+                    if (floorMaterial == null)
+                    {
+                        Shader shader = EditorGUIUtility.LoadRequired("Previews/PreviewPlaneWithShadow.shader") as Shader;
+                        floorMaterial = new Material(shader);
+                        floorMaterial.mainTexture = floorTexture;
+                        floorMaterial.mainTextureScale = Vector2.one * 5f * 4f;
+                        floorMaterial.SetVector("_Alphas", new Vector4(0.5f, 0.3f, 0f, 0f));
+                        floorMaterial.hideFlags = HideFlags.HideAndDontSave;
+                        floorMaterial = new Material(floorMaterial);
+                    }
+                    if (!floorPlane)
+                    {
+                        //floorPlane = UnityEngine.Object.Instantiate((GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath));
+                        var original = (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarFloorPath);
+                        floorPlane = UnityEngine.Object.Instantiate<GameObject>(original, previewRenderer.camera.transform);
+                        var render = floorPlane.GetComponent<MeshRenderer>();
+                        if (render)
+                        {
+                            render.material = floorMaterial;
+                        }
+                        ResetTransform(floorPlane);
+                        previewRenderer.AddSingleGO(floorPlane);
+                    }
+                    if (!directionArrow)
+                    {
+                        var original = (GameObject)EditorGUIUtility.Load("Avatar/dial_flat.prefab");
+                        //directionArrow = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
+                        //directionArrow.hideFlags = HideFlags.HideAndDontSave;
+                        //directionArrow = previewRenderer.InstantiatePrefabInScene(original);
+                        directionArrow = UnityEngine.Object.Instantiate<GameObject>(original, previewRenderer.camera.transform);
+                        ResetTransform(directionArrow);
+                        previewRenderer.AddSingleGO(directionArrow);
+                    }
+                    if (!rootGameObject)
+                    {
+                        var original = (GameObject)EditorGUIUtility.Load("Avatar/root.fbx");
+                        //rootGameObject = UnityEngine.Object.Instantiate(original, Vector3.zero, Quaternion.identity);
+                        rootGameObject = UnityEngine.Object.Instantiate<GameObject>(original, previewRenderer.camera.transform);
+                        ResetTransform(rootGameObject);
+                        previewRenderer.AddSingleGO(rootGameObject);
+                    }
+                    if (!previewAvatar)
+                    {
+                        previewAvatar = GetAvatar(ref _avatar);
+                        previewAvatar.hideFlags = HideFlags.HideAndDontSave;
+                        previewRenderer.AddSingleGO(previewAvatar);
+                        if (previewAvatar)
+                        {
+                            targetAnimator = previewAvatar.GetComponentInChildren<Animator>();
+                            if (!targetAnimator)
+                            {
+                                Reset();
+                                return false;
+                            }
+
+                            targetAnimator.enabled = false;
+                            targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                            targetAnimator.logWarnings = false;
+                            targetAnimator.fireEvents = false;
+                            InitController();
+                        }
+                        else
                         {
                             Reset();
                             return false;
                         }
-
-                        targetAnimator.enabled = false;
-                        targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                        targetAnimator.logWarnings = false;
-                        targetAnimator.fireEvents = false;
-                        InitController();
                     }
-                    else
+                    foreach (var accessory in accessories)
                     {
-                        Reset();
-                        return false;
-                    }
-                }
-                foreach (var accessory in accessories)
-                {
-                    if (accesoriesPool == null)
-                        accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset, Quaternion RotOffset)>();
-                    bool found = false;
-                    for (int i = 0; i < accesoriesPool.Count; i++)
-                    {
-                        var poolItem = accesoriesPool.ElementAt(i);
-                        if (poolItem.Key.name == accessory.go.name)//&& poolItem.Value.bone == accessory.bone)
+                        if (accesoriesPool == null)
+                            accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset, Quaternion RotOffset)>();
+                        bool found = false;
+                        for (int i = 0; i < accesoriesPool.Count; i++)
                         {
-                            accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
-                            found = true;
+                            var poolItem = accesoriesPool.ElementAt(i);
+                            if (poolItem.Key.name == accessory.go.name)//&& poolItem.Value.bone == accessory.bone)
+                            {
+                                accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
+                                found = true;
+                            }
                         }
-                    }
-                    if (found || !accessory.go)
-                        continue;
-                    var acc = UnityEngine.Object.Instantiate(accessory.go);
-                    acc.hideFlags = HideFlags.HideAndDontSave;
-                    acc.name = accessory.go.name;
-                    if (!accesoriesPool.ContainsKey(acc))
-                    {
-                        accesoriesPool.Add(acc, (accessory.bone, accessory.offset, accessory.rotation));
-                        try { previewRenderer.AddSingleGO(acc); } catch { }
+                        if (found || !accessory.go)
+                            continue;
+                        //var acc = UnityEngine.Object.Instantiate(accessory.go);
+                        var acc = UnityEngine.Object.Instantiate<GameObject>(accessory.go, previewRenderer.camera.transform);
+                        ResetTransform(acc);
+                        acc.hideFlags = HideFlags.HideAndDontSave;
+                        if (!accesoriesPool.ContainsKey(acc))
+                        {
+                            accesoriesPool.Add(acc, (accessory.bone, accessory.offset, accessory.rotation));
+                            previewRenderer.AddSingleGO(acc);
+                        }
                     }
                 }
 
@@ -923,6 +941,9 @@ namespace PulseEditor
             /// </summary>
             private void TimeControl()
             {
+                var clip = (AnimationClip)playBackMotion;
+                if (clip == null)
+                    return;
                 //Display controls
                 GUILayout.BeginHorizontal("HelpBox");
                 if (GUILayout.Button(isPlaying ? "||" : ">>", new[] { GUILayout.Width(30), GUILayout.Height(20) }))
@@ -932,11 +953,11 @@ namespace PulseEditor
                 if (isPlaying)
                 {
                     var rect2 = GUILayoutUtility.GetRect(50, 20);
-                    EditorGUI.ProgressBar(rect2, pTime / ((AnimationClip)playBackMotion).length, "");
+                    EditorGUI.ProgressBar(rect2, pTime / clip.length, "");
                 }
                 else
                 {
-                    pTime = EditorGUILayout.Slider(pTime, 0, ((AnimationClip)playBackMotion).length);
+                    pTime = EditorGUILayout.Slider(pTime, 0, clip.length);
                 }
                 GUILayout.EndHorizontal();
             }
@@ -1139,6 +1160,19 @@ namespace PulseEditor
                 floorMaterial.mainTextureOffset = floorTexOffset;
             }
 
+            /// <summary>
+            /// Reset the transform of a GO and void his parent.
+            /// </summary>
+            /// <param name="go"></param>
+            private void ResetTransform(GameObject go)
+            {
+                if (go == null)
+                    return;
+                go.transform.SetParent(null);
+                go.transform.position = Vector3.zero;
+                go.transform.rotation = Quaternion.Euler(Vector3.zero);
+            }
+
             #endregion
 
             #region Navigation ###########################################
@@ -1298,7 +1332,10 @@ namespace PulseEditor
             private GameObject GetAvatar(ref GameObject original)
             {
                 GameObject o = original ? original : (GameObject)EditorGUIUtility.Load(PulseEditorMgr.previewAvatarPath);
-                return UnityEngine.Object.Instantiate(o, Vector3.zero, Quaternion.identity);
+                var copy = UnityEngine.Object.Instantiate<GameObject>(o, previewRenderer.camera.transform);
+                ResetTransform(copy);
+                return copy;
+                //return UnityEngine.Object.Instantiate(o, Vector3.zero, Quaternion.identity);
             }
 
             /// <summary>

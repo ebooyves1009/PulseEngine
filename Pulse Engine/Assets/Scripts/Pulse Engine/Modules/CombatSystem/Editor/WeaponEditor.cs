@@ -174,7 +174,6 @@ namespace PulseEditor.Modules.CombatSystem
         #region Common Windows ################################################################
 
 
-
         /// <summary>
         /// The header.
         /// </summary>
@@ -635,6 +634,40 @@ namespace PulseEditor.Modules.CombatSystem
             return inputLibrary;
         }
 
+        /// <summary>
+        /// Get an weapon from its id, type and scope
+        /// </summary>
+        /// <param name="_ids"></param>
+        /// <returns></returns>
+        public static List<WeaponData> GetWeapons(List<(int _id, WeaponType _type, Scopes _scope)> collection)
+        {
+            List<WeaponData> retList = null;
+            var allAs = new Dictionary<Scopes, List<WeaponLibrary>>();
+            foreach (Scopes scope in Enum.GetValues(typeof(Scopes)))
+            {
+                allAs.Add(scope, LibraryFiller(new List<WeaponLibrary>(), scope));
+            }
+            foreach(var item in collection)
+            {
+                var subCol = allAs[item._scope];
+                if(subCol != null)
+                {
+                    var library = subCol.Find(lib => { return lib.LibraryWeaponType == item._type; });
+                    if (library != null)
+                    {
+                        var weapon = library.DataList.Find(w => { return w.ID == item._id; });
+                        if (weapon != null)
+                        {
+                            if (retList == null)
+                                retList = new List<WeaponData>();
+                            retList.Add(weapon);
+                        }
+                    }
+                }
+            }
+
+            return retList;
+        }
 
         /// <summary>
         /// The weaponry editor

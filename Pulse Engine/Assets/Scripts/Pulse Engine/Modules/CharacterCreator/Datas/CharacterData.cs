@@ -24,6 +24,8 @@ namespace PulseEngine.Modules.CharacterCreator
         [SerializeField]
         private int tradDataType;
         [SerializeField]
+        private int animCat;
+        [SerializeField]
         private StatData stats;
         [SerializeField]
         private GameObject character;
@@ -52,6 +54,11 @@ namespace PulseEngine.Modules.CharacterCreator
         /// le type de data de localisation.
         /// </summary>
         public TradDataTypes TradType { get => (TradDataTypes)tradDataType; set => tradDataType = (int)value; }
+
+        /// <summary>
+        /// La categorie d'animation du character.
+        /// </summary>
+        public AnimaCategory AnimCat { get => (AnimaCategory)animCat; set => animCat = (int)value; }
 
         /// <summary>
         /// Les stats du character.

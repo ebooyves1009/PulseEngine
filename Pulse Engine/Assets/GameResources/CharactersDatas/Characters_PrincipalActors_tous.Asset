@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dataList:
   - id: 1
-    idTrad: 2
+    idTrad: 1
     tradDataType: 0
+    animCat: 0
     stats:
       sante: 0
       santeMax: 0
@@ -36,9 +37,10 @@ MonoBehaviour:
       engoument: 0
     character: {fileID: 919132149155446097, guid: b47dd38ef519baa4d8b77a7ef887fa94,
       type: 3}
-    animatorController: {fileID: 9100000, guid: 25fe6a5e645639d48a03fe6adbe9c570,
+    animatorController: {fileID: 9100000, guid: 7741bb432b7e69a448610014cf707294,
       type: 2}
     animatorAvatar: {fileID: 9000000, guid: b47dd38ef519baa4d8b77a7ef887fa94, type: 3}
-    armurie: []
+    armurie:
+    - {x: 1, y: 1, z: 0}
   libraryDataType: 2
   scope: 0

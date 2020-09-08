@@ -30,30 +30,55 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </summary>
         private CharacterType typeSelected;
 
+        /// <summary>
+        /// Les armes dans l'armurerie du character.
+        /// </summary>
+        private List<PulseEngine.Modules.CombatSystem.WeaponData> characterWeapons = new List<PulseEngine.Modules.CombatSystem.WeaponData>();
+
+        //TODO: clothes list of this character
+        //TODO: gadgets/wearables inventory list of this character
+
         #endregion
+
         #region Visual Attributes ################################################################
 
         /// <summary>
         /// the preview panel.
         /// </summary>
-       private Previewer previewer;
-        
+        private Previewer previewer;
+
         /// <summary>
         /// the currently playing motion.
         /// </summary>
-       private Motion selectedmotion;
-        
+        private Motion selectedmotion;
+
         /// <summary>
         /// the index of selected layer.
         /// </summary>
-       private int layerAnimIndex;
-        
+        private int layerAnimIndex;
+
         /// <summary>
         /// the index of selected State.
         /// </summary>
-       private int StateAnimIndex;
+        private int StateAnimIndex;
+
+        /// <summary>
+        /// Active when adding new character
+        /// </summary>
+        private bool addindNewCharacter;
+
+        /// <summary>
+        /// the new character category
+        /// </summary>
+        private AnimaCategory newCharCat;
+
+        /// <summary>
+        /// the index of the currently selected weapon
+        /// </summary>
+        private int characterWeaponsIndex;
 
         #endregion
+
         #region Fonctionnal Methods ################################################################
 
         /// <summary>
@@ -90,6 +115,32 @@ namespace PulseEditor.Modules.CharacterCreator
             };
             if (onSelectionEvent != null)
                 onSelectionEvent.Invoke(this, eventArgs);
+        }
+
+        /// <summary>
+        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// </summary>
+        private void SetPreviewAdditives(CharacterData _data)
+        {
+            if (_data == null)
+                return;
+            //Weapons
+            var W_collection = new List<(int, WeaponType, Scopes)>();
+            for(int i = 0,len = _data.Armurie.Count; i < len; i++)
+            {
+                var item = _data.Armurie[i];
+                W_collection.Add((item.x, (WeaponType)item.y, (Scopes)item.z));
+            }
+            characterWeapons = CombatSystem.WeaponEditor.GetWeapons(W_collection);
+        }
+
+        /// <summary>
+        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// </summary>
+        private void ResetPreviewAdditives()
+        {
+            //Weapons
+            characterWeapons.Clear();
         }
 
         #endregion
@@ -139,6 +190,7 @@ namespace PulseEditor.Modules.CharacterCreator
             window.typeSelected = _type;
             window.dataID = _id;
             window.currentScope = scope;
+            window.OnInitialize();
             window.ShowUtility();
         }
 
@@ -160,6 +212,12 @@ namespace PulseEditor.Modules.CharacterCreator
                     asset = CharactersLibrary.Load(typeSelected, currentScope);
                 if (asset)
                     editedAsset = asset;
+            }
+            if (windowOpenMode == EditorMode.ItemEdition)
+            {
+                editedData = ((CharactersLibrary)editedAsset).DataList.Find(d => { return d.ID == dataID; });
+                if (((CharacterData)editedData) != null)
+                    SetPreviewAdditives((CharacterData)editedData);
             }
             RefreshPreview();
         }
@@ -189,6 +247,7 @@ namespace PulseEditor.Modules.CharacterCreator
         {
             if (previewer != null)
                 previewer.Destroy();
+            ResetPreviewAdditives();
         }
 
         private void RefreshPreview()
@@ -199,6 +258,7 @@ namespace PulseEditor.Modules.CharacterCreator
         }
 
         #endregion
+
         #region Common Windows ################################################################
 
         /// <summary>
@@ -217,6 +277,7 @@ namespace PulseEditor.Modules.CharacterCreator
             {
                 asset = null;
                 editedAsset = null;
+                ResetPreviewAdditives();
                 OnInitialize();
             }
             if (editedAsset)
@@ -277,24 +338,41 @@ namespace PulseEditor.Modules.CharacterCreator
                         listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
                     }
                     int newOne = ListItems(selectDataIndex, listContent.ToArray());
-                    if (newOne != selectDataIndex)
+                    if (newOne != selectDataIndex) { 
                         RefreshPreview();
+                        ResetPreviewAdditives();
+                        if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
+                            SetPreviewAdditives((CharacterData)library.DataList[selectDataIndex]);
+                    }
                     selectDataIndex = newOne;
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("+"))
+                    if (addindNewCharacter)
                     {
-                        library.DataList.Add(new CharacterData
+                        newCharCat = (AnimaCategory)EditorGUILayout.EnumPopup(newCharCat);
+                        if (GUILayout.Button("Ok"))
                         {
-                            ID = maxId + 1,
-                            TradType = TradDataTypes.Person
-                        });
+                            addindNewCharacter = false;
+                            library.DataList.Add(new CharacterData
+                            {
+                                ID = maxId + 1,
+                                TradType = TradDataTypes.Person,
+                                AnimCat = newCharCat
+                            });
+                        }
                     }
-                    if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
+                    else
                     {
-                        if (GUILayout.Button("-"))
+                        if (GUILayout.Button("+"))
                         {
-                            library.DataList.RemoveAt(selectDataIndex);
+                            addindNewCharacter = true;
+                        }
+                        if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
+                        {
+                            if (GUILayout.Button("-"))
+                            {
+                                library.DataList.RemoveAt(selectDataIndex);
+                            }
                         }
                     }
                     GUILayout.EndHorizontal();
@@ -403,14 +481,14 @@ namespace PulseEditor.Modules.CharacterCreator
                     }
                     CombatSystem.WeaponEditor.WeaponryEditor.Open(ps, (obj,arg)=>
                     {
-                        var result = obj as List<(int, WeaponType, Scopes)>;
+                        var result = obj as List<(PulseEngine.Modules.CombatSystem.WeaponData, Scopes)>;
                         if(result != null)
                         {
                             List<Vector3Int> sp = new List<Vector3Int>();
                             for (int i = 0; i < result.Count; i++)
                             {
                                 var weap = result[i];
-                                sp.Add(new Vector3Int(weap.Item1, (int)weap.Item2, (int)weap.Item3));
+                                sp.Add(new Vector3Int(weap.Item1.ID, (int)weap.Item1.TypeArme, (int)weap.Item2));
                             }
                             data.Armurie = sp;
                         }
@@ -423,7 +501,7 @@ namespace PulseEditor.Modules.CharacterCreator
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Edit " + name + " Runtime Controller"))
                 {
-                    Anima.AnimaEditor.AnimaMachineEditor.Open(data.AnimatorController, name, (obj, arg) =>
+                    Anima.AnimaEditor.AnimaMachineEditor.Open(data.AnimatorController, data.AnimCat, name, (obj, arg) =>
                     {
                         var rt = obj as RuntimeAnimatorController;
                         if (rt != null)
@@ -455,7 +533,13 @@ namespace PulseEditor.Modules.CharacterCreator
                 string[] layerNames = new string[layerlist.Length];
                 for (int i = 0; i < layerlist.Length; i++)
                     layerNames[i] = layerlist[i].name;
-                layerAnimIndex = EditorGUILayout.Popup("Layers", layerAnimIndex, layerNames);
+                var newLayer = EditorGUILayout.Popup("Layers", layerAnimIndex, layerNames);
+                if (newLayer != layerAnimIndex)
+                {
+                    RefreshPreview();
+                    StateAnimIndex = 0;
+                }
+                layerAnimIndex = newLayer;
                 UnityEditor.Animations.ChildAnimatorState[] stateList = null;
                 if (layerAnimIndex < controller.layers.Length && layerAnimIndex >= 0)
                 {
@@ -463,15 +547,41 @@ namespace PulseEditor.Modules.CharacterCreator
                 }
                 if(stateList != null)
                 {
-                    string[] stateNames = new string[layerlist.Length];
+                    string[] stateNames = new string[stateList.Length];
                     for (int i = 0; i < stateList.Length; i++)
                         stateNames[i] = stateList[i].state.name;
-                    StateAnimIndex = EditorGUILayout.Popup("States", StateAnimIndex, stateNames);
+                    var newAnimindex = EditorGUILayout.Popup("States", StateAnimIndex, stateNames);
+                    if (StateAnimIndex != newAnimindex)
+                        RefreshPreview();
+                    StateAnimIndex = newAnimindex;
                     if (StateAnimIndex < stateList.Length && StateAnimIndex >= 0)
                         selectedmotion = stateList[StateAnimIndex].state.motion;
                 }
+                List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
+                if (characterWeapons != null && characterWeapons.Count > 0)
+                {
+                    string[] weaponNames = new string[characterWeapons.Count];
+                    for (int i = 0; i < characterWeapons.Count; i++)
+                        weaponNames[i] = LocalisationEditor.GetTexts(characterWeapons[i].IdTrad, characterWeapons[i].TradType)[0];
+                    var newCharWeaponIDx = EditorGUILayout.Popup("Armurie", characterWeaponsIndex, weaponNames);
+                    if (characterWeaponsIndex != newCharWeaponIDx)
+                    {
+                        if (newCharWeaponIDx >= 0 && newCharWeaponIDx < characterWeapons.Count)
+                        {
+                            var select_weapon = characterWeapons[newCharWeaponIDx];
+                            for (int i = 0, len = select_weapon.Weapons.Count; i < len; i++)
+                            {
+                                var part = select_weapon.Weapons[i];
+                                var place = select_weapon.CarryPlaces[i];
+                                weaponLocationTab.Add((part, place.ParentBone, place.PositionOffset, place.RotationOffset));
+                            }
+                        }
+                        RefreshPreview();
+                    }
+                    characterWeaponsIndex = newCharWeaponIDx;
+                }
                 if (previewer != null)
-                    previewer.Previsualize(selectedmotion, 18 / 9, data.Character);
+                    previewer.Previsualize(selectedmotion, 18 / 9, data.Character, weaponLocationTab.ToArray());
 
             }, "Animation preview");
         }

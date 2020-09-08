@@ -131,6 +131,26 @@ namespace PulseEditor.Modules.Anima
                     onSelect.Invoke(obj, arg);
                 };
             }
+            window.Initialisation();
+            window.Show();
+        }
+
+        /// <summary>
+        /// open Anima speceific selector.
+        /// </summary>
+        public static void OpenSelector(Action<object, EventArgs> onSelect, AnimaCategory _cat, AnimaType _typ)
+        {
+            var window = GetWindow<AnimaEditor>();
+            window.windowOpenMode = EditorMode.specialSelect;
+            window.selectedCategory = _cat;
+            window.selectedType = _typ;
+            if (onSelect != null)
+            {
+                window.onSelectionEvent += (obj, arg) => {
+                    onSelect.Invoke(obj, arg);
+                };
+            }
+            window.Initialisation();
             window.Show();
         }
 
@@ -159,7 +179,7 @@ namespace PulseEditor.Modules.Anima
         protected override void OnRedraw()
         {
             base.OnRedraw();
-            if (windowOpenMode != EditorMode.ItemEdition)
+            if (windowOpenMode == EditorMode.Normal)
             {
                 if (!Header())
                 {
@@ -261,6 +281,8 @@ namespace PulseEditor.Modules.Anima
                         return false;
                     case EditorMode.Preview:
                         return false;
+                    case EditorMode.specialSelect:
+                        return true;
                     default:
                         return false;
                 }
@@ -671,6 +693,11 @@ namespace PulseEditor.Modules.Anima
             /// </summary>
             private string paramName;
 
+            /// <summary>
+            /// la categorie du controller, humanoid, quadruped...
+            /// </summary>
+            private AnimaCategory controllerCategory;
+
             #endregion
 
             #region Statics >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -680,7 +707,7 @@ namespace PulseEditor.Modules.Anima
             /// </summary>
             /// <param name="rtc"></param>
             /// <param name="ownwerName"></param>
-            public static void Open(RuntimeAnimatorController rtc, string ownwerName, Action<object,EventArgs> onDone)
+            public static void Open(RuntimeAnimatorController rtc, AnimaCategory category, string ownwerName, Action<object,EventArgs> onDone)
             {
                 var window = GetWindow<AnimaMachineEditor>(true);
                 string path = ModuleConstants.AssetsPath;
@@ -698,6 +725,15 @@ namespace PulseEditor.Modules.Anima
                     {
                         window.rtController.AddLayer(layer.ToString());
                     }
+                    for(int i = 0, len = window.rtController.layers.Length; i < len; i++)
+                    {
+                        var layer = window.rtController.layers[i];
+                        layer.defaultWeight = 1;
+                        layer.blendingMode = AnimatorLayerBlendingMode.Override;
+                        layer.iKPass = true;
+                        var emptyState = layer.stateMachine.AddState("Empty");
+                        layer.stateMachine.defaultState = emptyState;
+                    }
                     AssetDatabase.SaveAssets();
                 }
                 if (onDone != null)
@@ -705,6 +741,7 @@ namespace PulseEditor.Modules.Anima
                     {
                         onDone.Invoke(obj, arg);
                     };
+                window.controllerCategory = category;
                 window.Show();
             }
 
@@ -888,21 +925,56 @@ namespace PulseEditor.Modules.Anima
                     }
                     stateIndex = ListItems(stateIndex, listContent.ToArray());
                     GUILayout.Space(5);
+                    if (stateIndex >= 0 && stateIndex < states.Length)
+                        state = states[stateIndex].state;
                     GUILayout.BeginHorizontal();
-                    //if (GUILayout.Button("+"))
-                    //{
-                    //    addingParam = true;
-                    //}
-                    //if (paramIndex >= 0 && paramIndex < _controller.parameters.Length)
-                    //{
-                    //    if (GUILayout.Button("-"))
-                    //    {
-                    //        _controller.RemoveParameter(_controller.parameters[paramIndex]);
-                    //    }
-                    //}
+                    if (layerIndex > 0)
+                    {
+                        if (GUILayout.Button("+"))
+                        {
+                            var type = (AnimaType)(layerIndex - 1);
+                            OpenSelector((obj, arg) =>
+                            {
+                                AnimaData data = obj as AnimaData;
+                                if (data != null)
+                                {
+                                    var st = machine.AddState(data.Motion.name);
+                                    st.motion = data.Motion;
+                                    var stMachine = st.AddStateMachineBehaviour<AnimaStateMachine>();
+                                    stMachine.AnimationData = data;
+                                }
+                            }, controllerCategory, type);
+                        }
+                        if (stateIndex >= 0 && stateIndex < states.Length)
+                        {
+                            if (states[stateIndex].state.behaviours.Length > 0)
+                            {
+                                var thatState = states[stateIndex].state.behaviours[0] as AnimaStateMachine;
+                                if (GUILayout.Button("Edit"))
+                                {
+                                    OpenModifier(thatState.AnimationData.ID, controllerCategory, (AnimaType)layerIndex);
+                                }
+                                if (GUILayout.Button("Replace"))
+                                {
+                                    OpenSelector((obj, arg) =>
+                                    {
+                                        AnimaData data = obj as AnimaData;
+                                        if (data != null)
+                                        {
+                                            thatState.AnimationData = data;
+                                        }
+                                    }, controllerCategory, (AnimaType)layerIndex);
+                                }
+                            }
+                            if (GUILayout.Button("-"))
+                            {
+                                machine.RemoveState(states[stateIndex].state);
+                            }
+                        }
+                    }
                     GUILayout.EndHorizontal();
                     GUILayout.EndVertical();
-                }, "Parameters");
+                }, "State List");
                 return state;
             }
 
@@ -939,6 +1011,171 @@ namespace PulseEditor.Modules.Anima
             protected void TransitionDetails(AnimatorTransition _animTransition)
             {
 
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Utilitaires pour modifier les keyframes des animations.
+        /// </summary>
+        public class AnimationEdition : PulseEditorMgr
+        {
+            #region Attributs >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// The source clip.
+            /// </summary>
+            private AnimationClip sourceClip;
+
+            /// <summary>
+            /// The modified clip.
+            /// </summary>
+            private AnimationClip modClip;
+
+            /// <summary>
+            /// the operation to apply on clip.
+            /// </summary>
+            private int selectedOperation;
+
+            /// <summary>
+            /// the operation to apply parameter
+            /// </summary>
+            private Vector3 opParams;
+
+            /// <summary>
+            /// the current step in the wizard.
+            /// </summary>
+            private int currentStep;
+
+            #endregion
+
+            #region Statics >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// open Anima editor.
+            /// </summary>
+            [MenuItem(Menu_EDITOR_MENU + "Anima Editor Utils/Clip Editor")]
+            public static void OpenEditor()
+            {
+                var window = GetWindow<AnimationEdition>(true);
+                window.Show();
+            }
+
+            #endregion
+
+            #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// save
+            /// </summary>
+            public void SaveClip()
+            {
+                modClip.name = sourceClip.name + "_mod";
+                string path = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, ModuleConstants.AssetsPath + "/AnimMods/" + modClip.name + ".anim");
+                AssetDatabase.CreateAsset(modClip, path);
+                AssetDatabase.SaveAssets();
+            }
+
+            /// <summary>
+            /// reverse key frames order
+            /// </summary>
+            public void ReverseClip()
+            {
+                if (!sourceClip)
+                    return;
+                if (sourceClip != null)
+                {
+                    modClip = UnityEngine.Object.Instantiate<AnimationClip>(sourceClip);
+                    modClip.ClearCurves();
+                    foreach (var binding in AnimationUtility.GetObjectReferenceCurveBindings(sourceClip))
+                    {
+                        ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(sourceClip, binding);
+                        ObjectReferenceKeyframe[] reversedFrames = new ObjectReferenceKeyframe[keyframes.Length];
+                        for(int i = 0, len = keyframes.Length; i < len; i++)
+                        {
+                            reversedFrames[i] = new ObjectReferenceKeyframe { time = keyframes[i].time, value = keyframes[len - (1 + i)].value };
+                        }
+                        AnimationUtility.SetObjectReferenceCurve(modClip, binding, reversedFrames);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// scale clip lenght
+            /// </summary>
+            /// <param name="factor"></param>
+            public void ScaleClip(float factor)
+            {
+
+            }
+
+            #endregion
+
+            #region GUI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            protected override void OnRedraw()
+            {
+                switch (currentStep)
+                {
+                    case 0:
+                        GroupGUI(() =>
+                        {
+                            sourceClip = EditorGUILayout.ObjectField("Source clip", sourceClip, typeof(AnimationClip), false) as AnimationClip;
+                            if(sourceClip != null)
+                            {
+                                if (GUILayout.Button("Next"))
+                                    currentStep++;
+                            }
+                        },"Select Clip");
+                        break;
+                    case 1:
+                        GroupGUI(() =>
+                        {
+                            selectedOperation = EditorGUILayout.Popup(selectedOperation, new[] { "Reverse", "Ajust lenght" });
+                            if (selectedOperation == 1)
+                            {
+                                opParams.x = EditorGUILayout.FloatField("scale factor", opParams.x);
+                                opParams.x = Mathf.Clamp(opParams.x, 0.1f, opParams.x);
+                            }
+                            GUILayout.BeginHorizontal();
+                            if (GUILayout.Button("Previous"))
+                            {
+                                modClip = null;
+                                currentStep--;
+                            }
+                            GUILayout.Space(10);
+                            if (GUILayout.Button("Proceed"))
+                            {
+                                switch (selectedOperation)
+                                {
+                                    case 0:
+                                        ReverseClip();
+                                        break;
+                                    case 1:
+                                        ScaleClip(opParams.x);
+                                        break;
+                                }
+                                currentStep++;
+                            }
+                            GUILayout.EndHorizontal();
+                        },"Select Clip");
+                        break;
+                    case 2:
+                        GUILayout.BeginHorizontal();
+                        if (GUILayout.Button("Previous"))
+                        {
+                            modClip = null;
+                            currentStep--;
+                        }
+                        GUILayout.Space(10);
+                        if (GUILayout.Button("Save"))
+                        {
+                            SaveClip();
+                        }
+                        GUILayout.EndHorizontal();
+                        break;
+                }
             }
 
             #endregion
