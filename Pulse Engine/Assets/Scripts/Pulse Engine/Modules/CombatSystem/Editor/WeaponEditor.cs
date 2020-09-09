@@ -408,7 +408,8 @@ namespace PulseEditor.Modules.CombatSystem
                 EditorGUILayout.LabelField("Weapon's Stats:");
                 if (GUILayout.Button("Edit " + name + " Stats"))
                 {
-                    StatEditor.OpenStatWindow(data.StatWeapon, (obj) => {
+                    StatEditor.OpenStatWindow(data.StatWeapon, (obj) =>
+                    {
                         var st = obj as StatData;
                         if (st != null)
                             data.StatWeapon = st;
@@ -420,7 +421,8 @@ namespace PulseEditor.Modules.CombatSystem
                 EditorGUILayout.LabelField("Stat given to Owner:");
                 if (GUILayout.Button("Edit given Stats"))
                 {
-                    StatEditor.OpenStatWindow(data.StatOwner, (obj) => {
+                    StatEditor.OpenStatWindow(data.StatOwner, (obj) =>
+                    {
                         var st = obj as StatData;
                         if (st != null)
                             data.StatOwner = st;
@@ -572,7 +574,6 @@ namespace PulseEditor.Modules.CombatSystem
                             if (weaponPartsEditors[data.Weapons[i]] == null || weaponPartsEditors[data.Weapons[i]].target == null)
                                 weaponPartsEditors[data.Weapons[i]] = Editor.CreateEditor(data.Weapons[i]);
                             weaponPartsEditors[data.Weapons[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(100, 100), null);
-                            data.Weapons[i].transform.localScale = EditorGUILayout.Vector3Field("Scale: ", data.Weapons[i].transform.localScale);
                         }
                         //Materiau
                         var d = data.Materiaux;

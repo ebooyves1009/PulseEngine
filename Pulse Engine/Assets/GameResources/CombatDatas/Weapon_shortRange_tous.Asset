@@ -149,6 +149,76 @@ MonoBehaviour:
     projectilesOutPoints:
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
+  - id: 2
+    idTrad: 1
+    tradDataType: 12
+    typeArme: 1
+    portee: 1
+    typeDegats: 0
+    degats: 1
+    valeur: 0
+    materiaux: 00000000
+    weapons:
+    - {fileID: 919132149155446097, guid: 5b009154325ed4843bc7e6746c6ebd5a, type: 3}
+    stat_weapon:
+      sante: 0
+      santeMax: 0
+      intelligence: 0
+      sagesse: 0
+      force: 0
+      endurance: 0
+      enduranceMax: 0
+      souffle: 0
+      souffleMax: 0
+      dexterite: 0
+      masse: 0
+      taille: 0
+      age: 0
+      karma: 0
+      paranormal: 0
+      fierte: 0
+      engoument: 0
+    stat_owner:
+      sante: 0
+      santeMax: 0
+      intelligence: 0
+      sagesse: 0
+      force: 0
+      endurance: 0
+      enduranceMax: 0
+      souffle: 0
+      souffleMax: 0
+      dexterite: 0
+      masse: 0
+      taille: 0
+      age: 0
+      karma: 0
+      paranormal: 0
+      fierte: 0
+      engoument: 0
+    handle_moves: []
+    idle_move:
+      id: 0
+      isHumanMotion: 0
+      animLayer: 0
+      eventList: []
+      phaseAnims: []
+      physicPlace: 0
+      motion: {fileID: 0}
+    attackDatas: []
+    defenseDatas: []
+    canParry: 0
+    portable: 0
+    restPlaces:
+    - parentBone: 0
+      PositionOffset: {x: 0, y: 0, z: 0}
+      RotationOffset: {x: 0, y: 0, z: 0, w: 1}
+    carryPlaces:
+    - parentBone: 0
+      PositionOffset: {x: 0, y: 0, z: 0}
+      RotationOffset: {x: 0, y: 0, z: 0, w: 1}
+    projectilesOutPoints:
+    - {x: 0, y: 0, z: 0}
   libraryWeaponType: 1
   libraryDataType: 3
   scope: 0

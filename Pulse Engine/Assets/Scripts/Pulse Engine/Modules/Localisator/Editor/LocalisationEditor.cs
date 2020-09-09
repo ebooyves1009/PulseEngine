@@ -97,6 +97,8 @@ namespace PulseEditor.Modules.Localisator
         /// </summary>
         public static string[] GetTexts(int _id, TradDataTypes dType)
         {
+            if (PulseEditorRecurents.LocalisationTexts.ContainsKey((_id, dType)))
+                return PulseEditorRecurents.LocalisationTexts[(_id, dType)];
             List<string> retList = new List<string>();
             var allAsset = new List<LocalisationLibrary>();
             LocalisationLibrary asset = null;
@@ -133,6 +135,7 @@ namespace PulseEditor.Modules.Localisator
                     retList.Add(data.Details.s_textField);
                 }
             }
+            PulseEditorRecurents.LocalisationTexts.Add((_id, dType), retList.ToArray());
             return retList.ToArray();
         }
 

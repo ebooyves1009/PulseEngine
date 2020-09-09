@@ -596,6 +596,21 @@ namespace PulseEditor
         }
 
         /// <summary>
+        /// la classe stocke des informations qui reviennent en permanence lorsqu'on est en editeur.
+        /// </summary>
+        public static class PulseEditorRecurents
+        {
+            #region statics Attributes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            /// <summary>
+            /// Les textes du module de localisation. key = tradtype.
+            /// </summary>
+            public static Dictionary<(int, PulseEngine.Modules.TradDataTypes), string[]> LocalisationTexts = new Dictionary<(int, PulseEngine.Modules.TradDataTypes), string[]>();
+
+            #endregion
+        }
+
+        /// <summary>
         /// Fait la previsualisation d'une animation.
         /// </summary>
         public class Previewer
@@ -678,8 +693,7 @@ namespace PulseEditor
             /// <summary>
             /// the target's accessories to render.
             /// </summary>
-            private Dictionary<GameObject, (HumanBodyBones bone, Vector3 PosOffset, Quaternion RotOffset)> accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 PosOffset, Quaternion RotOffset)>();
-
+            private Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)> accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)>();
             /// <summary>
             /// arrow indicator
             /// </summary>
@@ -882,6 +896,9 @@ namespace PulseEditor
                         previewAvatar = GetAvatar(ref _avatar);
                         previewAvatar.hideFlags = HideFlags.HideAndDontSave;
                         previewRenderer.AddSingleGO(previewAvatar);
+                    }
+                    if (!targetAnimator)
+                    {
                         if (previewAvatar)
                         {
                             targetAnimator = previewAvatar.GetComponentInChildren<Animator>();
@@ -903,35 +920,30 @@ namespace PulseEditor
                             return false;
                         }
                     }
-                    foreach (var accessory in accessories)
-                    {
+                    for(int i = 0, len = accessories.Length; i < len; i++) {
+                        var accessory = accessories[i];
+                        if (accessory.go == null)
+                            continue;
                         if (accesoriesPool == null)
-                            accesoriesPool = new Dictionary<GameObject, (HumanBodyBones bone, Vector3 offset, Quaternion RotOffset)>();
-                        bool found = false;
-                        for (int i = 0; i < accesoriesPool.Count; i++)
+                            accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)>();
+                        if (accesoriesPool.ContainsKey(accessory.bone))
                         {
-                            var poolItem = accesoriesPool.ElementAt(i);
-                            if (poolItem.Key.name == accessory.go.name)//&& poolItem.Value.bone == accessory.bone)
+                            if (accesoriesPool[accessory.bone].go.name.Contains(accessory.go.name))
                             {
-                                accesoriesPool[poolItem.Key] = (accessory.bone, accessory.offset, accessory.rotation);
-                                found = true;
+                                accesoriesPool[accessory.bone] = (accesoriesPool[accessory.bone].go, accessory.offset, accessory.rotation);
+                                continue;
                             }
                         }
-                        if (found || !accessory.go)
-                            continue;
-                        //var acc = UnityEngine.Object.Instantiate(accessory.go);
                         var acc = UnityEngine.Object.Instantiate<GameObject>(accessory.go, previewRenderer.camera.transform);
                         ResetTransform(acc);
                         acc.hideFlags = HideFlags.HideAndDontSave;
-                        if (!accesoriesPool.ContainsKey(acc))
-                        {
-                            accesoriesPool.Add(acc, (accessory.bone, accessory.offset, accessory.rotation));
-                            previewRenderer.AddSingleGO(acc);
-                        }
+                        accesoriesPool.Add(accessory.bone, (acc, accessory.offset, accessory.rotation));
+                        previewRenderer.AddSingleGO(acc);
                     }
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             #region time control ###########################################
@@ -1134,11 +1146,11 @@ namespace PulseEditor
                 {
                     if (targetAnimator)
                     {
-                        var bone = targetAnimator.GetBoneTransform(acc.Value.bone);
-                        if (acc.Key.transform.parent != bone)
-                            acc.Key.transform.SetParent(bone);
-                        acc.Key.transform.localPosition = acc.Value.PosOffset;
-                        acc.Key.transform.localRotation = acc.Value.RotOffset;
+                        var bone = targetAnimator.GetBoneTransform(acc.Key);
+                        if (acc.Value.go.transform.parent != bone)
+                            acc.Value.go.transform.SetParent(bone);
+                        acc.Value.go.transform.localPosition = acc.Value.offset;
+                        acc.Value.go.transform.localRotation = acc.Value.RotOffset;
                     }
                 }
             }

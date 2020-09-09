@@ -35,6 +35,12 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </summary>
         private List<PulseEngine.Modules.CombatSystem.WeaponData> characterWeapons = new List<PulseEngine.Modules.CombatSystem.WeaponData>();
 
+        /// <summary>
+        /// l'emplacement des armes dans la previsualiation
+        /// </summary>
+        List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
+
+
         //TODO: clothes list of this character
         //TODO: gadgets/wearables inventory list of this character
 
@@ -557,17 +563,19 @@ namespace PulseEditor.Modules.CharacterCreator
                     if (StateAnimIndex < stateList.Length && StateAnimIndex >= 0)
                         selectedmotion = stateList[StateAnimIndex].state.motion;
                 }
-                List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
                 if (characterWeapons != null && characterWeapons.Count > 0)
                 {
                     string[] weaponNames = new string[characterWeapons.Count];
                     for (int i = 0; i < characterWeapons.Count; i++)
+                    {
                         weaponNames[i] = LocalisationEditor.GetTexts(characterWeapons[i].IdTrad, characterWeapons[i].TradType)[0];
+                    }
                     var newCharWeaponIDx = EditorGUILayout.Popup("Armurie", characterWeaponsIndex, weaponNames);
                     if (characterWeaponsIndex != newCharWeaponIDx)
                     {
                         if (newCharWeaponIDx >= 0 && newCharWeaponIDx < characterWeapons.Count)
                         {
+                            weaponLocationTab.Clear();
                             var select_weapon = characterWeapons[newCharWeaponIDx];
                             for (int i = 0, len = select_weapon.Weapons.Count; i < len; i++)
                             {
@@ -576,10 +584,11 @@ namespace PulseEditor.Modules.CharacterCreator
                                 weaponLocationTab.Add((part, place.ParentBone, place.PositionOffset, place.RotationOffset));
                             }
                         }
-                        RefreshPreview();
                     }
                     characterWeaponsIndex = newCharWeaponIDx;
                 }
+                else
+                    SetPreviewAdditives(data);
                 if (previewer != null)
                     previewer.Previsualize(selectedmotion, 18 / 9, data.Character, weaponLocationTab.ToArray());
 
@@ -598,6 +607,7 @@ namespace PulseEditor.Modules.CharacterCreator
 
 
         #endregion
+
         #region Helpers & Tools ################################################################
 
 

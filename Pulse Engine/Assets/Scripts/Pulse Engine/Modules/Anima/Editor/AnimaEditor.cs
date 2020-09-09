@@ -313,7 +313,15 @@ namespace PulseEditor.Modules.Anima
                         string title = new string(titleChars) + pointDeSuspension;
                         listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
                     }
-                    selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                    var index = ListItems(selectDataIndex, listContent.ToArray());
+                    if(index != selectDataIndex)
+                    {
+                        if (animPreview != null)
+                            animPreview.Destroy();
+                        animPreview = null;
+                        animPreview = new Previewer();
+                    }
+                    selectDataIndex = index;
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("+"))

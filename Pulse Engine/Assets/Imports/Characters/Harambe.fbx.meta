@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b47dd38ef519baa4d8b77a7ef887fa94
+guid: 5968e3bf8d836b940b4f8c9f726bea35
 ModelImporter:
   serializedVersion: 20101
   internalIDToNameTable:
@@ -19,34 +19,17 @@ ModelImporter:
     optimizeGameObjects: 0
     motionNodeName: 
     rigImportErrors: 
-    rigImportWarnings: "Copied Avatar Rig Configuration mis-match. Bone length in
-      copied configuration does not match position in animation file:\n\t'mixamorig:LeftUpLeg'
-      : position error = 33.941967 mm\n\t'mixamorig:LeftLeg' : position error = 840.791077
-      mm\n\t'mixamorig:LeftFoot' : position error = 832.961914 mm\n\t'mixamorig:LeftToeBase'
-      : position error = 236.502853 mm\n\t'mixamorig:RightUpLeg' : position error
-      = 33.987209 mm\n\t'mixamorig:RightLeg' : position error = 840.570984 mm\n\t'mixamorig:RightFoot'
-      : position error = 833.118591 mm\n\t'mixamorig:RightToeBase' : position error
-      = 238.658569 mm\n"
+    rigImportWarnings: "Avatar Rig Configuration mis-match. Bone length in configuration
+      does not match position in animation file:\n\t'mixamorig:LeftUpLeg' : position
+      error = 31.753830 mm\n\t'mixamorig:LeftLeg' : position error = 11.429688 mm\n\t'mixamorig:LeftFoot'
+      : position error = 39.542156 mm\n\t'mixamorig:LeftToeBase' : position error
+      = 9.331449 mm\n\t'mixamorig:RightUpLeg' : position error = 30.378283 mm\n\t'mixamorig:RightLeg'
+      : position error = 11.273495 mm\n\t'mixamorig:RightFoot' : position error =
+      39.574356 mm\n\t'mixamorig:RightToeBase' : position error = 14.132197 mm\n"
     animationImportErrors: 
     animationImportWarnings: 
-    animationRetargetingWarnings: "\nRetargeting quality report for clip 'mixamo.com':\n\tLeftLowerLeg
-      average position error 824.7 mm and maximum position error 824.7 mm at time
-      0: 0 (0.0%) Frame 0\n\tLeftFoot average position error 1655.7 mm and maximum
-      position error 1655.7 mm at time 0: 0 (0.0%) Frame 0\n\tRightLowerLeg average
-      position error 824.2 mm and maximum position error 824.2 mm at time 0: 0 (0.0%)
-      Frame 0\n\tRightFoot average position error 1656.1 mm and maximum position
-      error 1656.1 mm at time 0: 0 (0.0%) Frame 0\n\tLeftUpperArm average position
-      error 196.1 mm and maximum position error 196.1 mm at time 0: 0 (0.0%) Frame
-      0\n\tLeftLowerArm average position error 543.6 mm and maximum position error
-      543.6 mm at time 0: 0 (0.0%) Frame 0\n\tLeftHand average position error 913.4
-      mm and maximum position error 913.4 mm at time 0: 0 (0.0%) Frame 0\n\tRightUpperArm
-      average position error 195.8 mm and maximum position error 195.8 mm at time
-      0: 0 (0.0%) Frame 0\n\tRightLowerArm average position error 543.6 mm and maximum
-      position error 543.6 mm at time 0: 0 (0.0%) Frame 0\n\tRightHand average position
-      error 913.9 mm and maximum position error 913.9 mm at time 0: 0 (0.0%) Frame
-      0\n\tHead average position error 64.5 mm and maximum position error 64.5 mm
-      at time 0: 0 (0.0%) Frame 0\n"
-    animationDoRetargetingWarnings: 1
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
     animationCompression: 3
@@ -64,14 +47,14 @@ ModelImporter:
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
-    sortHierarchyByName: 0
+    sortHierarchyByName: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 1
+    generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -83,11 +66,11 @@ ModelImporter:
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
-    secondaryUVAreaDistortion: 15
+    secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
     secondaryUVMarginMethod: 1
     secondaryUVMinLightmapResolution: 40
-    secondaryUVMinObjectScale: 11
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
   tangentSpace:
@@ -547,7 +530,7 @@ ModelImporter:
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 80f9379b8647c0445a93a2d4e182e418,
     type: 3}
-  autoGenerateAvatarMappingIfUnspecified: 0
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1
   avatarSetup: 2
