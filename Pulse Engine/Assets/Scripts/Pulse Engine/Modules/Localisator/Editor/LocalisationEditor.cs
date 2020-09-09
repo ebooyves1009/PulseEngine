@@ -141,6 +141,106 @@ namespace PulseEditor.Modules.Localisator
 
         #endregion
 
+        #region Methods ###############################################################################
+
+        /// <summary>
+        /// A l'ouverture de la fenetre.
+        /// </summary>
+        protected override void OnInitialize()
+        {
+            Initialise();
+        }
+
+        /// <summary>
+        /// Initialise la fenetre.
+        /// </summary>
+        /// <param name="close"></param>
+        private void Initialise()
+        {
+            allAssets.Clear();
+            foreach (Languages langue in Enum.GetValues(typeof(Languages)))
+            {
+                foreach (TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
+                {
+                    if (LocalisationLibrary.Exist(langue, type))
+                    {
+                        var load = LocalisationLibrary.Load(langue, type);
+                        if (load != null)
+                            allAssets.Add(load);
+                    }
+                    else if (LocalisationLibrary.Save(langue, type))
+                    {
+                        var load = LocalisationLibrary.Load(langue, type);
+                        if (load != null)
+                            allAssets.Add(load);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sauvegarde les changements et ferme la fenetre si besoin.
+        /// </summary>
+        /// <param name="close"></param>
+        private void Save()
+        {
+            for (int i = 0, len = allAssets.Count; i < len; i++)
+            {
+                auXasset = allAssets[i] as LocalisationLibrary;
+                var otherAsset = auXasset;
+                for (int j = 0, len2 = ((LocalisationLibrary)editedAsset).DatasList.Count; j < len2; j++)
+                {
+                    var data = ((LocalisationLibrary)editedAsset).DatasList[j];
+                    if (otherAsset.TradType == ((LocalisationLibrary)editedAsset).TradType)
+                    {
+                        if (otherAsset.DatasList.FindIndex(d => { return d.ID == data.ID; }) < 0)
+                        {
+                            Localisationdata newOne = new Localisationdata { ID = data.ID };
+                            if (((LocalisationLibrary)editedAsset).TradType == TradDataTypes.Person)
+                                newOne.Title = data.Title;
+                            otherAsset.DatasList.Add(newOne);
+                            EditorUtility.CopySerialized(otherAsset, auXasset);
+                        }
+                    }
+                }
+            }
+            SaveAsset(editedAsset, asset);
+        }
+
+        /// <summary>
+        /// Sauvegarde les changements et ferme la fenetre si besoin.
+        /// </summary>
+        /// <param name="close"></param>
+        private void Select(Localisationdata data)
+        {
+            if (data == null || editedAsset == null)
+                return;
+            EditorEventArgs eventArgs = new EditorEventArgs
+            {
+                ID = data.ID,
+                dataType = (int)(((LocalisationLibrary)editedAsset).DataType)
+            };
+            if (onSelectionEvent != null)
+                onSelectionEvent.Invoke(this, eventArgs);
+        }
+
+        protected override void OnHeaderChange()
+        {
+
+        }
+
+        protected override void OnListChange()
+        {
+
+        }
+
+        protected override void OnQuit()
+        {
+            auXasset = null;
+        }
+
+        #endregion
+
         #region GUIFunctions ###############################################################################
 
 
@@ -214,33 +314,7 @@ namespace PulseEditor.Modules.Localisator
         {
             if (editedAsset == null)
                 return;
-            switch (windowOpenMode)
-            {
-                case EditorMode.Normal:
-                    SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save", ()=> { Save(false);}),
-                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
-                    });
-                    break;
-                case EditorMode.Selector:
-                    SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { Select((Localisationdata)editedData, true);}),
-                        new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
-                    });
-                    break;
-                case EditorMode.ItemEdition:
-                    SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save & Close", ()=> { Save(true);}),
-                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
-                    });
-                    break;
-                case EditorMode.Preview:
-                    break;
-                case EditorMode.Node:
-                    break;
-                case EditorMode.Group:
-                    break;
-            }
+            SaveBarPanel(() => { Select((Localisationdata)editedData); }, ()=> { Save(); });
         }
 
         /// <summary>
@@ -277,27 +351,17 @@ namespace PulseEditor.Modules.Localisator
                     GroupGUI(() =>
                     {
                         GUILayout.BeginVertical();
-                        List<GUIContent> listContent = new List<GUIContent>();
+                        List<string> listContent = new List<string>();
                         int maxId = 0;
                         for (int i = 0; i < _editedAsset.DatasList.Count; i++)
                         {
                             var data = _editedAsset.DatasList[i];
-                            char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                            string pointDeSuspension = string.Empty;
-                            try
-                            {
-                                if (data.ID > maxId) maxId = data.ID;
-                                for (int j = 0; j < titleChars.Length; j++)
-                                    if (j < data.Title.s_textField.Length)
-                                        titleChars[j] = data.Title.s_textField[j];
-                                if (data.Title.s_textField.Length >= titleChars.Length)
-                                    pointDeSuspension = "...";
-                            }
-                            catch { }
-                            string title = new string(titleChars) + pointDeSuspension;
-                            listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
+                            if (data.ID > maxId)
+                                maxId = data.ID;
+                            string name = data.Title.s_textField;
+                            listContent.Add(name);
                         }
-                        selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                        selectDataIndex = MakeList(selectDataIndex, listContent.ToArray());
                         GUILayout.Space(5);
                         GUILayout.BeginHorizontal();
                         if (GUILayout.Button("+"))
@@ -325,18 +389,14 @@ namespace PulseEditor.Modules.Localisator
             }
             GUILayout.Space(5);
             //column two
-            try
+            if (selectDataIndex < _editedAsset.DatasList.Count && selectDataIndex >= 0)
             {
-                if (selectDataIndex < _editedAsset.DatasList.Count && selectDataIndex >= 0)
-                {
-                    editedData = _editedAsset.DatasList[selectDataIndex];
-                    if (windowOpenMode == EditorMode.Normal || windowOpenMode == EditorMode.ItemEdition)
-                        PageDetailsEdition((Localisationdata)editedData);
-                    else if (windowOpenMode == EditorMode.Selector)
-                        PageDetailsPreview((Localisationdata)editedData);
-                }
+                editedData = _editedAsset.DatasList[selectDataIndex];
+                if (windowOpenMode == EditorMode.Normal || windowOpenMode == EditorMode.ItemEdition)
+                    PageDetailsEdition((Localisationdata)editedData);
+                else if (windowOpenMode == EditorMode.Selector)
+                    PageDetailsPreview((Localisationdata)editedData);
             }
-            catch { }
 
             GUILayout.EndHorizontal();
         }
@@ -681,120 +741,8 @@ namespace PulseEditor.Modules.Localisator
 
         #endregion
 
-        #region Methods #######################################################################################################
+        #region Utils #######################################################################################################
 
-        /// <summary>
-        /// A l'ouverture de la fenetre.
-        /// </summary>
-        protected override void OnInitialize()
-        {
-            Initialise();
-            switch (windowOpenMode)
-            {
-                case EditorMode.Normal:
-                    //onSelectionEvent = delegate { };
-                    break;
-                case EditorMode.Selector:
-                    break;
-                case EditorMode.ItemEdition:
-                    break;
-                case EditorMode.Preview:
-                    break;
-                case EditorMode.Node:
-                    break;
-                case EditorMode.Group:
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// A la fermeture.
-        /// </summary>
-        private void OnDisable()
-        {
-            allAssets.Clear();
-            editedAsset = null;
-            asset = null;
-            auXasset = null;
-            onSelectionEvent = delegate { };
-        }
-
-        /// <summary>
-        /// Initialise la fenetre.
-        /// </summary>
-        /// <param name="close"></param>
-        private void Initialise()
-        {
-            allAssets.Clear();
-            foreach(Languages langue in Enum.GetValues(typeof(Languages)))
-            {
-                foreach(TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
-                {
-                    if (LocalisationLibrary.Exist(langue, type))
-                    {
-                        var load = LocalisationLibrary.Load(langue, type);
-                        if (load != null)
-                            allAssets.Add(load);
-                    }
-                    else if (LocalisationLibrary.Save(langue, type))
-                    {
-                        var load = LocalisationLibrary.Load(langue, type);
-                        if (load != null)
-                            allAssets.Add(load);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Sauvegarde les changements et ferme la fenetre si besoin.
-        /// </summary>
-        /// <param name="close"></param>
-        private void Save(bool close = false)
-        {
-            for (int i = 0, len = allAssets.Count; i < len; i++)
-            {
-                auXasset = allAssets[i] as LocalisationLibrary;
-                var otherAsset = auXasset;
-                for (int j = 0, len2 = ((LocalisationLibrary)editedAsset).DatasList.Count; j < len2; j++)
-                {
-                    var data = ((LocalisationLibrary)editedAsset).DatasList[j];
-                    if (otherAsset.TradType == ((LocalisationLibrary)editedAsset).TradType)
-                    {
-                        if (otherAsset.DatasList.FindIndex(d => { return d.ID == data.ID; }) < 0)
-                        {
-                            Localisationdata newOne = new Localisationdata { ID = data.ID };
-                            if (((LocalisationLibrary)editedAsset).TradType == TradDataTypes.Person)
-                                newOne.Title = data.Title;
-                            otherAsset.DatasList.Add(newOne);
-                            EditorUtility.CopySerialized(otherAsset, auXasset);
-                        }
-                    }
-                }
-            }
-            SaveAsset(editedAsset, asset);
-            if (close)
-                Close();
-        }
-
-        /// <summary>
-        /// Sauvegarde les changements et ferme la fenetre si besoin.
-        /// </summary>
-        /// <param name="close"></param>
-        private void Select(Localisationdata data, bool close = false)
-        {
-            if (data == null || editedAsset == null)
-                return;
-            EditorEventArgs eventArgs = new EditorEventArgs
-            {
-                ID = data.ID,
-                dataType = (int)(((LocalisationLibrary)editedAsset).DataType)
-            };
-            if(onSelectionEvent != null)
-                onSelectionEvent.Invoke(this, eventArgs);
-            if (close)
-                Close();
-        }
 
         /// <summary>
         /// Cree un Hashtag d'un element de type T.

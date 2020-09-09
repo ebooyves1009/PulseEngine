@@ -109,7 +109,6 @@ namespace PulseEngine
 
         #region Class #################################################################################
 
-
         /// <summary>
         /// Le Manager Global du Pulse Engine.
         /// </summary>

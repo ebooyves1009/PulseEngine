@@ -263,6 +263,19 @@ namespace PulseEditor.Modules.CharacterCreator
             previewer = new Previewer();
         }
 
+        protected override void OnHeaderChange()
+        {
+            RefreshPreview();
+            ResetPreviewAdditives();
+        }
+
+        protected override void OnListChange()
+        {
+            RefreshPreview();
+            ResetPreviewAdditives();
+            SetPreviewAdditives((CharacterData)editedData);
+        }
+
         #endregion
 
         #region Common Windows ################################################################
@@ -273,19 +286,10 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <returns></returns>
         private bool Header()
         {
-            var bkpType = typeSelected;
             GroupGUInoStyle(() =>
             {
-                int selectedTypeInd = GUILayout.Toolbar((int)typeSelected, Enum.GetNames(typeof(CharacterType)));
-                typeSelected = (CharacterType)selectedTypeInd;
+                MakeHeader((int)typeSelected, Enum.GetNames(typeof(CharacterType)), index => { typeSelected = (CharacterType)index; });
             }, "Character Type", 50);
-            if(bkpType != typeSelected)
-            {
-                asset = null;
-                editedAsset = null;
-                ResetPreviewAdditives();
-                OnInitialize();
-            }
             if (editedAsset)
                 return true;
             else
@@ -321,36 +325,16 @@ namespace PulseEditor.Modules.CharacterCreator
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    List<GUIContent> listContent = new List<GUIContent>();
+                    List<string> listContent = new List<string>();
                     int maxId = 0;
                     for (int i = 0; i < library.DataList.Count; i++)
                     {
                         var data = library.DataList[i];
                         var nameList = LocalisationEditor.GetTexts(data.IdTrad, TradDataTypes.Person);
                         string name = nameList.Length > 0 ? nameList[0] : string.Empty;
-                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                        string pointDeSuspension = string.Empty;
-                        try
-                        {
-                            if (data.ID > maxId) maxId = data.ID;
-                            for (int j = 0; j < titleChars.Length; j++)
-                                if (j < name.Length)
-                                    titleChars[j] = name[j];
-                            if (name.Length >= titleChars.Length)
-                                pointDeSuspension = "...";
-                        }
-                        catch { }
-                        string title = new string(titleChars) + pointDeSuspension;
-                        listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
+                        listContent.Add(name);
                     }
-                    int newOne = ListItems(selectDataIndex, listContent.ToArray());
-                    if (newOne != selectDataIndex) { 
-                        RefreshPreview();
-                        ResetPreviewAdditives();
-                        if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
-                            SetPreviewAdditives((CharacterData)library.DataList[selectDataIndex]);
-                    }
-                    selectDataIndex = newOne;
+                    selectDataIndex = MakeList(selectDataIndex, listContent.ToArray(), library.DataList);
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
                     if (addindNewCharacter)
@@ -373,7 +357,7 @@ namespace PulseEditor.Modules.CharacterCreator
                         {
                             addindNewCharacter = true;
                         }
-                        if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
+                        if (editedData != null)
                         {
                             if (GUILayout.Button("-"))
                             {
@@ -384,10 +368,6 @@ namespace PulseEditor.Modules.CharacterCreator
                     GUILayout.EndHorizontal();
                     GUILayout.EndVertical();
                 }, "Characters Datas List");
-                if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
-                    editedData = library.DataList[selectDataIndex];
-                else
-                    editedData = null;
             }
         }
 
@@ -602,7 +582,7 @@ namespace PulseEditor.Modules.CharacterCreator
         {
             if (editedAsset == null)
                 return;
-            SaveBarPanel(editedAsset, asset, () => { Select((CharacterData)editedData); });
+            SaveBarPanel(() => { Select((CharacterData)editedData); });
         }
 
 

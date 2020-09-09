@@ -201,33 +201,8 @@ namespace PulseEditor
 
             #endregion
 
-            #region GuiMethods ##########################################################################
+            #region Signals ##########################################################################
 
-            private void Update()
-            {
-                Repaint();
-            }
-
-            private void OnEnable()
-            {
-                minSize = new Vector2(600, 600);
-                Focus();
-                OnInitialize();
-            }
-
-            private void OnGUI()
-            {
-                StyleSetter();
-                listViewCount = 0;
-                scrollPanCount = 0;
-                OnRedraw();
-            }
-
-            private void OnDisable()
-            {
-                OnQuit();
-                CloseWindow();
-            }
 
             /// <summary>
             /// Appellee au demarrage de la fenetre, a utiliser a la place de OnEnable dans les fenetres heritantes
@@ -252,6 +227,26 @@ namespace PulseEditor
             {
 
             }
+
+            /// <summary>
+            /// Au changement d'une selection dans une Entete.
+            /// </summary>
+            protected virtual void OnHeaderChange()
+            {
+
+            }
+
+            /// <summary>
+            /// Au changement d'une selection dans une liste ou grille.
+            /// </summary>
+            protected virtual void OnListChange()
+            {
+
+            }
+
+            #endregion
+
+            #region GuiMethods ##########################################################################
 
             /// <summary>
             /// Pour initialiser les styles.
@@ -391,25 +386,47 @@ namespace PulseEditor
             /// </summary>
             /// <param name="_toSave"></param>
             /// <param name="_whereSave"></param>
-            protected void SaveBarPanel(UnityEngine.Object _toSave, UnityEngine.Object _whereSave, Action SelectAction = null)
+            protected void SaveBarPanel(Action SelectAction = null, Action customSave = null)
             {
                 switch (windowOpenMode)
                 {
                     case EditorMode.Normal:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave);}),
-                        new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
+                        new KeyValuePair<string, Action>("Save", ()=> {
+                            if (customSave != null)
+                                customSave.Invoke();
+                            else
+                                SaveAsset(editedAsset, asset);
+                        }),
+                        new KeyValuePair<string, Action>("Close", ()=> {
+                            if (EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No"))
+                                Close();
+                        })
                     });
                         break;
                     case EditorMode.Selector:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { SaveAsset(_toSave, _whereSave); if(SelectAction != null) SelectAction.Invoke(); Close(); }),
+                        new KeyValuePair<string, Action>("Select", ()=> {
+                            if (customSave != null)
+                                customSave.Invoke();
+                            else
+                                SaveAsset(editedAsset, asset);
+                            if (SelectAction != null)
+                                SelectAction.Invoke();
+                            Close();
+                        }),
                         new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
                     case EditorMode.ItemEdition:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Save", ()=> { SaveAsset(_toSave, _whereSave); Close(); }),
+                        new KeyValuePair<string, Action>("Save", ()=> {
+                            if (customSave != null)
+                                customSave.Invoke();
+                            else
+                                SaveAsset(editedAsset, asset);
+                            Close();
+                        }),
                         new KeyValuePair<string, Action>("Close", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Changes you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
@@ -421,7 +438,15 @@ namespace PulseEditor
                         break;
                     case EditorMode.specialSelect:
                         SaveCancelPanel(new[] {
-                        new KeyValuePair<string, Action>("Select", ()=> { SaveAsset(_toSave, _whereSave); if(SelectAction != null) SelectAction.Invoke(); Close(); }),
+                        new KeyValuePair<string, Action>("Select", ()=> {
+                            if (customSave != null)
+                                customSave.Invoke();
+                            else
+                                SaveAsset(editedAsset, asset);
+                            if (SelectAction != null)
+                                SelectAction.Invoke();
+                            Close();
+                        }),
                         new KeyValuePair<string, Action>("Cancel", ()=> { if(EditorUtility.DisplayDialog("Warning", "The Selection you made won't be saved.\n Proceed?","Yes","No")) Close();})
                     });
                         break;
@@ -475,6 +500,98 @@ namespace PulseEditor
             }
 
             /// <summary>
+            /// Faire une liste d'elements, et renvoyer l'element selectionne en envoyant un signal a la modification.
+            /// </summary>
+            /// <param name="_index"></param>
+            /// <param name="_collection"></param>
+            /// <returns></returns>
+            protected int MakeList(int _index, string[] _collection, params object[] dataCollection)
+            {
+                List<GUIContent> listContent = new List<GUIContent>();
+                for (int i = 0; i < _collection.Length; i++)
+                {
+                    var name = _collection[i];
+                    char[] titleChars = new char[LIST_MAX_CHARACTERS];
+                    string pointDeSuspension = string.Empty;
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        for (int j = 0; j < titleChars.Length; j++)
+                            if (j < name.Length)
+                                titleChars[j] = name[j];
+                    }
+                    if (name.Length >= titleChars.Length)
+                        pointDeSuspension = "...";
+                    string title = string.IsNullOrEmpty(name)? "<<<< None >>>>": new string(titleChars) + pointDeSuspension;
+                    listContent.Add(new GUIContent { text = i + "-" + title });
+                }
+                int tmp = ListItems(_index, listContent.ToArray());
+                if (tmp != _index)
+                    ListChange();
+                if (dataCollection != null && dataCollection.Length > 0)
+                {
+                    if (tmp >= 0 && tmp < dataCollection.Length)
+                        editedData = dataCollection[tmp];
+                    else
+                        editedData = null;
+                }
+                return tmp;
+            }
+
+            /// <summary>
+            /// Faire une grille de 4 collones d'elements, et renvoyer l'element selectionne en envoyant un signal a la modification.
+            /// </summary>
+            /// <param name="_index"></param>
+            /// <param name="_collection"></param>
+            /// <returns></returns>
+            protected int MakeGrid(int _index, string[] _collection, params object[] dataCollection)
+            {
+                List<GUIContent> listContent = new List<GUIContent>();
+                for (int i = 0; i < _collection.Length; i++)
+                {
+                    var name = _collection[i];
+                    char[] titleChars = new char[LIST_MAX_CHARACTERS];
+                    string pointDeSuspension = string.Empty;
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        for (int j = 0; j < titleChars.Length; j++)
+                            if (j < name.Length)
+                                titleChars[j] = name[j];
+                    }
+                    if (name.Length >= titleChars.Length)
+                        pointDeSuspension = "...";
+                    string title = string.IsNullOrEmpty(name) ? "<<<< None >>>>" : new string(titleChars) + pointDeSuspension;
+                    listContent.Add(new GUIContent { text = i + "-" + title });
+                }
+                int tmp = GridItems(_index, 4, listContent.ToArray());
+                if (tmp != _index)
+                    ListChange();
+                if (dataCollection != null && dataCollection.Length > 0)
+                {
+                    if (tmp >= 0 && tmp < dataCollection.Length)
+                        editedData = dataCollection[tmp];
+                    else
+                        editedData = null;
+                }
+                return tmp;
+            }
+
+            /// <summary>
+            /// Faire une entete d'elements, et renvoyer l'element selectionne en envoyant un signal a la modification.
+            /// </summary>
+            /// <param name="_index"></param>
+            /// <param name="_collection"></param>
+            /// <returns></returns>
+            protected int MakeHeader(int _index, string[] _collection, Action<int> beforeEmitSignal = null)
+            {
+                int selId = GUILayout.Toolbar(_index, _collection);
+                if (beforeEmitSignal != null)
+                    beforeEmitSignal.Invoke(selId);
+                if (selId != _index)
+                    HeaderChange();
+                return selId;
+            }
+
+            /// <summary>
             /// faire un panel scroolable verticalement.
             /// </summary>
             /// <param name="guiFunctions"></param>
@@ -512,6 +629,36 @@ namespace PulseEditor
 
             #endregion
 
+            #region Mono #######################################################################
+
+            private void Update()
+            {
+                Repaint();
+            }
+
+            private void OnEnable()
+            {
+                minSize = new Vector2(600, 600);
+                Focus();
+                OnInitialize();
+            }
+
+            private void OnGUI()
+            {
+                StyleSetter();
+                listViewCount = 0;
+                scrollPanCount = 0;
+                OnRedraw();
+            }
+
+            private void OnDisable()
+            {
+                OnQuit();
+                CloseWindow();
+            }
+
+            #endregion
+
             #region Methods #############################################################################
 
             /// <summary>
@@ -532,6 +679,31 @@ namespace PulseEditor
             {
                 onSelectionEvent = delegate { };
                 EditorUtility.UnloadUnusedAssetsImmediate();
+            }
+
+            /// <summary>
+            /// Au changement d'une selection dans une Entete.
+            /// </summary>
+            private void HeaderChange()
+            {
+                allAssets.Clear();
+                asset = null;
+                editedAsset = null;
+                editedData = null;
+                selectDataIndex = -1;
+                OnInitialize();
+                OnHeaderChange();
+            }
+
+            /// <summary>
+            /// Au changement d'une selection dans une liste ou grille.
+            /// </summary>
+            private void ListChange()
+            {
+                editedData = null;
+                dataID = -1;
+                OnInitialize();
+                OnListChange();
             }
 
             #endregion
@@ -595,6 +767,8 @@ namespace PulseEditor
             #endregion
         }
 
+#if UNITY_EDITOR
+
         /// <summary>
         /// la classe stocke des informations qui reviennent en permanence lorsqu'on est en editeur.
         /// </summary>
@@ -609,6 +783,8 @@ namespace PulseEditor
 
             #endregion
         }
+
+#endif
 
         /// <summary>
         /// Fait la previsualisation d'une animation.

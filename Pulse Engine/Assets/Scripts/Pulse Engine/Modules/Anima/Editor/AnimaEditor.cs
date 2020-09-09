@@ -222,6 +222,22 @@ namespace PulseEditor.Modules.Anima
         }
 
 
+        protected override void OnListChange()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+            animPreview = null;
+            animPreview = new Previewer();
+        }
+
+        protected override void OnHeaderChange()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+            animPreview = null;
+            animPreview = new Previewer();
+        }
+
         #endregion
 
         #region Common Windows ################################################################
@@ -236,17 +252,12 @@ namespace PulseEditor.Modules.Anima
             int typeSelect = (int)selectedType;
             GroupGUInoStyle(() =>
             {
-                selectedCategory = (AnimaCategory)GUILayout.Toolbar((int)selectedCategory, Enum.GetNames(typeof(AnimaCategory)));
+                MakeHeader((int)selectedCategory, Enum.GetNames(typeof(AnimaCategory)), index => { selectedCategory = (AnimaCategory)index; });
             }, "Category", 50);
             GroupGUInoStyle(() =>
             {
-                selectedType = (AnimaType)GUILayout.Toolbar((int)selectedType, Enum.GetNames(typeof(AnimaType)));
+                MakeHeader((int)selectedType, Enum.GetNames(typeof(AnimaType)), index => { selectedType = (AnimaType)index; });
             }, "Type", 50);
-
-            if (selectedCategory != (AnimaCategory)categorySelect || selectedType != (AnimaType)typeSelect)
-            {
-                Initialisation();
-            }
             if (editedAsset)
                 return true;
             else
@@ -258,7 +269,7 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         public void Foot()
         {
-            SaveBarPanel(editedAsset, asset, onSelect);
+            SaveBarPanel(onSelect);
         }
 
         /// <summary>
@@ -292,36 +303,15 @@ namespace PulseEditor.Modules.Anima
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    List<GUIContent> listContent = new List<GUIContent>();
+                    List<string> listContent = new List<string>();
                     int maxId = 0;
                     for (int i = 0; i < library.DataList.Count; i++)
                     {
                         var data = library.DataList[i];
                         var name = data.Motion ? data.Motion.name : "null";
-                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                        string pointDeSuspension = string.Empty;
-                        try
-                        {
-                            if (data.ID > maxId) maxId = data.ID;
-                            for (int j = 0; j < titleChars.Length; j++)
-                                if (j < name.Length)
-                                    titleChars[j] = name[j];
-                            if (name.Length >= titleChars.Length)
-                                pointDeSuspension = "...";
-                        }
-                        catch { }
-                        string title = new string(titleChars) + pointDeSuspension;
-                        listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
+                        listContent.Add(name);
                     }
-                    var index = ListItems(selectDataIndex, listContent.ToArray());
-                    if(index != selectDataIndex)
-                    {
-                        if (animPreview != null)
-                            animPreview.Destroy();
-                        animPreview = null;
-                        animPreview = new Previewer();
-                    }
-                    selectDataIndex = index;
+                    selectDataIndex = MakeList(selectDataIndex, listContent.ToArray());
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("+"))
@@ -808,26 +798,14 @@ namespace PulseEditor.Modules.Anima
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    List<GUIContent> listContent = new List<GUIContent>();
+                    List<string> listContent = new List<string>();
                     for (int i = 0; i < _controller.parameters.Length; i++)
                     {
                         var parameter = _controller.parameters[i];
                         var name = parameter.name;
-                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                        string pointDeSuspension = string.Empty;
-                        try
-                        {
-                            for (int j = 0; j < titleChars.Length; j++)
-                                if (j < name.Length)
-                                    titleChars[j] = name[j];
-                            if (name.Length >= titleChars.Length)
-                                pointDeSuspension = "...";
-                        }
-                        catch { }
-                        string title = new string(titleChars) + pointDeSuspension;
-                        listContent.Add(new GUIContent { text = title });
+                        listContent.Add(name);
                     }
-                    paramIndex = ListItems(paramIndex, listContent.ToArray());
+                    paramIndex = MakeList(paramIndex, listContent.ToArray());
                     GUILayout.Space(5);
                     if (addingParam)
                     {
@@ -912,26 +890,14 @@ namespace PulseEditor.Modules.Anima
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    List<GUIContent> listContent = new List<GUIContent>();
+                    List<string> listContent = new List<string>();
                     for (int i = 0; i < states.Length; i++)
                     {
                         var stateX = states[i].state;
                         var name = stateX.name;
-                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                        string pointDeSuspension = string.Empty;
-                        try
-                        {
-                            for (int j = 0; j < titleChars.Length; j++)
-                                if (j < name.Length)
-                                    titleChars[j] = name[j];
-                            if (name.Length >= titleChars.Length)
-                                pointDeSuspension = "...";
-                        }
-                        catch { }
-                        string title = new string(titleChars) + pointDeSuspension;
-                        listContent.Add(new GUIContent { text = title });
+                        listContent.Add(name);
                     }
-                    stateIndex = ListItems(stateIndex, listContent.ToArray());
+                    stateIndex = MakeList(stateIndex, listContent.ToArray());
                     GUILayout.Space(5);
                     if (stateIndex >= 0 && stateIndex < states.Length)
                         state = states[stateIndex].state;

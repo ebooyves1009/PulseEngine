@@ -123,6 +123,7 @@ namespace PulseEditor.Modules.CombatSystem
             window.dataID = _id;
             window.currentScope = _scope;
             window.weaponTypeSelected = type;
+            window.OnInitialize();
             window.ShowModal();
         }
 
@@ -169,6 +170,23 @@ namespace PulseEditor.Modules.CombatSystem
             preview = new Previewer();
         }
 
+        /// <summary>
+        /// on item changed on a list.
+        /// </summary>
+        protected override void OnListChange()
+        {
+            RefreshPreview();
+        }
+
+        /// <summary>
+        /// on header changed.
+        /// </summary>
+        protected override void OnHeaderChange()
+        {
+            RefreshPreview();
+        }
+
+
         #endregion
 
         #region Common Windows ################################################################
@@ -183,18 +201,8 @@ namespace PulseEditor.Modules.CombatSystem
             GroupGUInoStyle(() =>
             {
                 int selected = (int)weaponTypeSelected;
-                selected = GUILayout.Toolbar((int)weaponTypeSelected , Enum.GetNames(typeof(WeaponType)));
-                weaponTypeSelected = (WeaponType)selected;
+                selected = MakeHeader((int)weaponTypeSelected, Enum.GetNames(typeof(WeaponType)), index => { weaponTypeSelected = (WeaponType)index; });
             },"Weapon Type",50);
-            if (bkpType != weaponTypeSelected)
-            {
-                allAssets.Clear();
-                asset = null;
-                editedAsset = null;
-                editedData = null;
-                selectDataIndex = -1;
-                OnInitialize();
-            }
             return asset != null;
         }
 
@@ -203,7 +211,7 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         protected void Foot()
         {
-            SaveBarPanel(editedAsset, asset, SelectItem);
+            SaveBarPanel(SelectItem);
         }
 
         /// <summary>
@@ -238,29 +246,16 @@ namespace PulseEditor.Modules.CombatSystem
                     GroupGUI(() =>
                     {
                         GUILayout.BeginVertical();
-                        List<GUIContent> listContent = new List<GUIContent>();
+                        List<string> listContent = new List<string>();
                         int maxId = 0;
                         for (int i = 0; i < library.DataList.Count; i++)
                         {
                             var data = library.DataList[i];
                             var nameList = LocalisationEditor.GetTexts(data.IdTrad, data.TradType);
                             string name = nameList.Length > 0 ? nameList[0] : string.Empty;
-                            char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                            string pointDeSuspension = string.Empty;
-                            try
-                            {
-                                if (data.ID > maxId) maxId = data.ID;
-                                for (int j = 0; j < titleChars.Length; j++)
-                                    if (j < name.Length)
-                                        titleChars[j] = name[j];
-                                if (name.Length >= titleChars.Length)
-                                    pointDeSuspension = "...";
-                            }
-                            catch { }
-                            string title = new string(titleChars) + pointDeSuspension;
-                            listContent.Add(new GUIContent { text = data != null ? data.ID + "-" + title : "null data" });
+                            listContent.Add(name);
                         }
-                        selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                        selectDataIndex = MakeList(selectDataIndex, listContent.ToArray());
                         GUILayout.Space(5);
                         GUILayout.BeginHorizontal();
                         if (GUILayout.Button("+"))
@@ -305,7 +300,7 @@ namespace PulseEditor.Modules.CombatSystem
                         {
                             var obj = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
                             if (obj != data.Weapons[i])
-                                RefreshPreview();
+                                OnListChange();
                             data.Weapons[i] = obj;
                             if (data.Weapons[i] == null)
                             {
@@ -558,7 +553,7 @@ namespace PulseEditor.Modules.CombatSystem
                     {
                         var obj = EditorGUILayout.ObjectField(data.Weapons[i], typeof(GameObject), false) as GameObject;
                         if (obj != data.Weapons[i])
-                            RefreshPreview();
+                            OnListChange();
                         data.Weapons[i] = obj;
                         if (data.Weapons[i] == null)
                         {
@@ -733,29 +728,15 @@ namespace PulseEditor.Modules.CombatSystem
                 GroupGUI(() =>
                 {
                     GUILayout.BeginVertical();
-                    List<GUIContent> listContent = new List<GUIContent>();
-                    int maxId = 0;
+                    List<string> listContent = new List<string>();
                     for (int i = 0; i < dataBase.Count; i++)
                     {
                         var data = dataBase[i];
                         var nameList = LocalisationEditor.GetTexts(data.Item1.IdTrad, data.Item1.TradType);
                         string name = nameList.Length > 0 ? nameList[0] : string.Empty;
-                        char[] titleChars = new char[LIST_MAX_CHARACTERS];
-                        string pointDeSuspension = string.Empty;
-                        try
-                        {
-                            if (data.Item1.ID > maxId) maxId = data.Item1.ID;
-                            for (int j = 0; j < titleChars.Length; j++)
-                                if (j < name.Length)
-                                    titleChars[j] = name[j];
-                            if (name.Length >= titleChars.Length)
-                                pointDeSuspension = "...";
-                        }
-                        catch { }
-                        string title = new string(titleChars) + pointDeSuspension;
-                        listContent.Add(new GUIContent { text = data.Item1 != null ? data.Item1.ID + "-" + title : "null data" });
+                        listContent.Add(name);
                     }
-                    selectDataIndex = ListItems(selectDataIndex, listContent.ToArray());
+                    selectDataIndex = MakeList(selectDataIndex, listContent.ToArray());
                     GUILayout.Space(5);
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("+"))
