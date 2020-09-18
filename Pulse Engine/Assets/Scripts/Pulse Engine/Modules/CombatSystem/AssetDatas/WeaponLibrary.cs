@@ -1,11 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Globals;
 using PulseEngine.Modules;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using PulseEngine.Datas;
 
 namespace PulseEngine.Modules.CombatSystem
 {
@@ -13,18 +13,12 @@ namespace PulseEngine.Modules.CombatSystem
     /// L'asset des armes par type.
     /// </summary>
     [System.Serializable]
-    public class WeaponLibrary : ScriptableObject, IModuleAsset
+    public class WeaponLibrary : ScriptableObject
     {
         #region Attributs #########################################################
 
         [SerializeField]
         private List<WeaponData> dataList = new List<WeaponData>();
-
-        [SerializeField]
-        private int libraryWeaponType;
-
-        [SerializeField]
-        private int libraryDataType;
 
         [SerializeField]
         private int scope;
@@ -34,20 +28,9 @@ namespace PulseEngine.Modules.CombatSystem
         #region Proprietes ##########################################################
 
         /// <summary>
-        /// La liste des armes
+        /// La liste des datas
         /// </summary>
         public List<WeaponData> DataList { get => dataList; set => dataList = value; }
-
-        /// <summary>
-        /// Le type d'arme contenus dans cet asset.
-        /// </summary>
-        public WeaponType LibraryWeaponType { get => (WeaponType)libraryWeaponType; set => libraryWeaponType = (int)value; }
-
-        /// <summary>
-        /// Le type de data.
-        /// </summary>
-        public DataTypes DataType  => (DataTypes)libraryDataType;
-
         /// <summary>
         /// Le scope.
         /// </summary>
@@ -63,24 +46,22 @@ namespace PulseEngine.Modules.CombatSystem
         /// Cree l'asset d'armes.
         /// </summary>
         /// <returns></returns>
-        public static bool Save(WeaponType _weaponType, Scopes scope)
+        public static bool Save(Scopes scope)
         {
-            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
+            string fileName = "Weapons_" + scope + ".Asset";
+            string path = CombatSystemManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 WeaponLibrary asset = ScriptableObject.CreateInstance<WeaponLibrary>();
-                asset.libraryDataType = (int)DataTypes.WeaponData;
-                asset.LibraryWeaponType = _weaponType;
                 asset.Scope = scope;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
@@ -108,17 +89,17 @@ namespace PulseEngine.Modules.CombatSystem
         /// Verifie si l'asset existe.
         /// </summary>
         /// <returns></returns>
-        public static bool Exist(WeaponType _weaponType, Scopes scope)
+        public static bool Exist(Scopes scope)
         {
-            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
+            string fileName = "Weapons_" + scope + ".Asset";
+            string path = CombatSystemManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
@@ -135,13 +116,13 @@ namespace PulseEngine.Modules.CombatSystem
         /// Charge l'asset.
         /// </summary>
         /// <returns></returns>
-        public static WeaponLibrary Load(WeaponType _weaponType, Scopes scope)
+        public static WeaponLibrary Load(Scopes _scope)
         {
-            string fileName = "Weapon_" + _weaponType + "_" + scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
-            if (Exist(_weaponType, scope))
+            string fileName = "Weapons_" + _scope + ".Asset";
+            string path = CombatSystemManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (Exist(_scope))
             {
                 return AssetDatabase.LoadAssetAtPath(fullPath, typeof(WeaponLibrary)) as WeaponLibrary;
             }

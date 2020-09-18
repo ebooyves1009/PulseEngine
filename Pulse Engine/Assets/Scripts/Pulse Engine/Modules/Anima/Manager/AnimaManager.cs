@@ -1,8 +1,7 @@
-﻿using System.Collections;
+﻿using PulseEngine.Datas;
 using System.Collections.Generic;
-using UnityEngine;
-using PulseEngine.Globals;
-
+using UnityEngine.AddressableAssets;
+using System.Threading.Tasks;
 
 namespace PulseEngine.Modules.Anima
 {
@@ -13,36 +12,42 @@ namespace PulseEngine.Modules.Anima
     {
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public static string AssetsPath { get => "AnimaDatas"; }
+
         #endregion
+
         #region Methods ####################################################################
 
         /// <summary>
-        /// Get the animator layer corresponding to AnimType.
+        /// Get all module datas with specified parameters
         /// </summary>
-        /// <param name="_type"></param>
+        /// <param name="_avatarType"></param>
+        /// <param name="_animType"></param>
         /// <returns></returns>
-        public static AnimaLayer LayerFromType(AnimaType _type)
+        public static async Task<List<AnimaData>> GetDatas(AvatarType _avatarType, AnimaType _animType)
         {
-            switch (_type)
-            {
-                case AnimaType.Idle:
-                    return AnimaLayer.IdleLayer;
-                case AnimaType.Locamotion:
-                    return AnimaLayer.LocamotionLayer;
-                case AnimaType.Interraction:
-                    return AnimaLayer.InterractionLayer;
-                case AnimaType.Offensive:
-                    return AnimaLayer.OffensiveLayer;
-                case AnimaType.Defensive:
-                    return AnimaLayer.DefensiveLayer;
-                case AnimaType.Damage:
-                    return AnimaLayer.DamageLayer;
-                default:
-                    return AnimaLayer.IdleLayer;
-            }
+            var library = await Addressables.LoadAssetAsync<AnimaLibrary>("AnimaLibrary_" + _avatarType + "_" + _animType).Task;
+            return Core.DeepCopy(library).DataList;
+        }
+
+        /// <summary>
+        /// Get module data with ID
+        /// </summary>
+        /// <param name="_avatarType"></param>
+        /// <param name="_animType"></param>
+        /// <param name="_id"></param>
+        /// <returns></returns>
+        public static async Task<AnimaData> GetData(AvatarType _avatarType, AnimaType _animType, int _id)
+        {
+            var list = await GetDatas(_avatarType, _animType);
+            return list.Find(data => { return data.ID == _id; });
         }
 
         #endregion
+
         #region Extension&Helpers ####################################################################
 
         #endregion

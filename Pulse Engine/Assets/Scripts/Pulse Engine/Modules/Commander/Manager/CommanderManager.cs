@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Globals;
 using System;
 
 namespace PulseEngine.Modules.Commander
@@ -13,7 +12,13 @@ namespace PulseEngine.Modules.Commander
     {
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public static string AssetsPath { get => "CommanderDatas"; }
+
         #endregion
+
         #region Methods ####################################################################
 
         /// <summary>
@@ -22,8 +27,7 @@ namespace PulseEngine.Modules.Commander
         /// <param name="_actionCmd"></param>
         public static void ExecuteCommand(GameObject emitter, CommandAction _actionCmd)
         {
-            if (PulseEngineMgr.DEBUG_MODE_Runtime)
-                Debug.Log("CommandAction " + _actionCmd.code + ", triggered by " + emitter.name);
+            PulseDebug.Log("CommandAction " + _actionCmd.code + ", triggered by " + emitter.name);
         }
 
         /// <summary>
@@ -32,8 +36,7 @@ namespace PulseEngine.Modules.Commander
         /// <param name="_eventCmd"></param>
         public static void ExecuteCommand(GameObject emitter, CommandEvent _eventCmd)
         {
-            if (PulseEngineMgr.DEBUG_MODE_Runtime)
-                Debug.Log("CommandEvent " + _eventCmd.code + ", triggered by " + emitter.name);
+            PulseDebug.Log("CommandEvent " + _eventCmd.code + ", triggered by " + emitter.name);
         }
 
         /// <summary>
@@ -42,8 +45,7 @@ namespace PulseEngine.Modules.Commander
         /// <param name="_worldCmd"></param>
         public static void ExecuteCommand(GameObject emitter, CommandWorld _worldCmd)
         {
-            if (PulseEngineMgr.DEBUG_MODE_Runtime)
-                Debug.Log("CommandWorld " + _worldCmd.code + ", triggered by " + emitter.name);
+            PulseDebug.Log("CommandWorld " + _worldCmd.code + ", triggered by " + emitter.name);
         }
 
         #endregion

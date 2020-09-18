@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Globals;
 
 
 
@@ -14,10 +13,17 @@ namespace PulseEngine.Modules.PhysicSpace
     {
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public static string AssetsPath { get => "PhysicDatas"; }
+
         #endregion
+
         #region Methods ####################################################################
 
         #endregion
+
         #region Extension&Helpers ####################################################################
 
         #endregion

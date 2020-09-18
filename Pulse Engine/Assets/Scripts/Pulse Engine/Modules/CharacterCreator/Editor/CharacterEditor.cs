@@ -4,7 +4,7 @@ using UnityEngine;
 using PulseEditor.Globals;
 using PulseEditor.Modules.Localisator;
 using PulseEditor.Modules.StatHandler;
-using PulseEngine.Globals;
+using PulseEngine.Core;
 using PulseEngine.Modules;
 using PulseEngine.Modules.CharacterCreator;
 using PulseEngine.Modules.StatHandler;

@@ -5,7 +5,6 @@ using UnityEditor;
 using eWindow = UnityEditor.EditorGUILayout;
 using Window = UnityEngine.GUILayout;
 using System;
-using PulseEngine.Globals;
 using PulseEngine.Modules.Anima;
 using UnityEngine.Events;
 using System.Reflection;

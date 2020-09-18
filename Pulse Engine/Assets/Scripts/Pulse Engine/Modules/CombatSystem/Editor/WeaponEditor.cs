@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using PulseEditor.Globals;
-using PulseEngine.Globals;
+using PulseEngine.Core;
 using PulseEngine.Modules;
 using PulseEditor.Modules.Localisator;
 using PulseEngine.Module.CharacterCreator;

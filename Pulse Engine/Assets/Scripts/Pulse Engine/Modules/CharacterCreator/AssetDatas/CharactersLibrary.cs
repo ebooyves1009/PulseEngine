@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using PulseEngine.Globals;
 using PulseEngine.Modules;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
-
-
+using PulseEngine.Datas;
 
 namespace PulseEngine.Modules.CharacterCreator
 {
@@ -15,20 +13,17 @@ namespace PulseEngine.Modules.CharacterCreator
     /// L'asset des characters.
     /// </summary>
     [System.Serializable]
-    public class CharactersLibrary : ScriptableObject, IModuleAsset
+    public class CharactersLibrary : ScriptableObject
     {
         #region Attributs #########################################################
 
         [SerializeField]
         private List<CharacterData> dataList = new List<CharacterData>();
-
-        [SerializeField]
-        private int libraryDataType;
-
         [SerializeField]
         private int scope;
 
         #endregion
+
         #region Proprietes ##########################################################
 
         /// <summary>
@@ -37,16 +32,12 @@ namespace PulseEngine.Modules.CharacterCreator
         public List<CharacterData> DataList { get => dataList; set => dataList = value; }
 
         /// <summary>
-        /// Le type des datas de l'asset.
-        /// </summary>
-        public DataTypes DataType => (DataTypes)libraryDataType;
-
-        /// <summary>
         /// Le scope de l'asset.
         /// </summary>
         public Scopes Scope { get => (Scopes)scope; set => scope = (int)value; }
 
         #endregion
+
 #if UNITY_EDITOR //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         #region Methodes #############################################################
@@ -57,21 +48,20 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <returns></returns>
         public static bool Save(CharacterType type, Scopes _scope)
         {
-            string fileName = "Characters_" + type + "_" + _scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
+            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
+            string path = CharacterManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 CharactersLibrary asset = ScriptableObject.CreateInstance<CharactersLibrary>();
-                asset.libraryDataType = (int)DataTypes.CharacterData;
                 asset.Scope = _scope;
                 AssetDatabase.CreateAsset(asset, fullPath);
                 AssetDatabase.SaveAssets();
@@ -101,15 +91,15 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <returns></returns>
         public static bool Exist(CharacterType type, Scopes _scope)
         {
-            string fileName = "Characters_" + type + "_" + _scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(PulseEngineMgr.Path_GAMERESSOURCES))
+            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
+            string path = CharacterManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
                 return false;
             if (!AssetDatabase.IsValidFolder(folderPath))
             {
-                AssetDatabase.CreateFolder(PulseEngineMgr.Path_GAMERESSOURCES, path);
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
                 AssetDatabase.SaveAssets();
             }
             if (AssetDatabase.IsValidFolder(folderPath))
@@ -128,10 +118,10 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <returns></returns>
         public static CharactersLibrary Load(CharacterType type, Scopes _scope)
         {
-            string fileName = "Characters_" + type + "_" + _scope + ".Asset";
-            string path = ModuleConstants.AssetsPath;
-            string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path, fileName);
+            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
+            string path = CharacterManager.AssetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
             if (Exist(type, _scope))
             {
                 return AssetDatabase.LoadAssetAtPath(fullPath, typeof(CharactersLibrary)) as CharactersLibrary;

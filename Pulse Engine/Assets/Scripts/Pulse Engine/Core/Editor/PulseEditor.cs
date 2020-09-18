@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
-using PulseEngine.Globals;
+using PulseEngine;
 using UILayout = UnityEngine.GUILayout;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;

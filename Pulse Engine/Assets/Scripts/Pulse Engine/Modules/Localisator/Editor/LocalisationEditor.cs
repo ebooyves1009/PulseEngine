@@ -5,7 +5,7 @@ using UnityEditor;
 using System;
 using System.Linq;
 using PulseEditor.Globals;
-using PulseEngine.Globals;
+using PulseEngine.Core;
 using PulseEngine.Modules;
 using PulseEngine.Modules.Localisator;
 using UILayout = UnityEngine.GUILayout;
