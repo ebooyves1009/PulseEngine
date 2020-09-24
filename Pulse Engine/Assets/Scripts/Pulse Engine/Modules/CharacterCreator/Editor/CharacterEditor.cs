@@ -1,15 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor.Globals;
 using PulseEditor.Modules.Localisator;
-using PulseEditor.Modules.StatHandler;
-using PulseEngine.Core;
 using PulseEngine.Modules;
 using PulseEngine.Modules.CharacterCreator;
-using PulseEngine.Modules.StatHandler;
 using UnityEditor;
 using System;
+using PulseEngine;
+using System.Threading.Tasks;
 
 namespace PulseEditor.Modules.CharacterCreator
 {
@@ -17,36 +15,58 @@ namespace PulseEditor.Modules.CharacterCreator
     /// L'editeur de characters.
     /// </summary>
     public class CharacterEditor : PulseEditorMgr
-    {
-        #region Fonctionnal Attributes ################################################################
+    { /// <Summary>
+      /// Implement here
+      /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
+      /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
+      /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
+      /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+      /// </Summary>
+        #region Static Accessors ################################################################################################################################################################################################
+#if UNITY_EDITOR //********************************************************************************************************************************************
+
+        ///<summary>
+        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        ///</summary>
+        private static Dictionary<DataLocation, IData> StaticCache;
 
         /// <summary>
-        /// La previsualisation du charactere.
+        /// Prevent from launching several refreshes.
         /// </summary>
-        private Editor objEditor;
+        private static bool RefreshingCache;
 
         /// <summary>
-        /// Le type de character choisi.
+        /// to retrieve data from outside of the module by reflection
         /// </summary>
-        private CharacterType typeSelected;
+        /// <param name="_location"></param>
+        /// <returns></returns>
+        public static object GetData(DataLocation _location)
+        {
+            if (StaticCache.ContainsKey(_location))
+            {
+                if (StaticCache[_location] == null && !RefreshingCache)
+                    RefreshCache();
+                return StaticCache[_location];
+            }
+            return null;
+        }
 
         /// <summary>
-        /// Les armes dans l'armurerie du character.
+        /// to refresh the static cache dictionnary
         /// </summary>
-        private List<PulseEngine.Modules.CombatSystem.WeaponData> characterWeapons = new List<PulseEngine.Modules.CombatSystem.WeaponData>();
+        public static async Task RefreshCache()
+        {
+            RefreshingCache = true;
 
-        /// <summary>
-        /// l'emplacement des armes dans la previsualiation
-        /// </summary>
-        List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
-
-
-        //TODO: clothes list of this character
-        //TODO: gadgets/wearables inventory list of this character
-
+            RefreshingCache = false;
+        }
+#endif
         #endregion
 
-        #region Visual Attributes ################################################################
+        /// <Summary>
+        /// Declare here every attribute used for visual behaviour of the editor window.
+        /// </Summary>
+        #region Visual Attributes ################################################################################################################################################################################################
 
         /// <summary>
         /// the preview panel.
@@ -85,73 +105,41 @@ namespace PulseEditor.Modules.CharacterCreator
 
         #endregion
 
-        #region Fonctionnal Methods ################################################################
+        /// <Summary>
+        /// Declare here every attribute used for deep behaviour ot the editor window.
+        /// </Summary>
+        #region Fonctionnal Attributes ################################################################################################################################################################################################
 
         /// <summary>
-        /// Sauvegarde las modifications.
+        /// La previsualisation du charactere.
         /// </summary>
-        private void Save()
-        {
-            SaveAsset(editedAsset, asset);
-            Close();
-        }
+        private Editor objEditor;
 
         /// <summary>
-        /// Annule les modifications.
+        /// Le type de character choisi.
         /// </summary>
-        /// <param name="msg"></param>
-        private void Cancel(string msg)
-        {
-            if (EditorUtility.DisplayDialog("Warning", msg, "Yes", "No"))
-                Close();
-        }
+        private CharacterType typeSelected;
 
         /// <summary>
-        /// la selection d'un item.
+        /// Les armes dans l'armurerie du character.
         /// </summary>
-        /// <param name="data"></param>
-        private void Select(CharacterData data)
-        {
-            if (data == null || editedAsset == null)
-                return;
-            EditorEventArgs eventArgs = new EditorEventArgs
-            {
-                ID = data.ID,
-                dataType = (int)((CharactersLibrary)editedAsset).DataType
-            };
-            if (onSelectionEvent != null)
-                onSelectionEvent.Invoke(this, eventArgs);
-        }
+        private List<PulseEngine.Modules.CombatSystem.WeaponData> characterWeapons = new List<PulseEngine.Modules.CombatSystem.WeaponData>();
 
         /// <summary>
-        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// l'emplacement des armes dans la previsualiation
         /// </summary>
-        private void SetPreviewAdditives(CharacterData _data)
-        {
-            if (_data == null)
-                return;
-            //Weapons
-            var W_collection = new List<(int, WeaponType, Scopes)>();
-            for(int i = 0,len = _data.Armurie.Count; i < len; i++)
-            {
-                var item = _data.Armurie[i];
-                W_collection.Add((item.x, (WeaponType)item.y, (Scopes)item.z));
-            }
-            characterWeapons = CombatSystem.WeaponEditor.GetWeapons(W_collection);
-        }
+        List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
 
-        /// <summary>
-        /// Reinitialise les listes d'equipement propre a 1 character.
-        /// </summary>
-        private void ResetPreviewAdditives()
-        {
-            //Weapons
-            characterWeapons.Clear();
-        }
+
+        //TODO: clothes list of this character
+        //TODO: gadgets/wearables inventory list of this character
 
         #endregion
 
-        #region Static Methods ################################################################
+        /// <Summary>
+        /// Implement here Methods To Open the window.
+        /// </Summary>
+        #region Door Methods ################################################################################################################################################################################################
 
         /// <summary>
         /// Open the editor.
@@ -160,26 +148,26 @@ namespace PulseEditor.Modules.CharacterCreator
         public static void OpenEditor()
         {
             var window = GetWindow<CharacterEditor>();
-            window.windowOpenMode = EditorMode.Normal;
+            window.currentEditorMode = EditorMode.Edition;
             window.Show();
         }
 
         /// <summary>
         /// Open the selector.
         /// </summary>
-        public static void OpenSelector(Action<object,EventArgs> onSelect)
+        public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
             var window = GetWindow<CharacterEditor>(true);
-            window.windowOpenMode = EditorMode.Selector;
-            window.onSelectionEvent += (obj,arg)=>
+            window.currentEditorMode = EditorMode.Selection;
+            window.onSelectionEvent += (obj, arg) =>
             {
-                if(onSelect != null)
+                if (onSelect != null)
                 {
                     onSelect.Invoke(null, new EditorEventArgs
                     {
-                        ID = ((CharacterData)window.editedData).ID,
-                        dataType = (int)((CharactersLibrary)window.editedAsset).DataType,
-                        Scope = (int)((CharactersLibrary)window.editedAsset).Scope
+                        ID = ((CharacterData)window.data).ID,
+                        dataType = (int)((CharactersLibrary)window.asset).DataType,
+                        Scope = (int)((CharactersLibrary)window.asset).Scope
                     });
                 }
             };
@@ -192,10 +180,10 @@ namespace PulseEditor.Modules.CharacterCreator
         public static void OpenModifier(int _id, Scopes scope, CharacterType _type)
         {
             var window = GetWindow<CharacterEditor>(true);
-            window.windowOpenMode = EditorMode.ItemEdition;
+            window.currentEditorMode = EditorMode.DataEdition;
             window.typeSelected = _type;
             window.dataID = _id;
-            window.currentScope = scope;
+            window.assetMainFilter = scope;
             window.OnInitialize();
             window.ShowUtility();
         }
@@ -203,82 +191,10 @@ namespace PulseEditor.Modules.CharacterCreator
 
         #endregion
 
-        #region Visual Methods ################################################################
-
-        /// <summary>
-        /// Initialise la fenetre.
-        /// </summary>
-        protected override void OnInitialize()
-        {
-            base.OnInitialize();
-            if (!asset)
-            {
-                asset = CharactersLibrary.Load(typeSelected, currentScope);
-                if (!asset && CharactersLibrary.Save(typeSelected, currentScope))
-                    asset = CharactersLibrary.Load(typeSelected, currentScope);
-                if (asset)
-                    editedAsset = asset;
-            }
-            if (windowOpenMode == EditorMode.ItemEdition)
-            {
-                editedData = ((CharactersLibrary)editedAsset).DataList.Find(d => { return d.ID == dataID; });
-                if (((CharacterData)editedData) != null)
-                    SetPreviewAdditives((CharacterData)editedData);
-            }
-            RefreshPreview();
-        }
-
-        protected override void OnRedraw()
-        {
-            base.OnRedraw();
-            if (!Header())
-                return;
-            GUILayout.BeginHorizontal();
-            ScrollablePanel(() =>
-            {
-                CharacterList((CharactersLibrary)editedAsset);
-                SaveAndCancel();
-            },true);
-            GUILayout.Space(5);
-            ScrollablePanel(() =>
-            {
-                Details((CharacterData)editedData);
-                GUILayout.Space(5);
-                AnimationsPreview((CharacterData)editedData);
-            });
-            GUILayout.EndHorizontal();
-        }
-
-        protected override void OnQuit()
-        {
-            if (previewer != null)
-                previewer.Destroy();
-            ResetPreviewAdditives();
-        }
-
-        private void RefreshPreview()
-        {
-            if (previewer != null)
-                previewer.Destroy();
-            previewer = new Previewer();
-        }
-
-        protected override void OnHeaderChange()
-        {
-            RefreshPreview();
-            ResetPreviewAdditives();
-        }
-
-        protected override void OnListChange()
-        {
-            RefreshPreview();
-            ResetPreviewAdditives();
-            SetPreviewAdditives((CharacterData)editedData);
-        }
-
-        #endregion
-
-        #region Common Windows ################################################################
+        /// <Summary>
+        /// Implement here Methods related to GUI.
+        /// </Summary>
+        #region GUI Methods ################################################################################################################################################################################################
 
         /// <summary>
         /// L'entete.
@@ -290,7 +206,7 @@ namespace PulseEditor.Modules.CharacterCreator
             {
                 MakeHeader((int)typeSelected, Enum.GetNames(typeof(CharacterType)), index => { typeSelected = (CharacterType)index; });
             }, "Character Type", 50);
-            if (editedAsset)
+            if (asset)
                 return true;
             else
                 return false;
@@ -306,13 +222,13 @@ namespace PulseEditor.Modules.CharacterCreator
                 return;
             Func<bool> listCompatiblesmode = () =>
             {
-                switch (windowOpenMode)
+                switch (currentEditorMode)
                 {
-                    case EditorMode.Normal:
+                    case EditorMode.Edition:
                         return true;
-                    case EditorMode.Selector:
+                    case EditorMode.Selection:
                         return true;
-                    case EditorMode.ItemEdition:
+                    case EditorMode.DataEdition:
                         return false;
                     case EditorMode.Preview:
                         return false;
@@ -357,7 +273,7 @@ namespace PulseEditor.Modules.CharacterCreator
                         {
                             addindNewCharacter = true;
                         }
-                        if (editedData != null)
+                        if (data != null)
                         {
                             if (GUILayout.Button("-"))
                             {
@@ -460,15 +376,15 @@ namespace PulseEditor.Modules.CharacterCreator
                 if (GUILayout.Button("Edit " + name + "'s Weaponry"))
                 {
                     List<(int, WeaponType, Scopes)> ps = new List<(int, WeaponType, Scopes)>();
-                    for(int i = 0; i < data.Armurie.Count; i++)
+                    for (int i = 0; i < data.Armurie.Count; i++)
                     {
                         var weap = data.Armurie[i];
                         ps.Add((weap.x, (WeaponType)weap.y, (Scopes)weap.z));
                     }
-                    CombatSystem.WeaponEditor.WeaponryEditor.Open(ps, (obj,arg)=>
+                    CombatSystem.WeaponEditor.WeaponryEditor.Open(ps, (obj, arg) =>
                     {
                         var result = obj as List<(PulseEngine.Modules.CombatSystem.WeaponData, Scopes)>;
-                        if(result != null)
+                        if (result != null)
                         {
                             List<Vector3Int> sp = new List<Vector3Int>();
                             for (int i = 0; i < result.Count; i++)
@@ -531,7 +447,7 @@ namespace PulseEditor.Modules.CharacterCreator
                 {
                     stateList = controller.layers[layerAnimIndex].stateMachine.states;
                 }
-                if(stateList != null)
+                if (stateList != null)
                 {
                     string[] stateNames = new string[stateList.Length];
                     for (int i = 0; i < stateList.Length; i++)
@@ -580,17 +496,167 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </summary>
         private void SaveAndCancel()
         {
-            if (editedAsset == null)
+            if (asset == null)
                 return;
-            SaveBarPanel(() => { Select((CharacterData)editedData); });
+            SaveBarPanel(() => { Select((CharacterData)data); });
         }
 
 
         #endregion
 
-        #region Helpers & Tools ################################################################
+        /// <Summary>
+        /// Implement here behaviours methods.
+        /// </Summary>
+        #region Fontionnal Methods ################################################################################################################################################################################################
 
+        /// <summary>
+        /// Sauvegarde las modifications.
+        /// </summary>
+        private void Save()
+        {
+            SaveAsset(asset, originalAsset);
+            Close();
+        }
+
+        /// <summary>
+        /// Annule les modifications.
+        /// </summary>
+        /// <param name="msg"></param>
+        private void Cancel(string msg)
+        {
+            if (EditorUtility.DisplayDialog("Warning", msg, "Yes", "No"))
+                Close();
+        }
+
+        /// <summary>
+        /// la selection d'un item.
+        /// </summary>
+        /// <param name="data"></param>
+        private void Select(CharacterData data)
+        {
+            if (data == null || asset == null)
+                return;
+            EditorEventArgs eventArgs = new EditorEventArgs
+            {
+                ID = data.ID,
+                dataType = (int)((CharactersLibrary)asset).DataType
+            };
+            if (onSelectionEvent != null)
+                onSelectionEvent.Invoke(this, eventArgs);
+        }
+
+        /// <summary>
+        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// </summary>
+        private void SetPreviewAdditives(CharacterData _data)
+        {
+            if (_data == null)
+                return;
+            //Weapons
+            var W_collection = new List<(int, WeaponType, Scopes)>();
+            for (int i = 0, len = _data.Armurie.Count; i < len; i++)
+            {
+                var item = _data.Armurie[i];
+                W_collection.Add((item.x, (WeaponType)item.y, (Scopes)item.z));
+            }
+            characterWeapons = CombatSystem.WeaponEditor.GetWeapons(W_collection);
+        }
+
+        /// <summary>
+        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// </summary>
+        private void ResetPreviewAdditives()
+        {
+            //Weapons
+            characterWeapons.Clear();
+        }
 
         #endregion
+
+        /// <Summary>
+        /// Implement here overrides methods.
+        /// </Summary>
+        #region Program FLow Methods ################################################################################################################################################################################################
+
+        /// <summary>
+        /// Initialise la fenetre.
+        /// </summary>
+        protected override void OnInitialize()
+        {
+            base.OnInitialize();
+            if (!originalAsset)
+            {
+                originalAsset = CharactersLibrary.Load(typeSelected, assetMainFilter);
+                if (!originalAsset && CharactersLibrary.Save(typeSelected, assetMainFilter))
+                    originalAsset = CharactersLibrary.Load(typeSelected, assetMainFilter);
+                if (originalAsset)
+                    asset = originalAsset;
+            }
+            if (currentEditorMode == EditorMode.DataEdition)
+            {
+                data = ((CharactersLibrary)asset).DataList.Find(d => { return d.ID == dataID; });
+                if (((CharacterData)data) != null)
+                    SetPreviewAdditives((CharacterData)data);
+            }
+            RefreshPreview();
+        }
+
+        protected override void OnRedraw()
+        {
+            base.OnRedraw();
+            if (!Header())
+                return;
+            GUILayout.BeginHorizontal();
+            ScrollablePanel(() =>
+            {
+                CharacterList((CharactersLibrary)asset);
+                SaveAndCancel();
+            }, true);
+            GUILayout.Space(5);
+            ScrollablePanel(() =>
+            {
+                Details((CharacterData)data);
+                GUILayout.Space(5);
+                AnimationsPreview((CharacterData)data);
+            });
+            GUILayout.EndHorizontal();
+        }
+
+        protected override void OnQuit()
+        {
+            if (previewer != null)
+                previewer.Destroy();
+            ResetPreviewAdditives();
+        }
+
+        private void RefreshPreview()
+        {
+            if (previewer != null)
+                previewer.Destroy();
+            previewer = new Previewer();
+        }
+
+        protected override void OnHeaderChange()
+        {
+            RefreshPreview();
+            ResetPreviewAdditives();
+        }
+
+        protected override void OnListChange()
+        {
+            RefreshPreview();
+            ResetPreviewAdditives();
+            SetPreviewAdditives((CharacterData)data);
+        }
+
+        #endregion
+
+        /// <Summary>
+        /// Implement here miscelaneous methods relative to the module in editor mode.
+        /// </Summary>
+        #region Helpers & Tools ################################################################################################################################################################################################
+
+        #endregion
+
     }
 }

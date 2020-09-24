@@ -1,19 +1,97 @@
 
-    #region Fonctionnal Attributes ################################################################
+        /// <Summary>
+        /// Implement here
+        /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
+        /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
+        /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
+        /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+        /// </Summary>
+        #region Static Accessors ################################################################################################################################################################################################
+#if UNITY_EDITOR //********************************************************************************************************************************************
+
+        ///<summary>
+        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        ///</summary>
+        private static Dictionary<DataLocation, IData> StaticCache;
+
+        /// <summary>
+        /// Prevent from launching several refreshes.
+        /// </summary>
+        private static bool RefreshingCache;
+
+        /// <summary>
+        /// to retrieve data from outside of the module by reflection
+        /// </summary>
+        /// <param name="_location"></param>
+        /// <returns></returns>
+        public static object GetData(DataLocation _location)
+        {
+            if (StaticCache.ContainsKey(_location))
+            {
+                if (StaticCache[_location] == null && !RefreshingCache)
+                    RefreshCache();
+                return StaticCache[_location];
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// to refresh the static cache dictionnary
+        /// </summary>
+        public static async Task RefreshCache()
+        {
+            RefreshingCache = true;
+
+            RefreshingCache = false;
+        }
+#endif
+    #endregion
+	
+	/// <Summary>
+	/// Declare here every attribute used for visual behaviour of the editor window.
+	/// </Summary>
+    #region Visual Attributes ################################################################################################################################################################################################
 
     #endregion
-    #region Visual Attributes ################################################################
+
+	/// <Summary>
+	/// Declare here every attribute used for deep behaviour ot the editor window.
+	/// </Summary>
+    #region Fonctionnal Attributes ################################################################################################################################################################################################
 
     #endregion
-    #region Fonctionnal Methods ################################################################
+
+	/// <Summary>
+	/// Implement here Methods To Open the window.
+	/// </Summary>
+    #region Door Methods ################################################################################################################################################################################################
 
     #endregion
-    #region Visual Methods ################################################################
+
+	/// <Summary>
+	/// Implement here Methods related to GUI.
+	/// </Summary>
+    #region GUI Methods ################################################################################################################################################################################################
 
     #endregion
-    #region Common Windows ################################################################
+	
+	/// <Summary>
+	/// Implement here behaviours methods.
+	/// </Summary>
+    #region Fontionnal Methods ################################################################################################################################################################################################
 
     #endregion
-    #region Helpers & Tools ################################################################
+	
+	/// <Summary>
+	/// Implement here overrides methods.
+	/// </Summary>
+    #region Program FLow Methods ################################################################################################################################################################################################
+
+    #endregion
+	
+	/// <Summary>
+	/// Implement here miscelaneous methods relative to the module in editor mode.
+	/// </Summary>
+    #region Helpers & Tools ################################################################################################################################################################################################
 
     #endregion

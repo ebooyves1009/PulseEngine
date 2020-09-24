@@ -2,12 +2,13 @@
 using UnityEngine;
 using PulseEngine.Modules.Anima;
 using PulseEngine.Modules;
-using PulseEditor.Globals;
-using PulseEngine.Globals;
 using System;
 using UnityEditor;
 using UnityEditor.Animations;
 using System.Linq;
+using PulseEngine;
+using PulseEngine.Datas;
+using System.Threading.Tasks;
 
 namespace PulseEditor.Modules.Anima
 {
@@ -15,8 +16,172 @@ namespace PulseEditor.Modules.Anima
     /// l'editeur d'animation.
     /// </summary>
     public class AnimaEditor : PulseEditorMgr
-    {
-        #region Fonctionnal Attributes ################################################################
+    { 
+        
+      /// <Summary>
+      /// Implement here
+      /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
+      /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
+      /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
+      /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+      /// </Summary>
+        #region Static Accessors ################################################################################################################################################################################################
+#if UNITY_EDITOR //********************************************************************************************************************************************
+
+        ///<summary>
+        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        ///</summary>
+        private static Dictionary<DataLocation, IData> StaticCache;
+
+        /// <summary>
+        /// Prevent from launching several refreshes.
+        /// </summary>
+        private static bool RefreshingCache;
+
+        /// <summary>
+        /// to retrieve data from outside of the module by reflection
+        /// </summary>
+        /// <param name="_location"></param>
+        /// <returns></returns>
+        public static object GetData(DataLocation _location)
+        {
+            if (StaticCache.ContainsKey(_location))
+            {
+                if (StaticCache[_location] == null && !RefreshingCache)
+                    RefreshCache();
+                return StaticCache[_location];
+            }
+            Localisationdata result = null;
+            var allAsset = new List<AnimaLibrary>();
+
+            foreach (Scopes scope in Enum.GetValues(typeof(Scopes)))
+            {
+                foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
+                {
+                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
+                    {
+                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
+                    {
+                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                }
+            }
+
+            if (allAsset != null && allAsset.Count > 0 && _location.id > 0)
+            {
+                int index = allAsset.FindIndex(library => { return library.Scope == (Scopes)_location.globalLocation && library.AnimType == (AnimaType)_location.localLocation; });
+                if (index >= 0)
+                {
+                    AnimaLibrary asset = allAsset[index];
+                    var data = asset.DataList.Find(dt => {
+                        var d = dt as Localisationdata;
+                        return d != null && d.Location.id == _location.id;
+                    }) as Localisationdata;
+                    if (data != null)
+                    {
+                        result = data;
+                    }
+                }
+            }
+            StaticCache.Add(_location, result);
+            return result;
+        }
+
+        /// <summary>
+        /// to refresh the static cache dictionnary
+        /// </summary>
+        public static async Task RefreshCache()
+        {
+            RefreshingCache = true;
+
+            var allAsset = new List<AnimaLibrary>();
+
+            foreach (Scopes scope in Enum.GetValues(typeof(Scopes)))
+            {
+                foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
+                {
+                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
+                    {
+                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
+                    {
+                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        if (load != null)
+                            allAsset.Add(load);
+                    }
+                }
+            }
+
+            foreach (var entry in StaticCache)
+            {
+                if (entry.Value == null)
+                {
+                    var library = allAsset.Find(lib => { return lib.Scope == (Scopes)entry.Key.globalLocation && lib.AnimType == (AnimaType)entry.Key.localLocation; });
+                    if (library != null)
+                    {
+                        var data = library.DataList.Find(d =>
+                        {
+                            return d.Location.id == entry.Key.id;
+                        }) as AnimaData;
+                        if (data != null)
+                        {
+                            StaticCache[entry.Key] = data;
+                        }
+                    }
+                }
+                await Task.Delay(10);
+            }
+
+            RefreshingCache = false;
+        }
+#endif
+        #endregion
+
+        /// <Summary>
+        /// Declare here every attribute used for visual behaviour of the editor window.
+        /// </Summary>
+        #region Visual Attributes ################################################################################################################################################################################################
+
+        /// <summary>
+        /// Le types selectionne.
+        /// </summary>
+        private AnimaType selectedType;
+
+        /// <summary>
+        /// To prevent user to change anim category or scope.
+        /// </summary>
+        private bool noHeader;
+
+        /// <summary>
+        /// Le scroll de la liste des events.
+        /// </summary>
+        private Vector2 eventListScroll;
+
+        /// <summary>
+        /// La previsualisations de l'animation
+        /// </summary>
+        private Previewer animPreview;
+
+        #endregion
+
+        /// <Summary>
+        /// Declare here every attribute used for deep behaviour ot the editor window.
+        /// </Summary>
+        #region Fonctionnal Attributes ################################################################################################################################################################################################
+
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public const string AssetsPath = "AnimaDatas"; 
 
         /// <summary>
         /// Le temps actuel dans l'animation jouee.
@@ -35,77 +200,10 @@ namespace PulseEditor.Modules.Anima
 
         #endregion
 
-        #region Visual Attributes ################################################################
-
-        /// <summary>
-        /// La categoie selectionne
-        /// </summary>
-        private AnimaCategory selectedCategory;
-
-        /// <summary>
-        /// Le types selectionne.
-        /// </summary>
-        private AnimaType selectedType;
-
-        /// <summary>
-        /// Le scroll de la liste des events.
-        /// </summary>
-        private Vector2 eventListScroll;
-
-        /// <summary>
-        /// La previsualisations de l'animation
-        /// </summary>
-        private Previewer animPreview;
-
-        #endregion
-
-        #region Fonctionnal Methods ################################################################
-
-        /// <summary>
-        /// initialise toutes les assets.
-        /// </summary>
-        private void Initialisation()
-        {
-            allAssets.Clear();
-            editedAsset = null;
-            editedData = null;
-            selectDataIndex = -1;
-            if (animPreview != null)
-                animPreview.Destroy();
-            foreach (AnimaCategory category in Enum.GetValues(typeof(AnimaCategory)))
-            {
-                foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
-                {
-                    if (AnimaLibrary.Exist(category, type))
-                        allAssets.Add(AnimaLibrary.Load(category, type));
-                    else if (AnimaLibrary.Save(category, type))
-                        allAssets.Add(AnimaLibrary.Load(category, type));
-                }
-            }
-            asset = allAssets.Find(ass => { return ((AnimaLibrary)ass).AnimCategory == selectedCategory && ((AnimaLibrary)ass).AnimType == selectedType; });
-            if (asset)
-            {
-                editedAsset = asset;
-            }
-            if(windowOpenMode == EditorMode.ItemEdition && dataID >= 0)
-            {
-                editedData = ((AnimaLibrary)editedAsset).DataList.Find(dd => { return dd.ID == dataID; });
-            }
-            animPreview = new Previewer();
-        }
-
-        /// <summary>
-        /// A la selection d'un item.
-        /// </summary>
-        private void onSelect()
-        {
-            if (onSelectionEvent != null)
-                onSelectionEvent.Invoke(editedData, null);
-        }
-
-        #endregion
-
-        #region Static Methods ################################################################
+        /// <Summary>
+        /// Implement here Methods To Open the window.
+        /// </Summary>
+        #region Door Methods ################################################################################################################################################################################################
 
         /// <summary>
         /// open Anima editor.
@@ -114,7 +212,7 @@ namespace PulseEditor.Modules.Anima
         public static void OpenEditor()
         {
             var window = GetWindow<AnimaEditor>();
-            window.windowOpenMode = EditorMode.Normal;
+            window.currentEditorMode = EditorMode.Edition;
             window.Show();
         }
 
@@ -124,7 +222,7 @@ namespace PulseEditor.Modules.Anima
         public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
             var window = GetWindow<AnimaEditor>();
-            window.windowOpenMode = EditorMode.Selector;
+            window.currentEditorMode = EditorMode.Selection;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
@@ -136,14 +234,15 @@ namespace PulseEditor.Modules.Anima
         }
 
         /// <summary>
-        /// open Anima speceific selector.
+        /// open Anima specific selector.
         /// </summary>
-        public static void OpenSelector(Action<object, EventArgs> onSelect, AnimaCategory _cat, AnimaType _typ)
+        public static void OpenSelector(Action<object, EventArgs> onSelect, DataLocation location)
         {
             var window = GetWindow<AnimaEditor>();
-            window.windowOpenMode = EditorMode.specialSelect;
-            window.selectedCategory = _cat;
-            window.selectedType = _typ;
+            window.currentEditorMode = EditorMode.Selection;
+            window.noHeader = true;
+            window.assetMainFilter = location.globalLocation;
+            window.selectedType = (AnimaType)location.localLocation;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
@@ -157,90 +256,22 @@ namespace PulseEditor.Modules.Anima
         /// <summary>
         /// open Anima Modifier.
         /// </summary>
-        public static void OpenModifier(int _id, AnimaCategory _cat, AnimaType _typ)
+        public static void OpenModifier(DataLocation location)
         {
             var window = GetWindow<AnimaEditor>(true);
-            window.windowOpenMode = EditorMode.ItemEdition;
-            window.selectedCategory = _cat;
-            window.selectedType = _typ;
-            window.dataID = _id;
+            window.currentEditorMode = EditorMode.DataEdition;
+            window.assetMainFilter = location.globalLocation;
+            window.selectedType = (AnimaType)location.localLocation;
+            window.dataID = location.id;
             window.Initialisation();
             window.ShowAuxWindow();
         }
-
         #endregion
 
-        #region Visual Methods ################################################################
-
-
-        /// <summary>
-        /// refraichie.
-        /// </summary>
-        protected override void OnRedraw()
-        {
-            base.OnRedraw();
-            if (windowOpenMode == EditorMode.Normal)
-            {
-                if (!Header())
-                {
-                    return;
-                }
-            }
-            GUILayout.BeginHorizontal();
-            if (windowOpenMode != EditorMode.ItemEdition)
-            {
-                ScrollablePanel(() =>
-                {
-                    ListAnimations((AnimaLibrary)editedAsset);
-                    Foot();
-                }, true);
-            }
-            ScrollablePanel(() =>
-            {
-                AnimDetails((AnimaData)editedData);
-                if (windowOpenMode == EditorMode.ItemEdition)
-                    Foot();
-            });
-            GUILayout.EndHorizontal();
-        }
-
-        /// <summary>
-        /// initialise.
-        /// </summary>
-        protected override void OnInitialize()
-        {
-            Initialisation();
-        }
-
-        /// <summary>
-        /// a la fermeture.
-        /// </summary>
-        protected override void OnQuit()
-        {
-            if (animPreview != null)
-                animPreview.Destroy();
-        }
-
-
-        protected override void OnListChange()
-        {
-            if (animPreview != null)
-                animPreview.Destroy();
-            animPreview = null;
-            animPreview = new Previewer();
-        }
-
-        protected override void OnHeaderChange()
-        {
-            if (animPreview != null)
-                animPreview.Destroy();
-            animPreview = null;
-            animPreview = new Previewer();
-        }
-
-        #endregion
-
-        #region Common Windows ################################################################
+        /// <Summary>
+        /// Implement here Methods related to GUI.
+        /// </Summary>
+        #region GUI Methods ################################################################################################################################################################################################
 
         /// <summary>
         /// l'entete.
@@ -248,94 +279,20 @@ namespace PulseEditor.Modules.Anima
         /// <returns></returns>
         public bool Header()
         {
-            int categorySelect = (int)selectedCategory;
+            if (noHeader)
+                return true;
             int typeSelect = (int)selectedType;
-            GroupGUInoStyle(() =>
-            {
-                MakeHeader((int)selectedCategory, Enum.GetNames(typeof(AnimaCategory)), index => { selectedCategory = (AnimaCategory)index; });
-            }, "Category", 50);
+            ScopeSelector();
             GroupGUInoStyle(() =>
             {
                 MakeHeader((int)selectedType, Enum.GetNames(typeof(AnimaType)), index => { selectedType = (AnimaType)index; });
             }, "Type", 50);
-            if (editedAsset)
+            if (asset)
                 return true;
             else
                 return false;
         }
 
-        /// <summary>
-        /// Le peid de page.
-        /// </summary>
-        public void Foot()
-        {
-            SaveBarPanel(onSelect);
-        }
-
-        /// <summary>
-        /// Liste les animations.
-        /// </summary>
-        /// <param name="library"></param>
-        public void ListAnimations(AnimaLibrary library)
-        {
-            if (!library)
-                return;
-            Func<bool> listCompatiblesmode = () =>
-            {
-                switch (windowOpenMode)
-                {
-                    case EditorMode.Normal:
-                        return true;
-                    case EditorMode.Selector:
-                        return true;
-                    case EditorMode.ItemEdition:
-                        return false;
-                    case EditorMode.Preview:
-                        return false;
-                    case EditorMode.specialSelect:
-                        return true;
-                    default:
-                        return false;
-                }
-            };
-            if (listCompatiblesmode())
-            {
-                GroupGUI(() =>
-                {
-                    GUILayout.BeginVertical();
-                    List<string> listContent = new List<string>();
-                    int maxId = 0;
-                    for (int i = 0; i < library.DataList.Count; i++)
-                    {
-                        var data = library.DataList[i];
-                        var name = data.Motion ? data.Motion.name : "null";
-                        listContent.Add(name);
-                    }
-                    selectDataIndex = MakeList(selectDataIndex, listContent.ToArray());
-                    GUILayout.Space(5);
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("+"))
-                    {
-                        library.DataList.Add(new AnimaData {
-                            ID = maxId + 1, AnimLayer = AnimaManager.LayerFromType(selectedType),
-                            IsHumanMotion = selectedCategory == AnimaCategory.humanoid });
-                    }
-                    if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
-                    {
-                        if (GUILayout.Button("-"))
-                        {
-                            library.DataList.RemoveAt(selectDataIndex);
-                        }
-                    }
-                    GUILayout.EndHorizontal();
-                    GUILayout.EndVertical();
-                }, "Anima Datas List");
-                if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
-                    editedData = library.DataList[selectDataIndex];
-                else
-                    editedData = null;
-            }
-        }
 
         /// <summary>
         /// details.
@@ -348,8 +305,8 @@ namespace PulseEditor.Modules.Anima
             GroupGUI(() =>
             {
                 //ID
-                EditorGUILayout.LabelField("ID: " + data.ID, EditorStyles.boldLabel);
-                if (windowOpenMode == EditorMode.Selector)
+                EditorGUILayout.LabelField("ID: " + data.Location.id, EditorStyles.boldLabel);
+                if (currentEditorMode == EditorMode.Selection)
                 {
                     //Motion
                     if (animPreview != null)
@@ -379,24 +336,24 @@ namespace PulseEditor.Modules.Anima
                         animPreview = null;
                         animPreview = new Previewer();
                     }
-                } 
+                }
                 GUILayout.Space(10);
                 //is human
                 EditorGUILayout.Toggle("Is Human Motion", (data.Motion ? data.Motion.isHumanMotion : false));
                 GUILayout.Space(10);
                 //Name
                 GUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("Name: " , EditorStyles.boldLabel);
-                EditorGUILayout.LabelField((data.Motion? data.Motion.name : string.Empty));
+                EditorGUILayout.LabelField("Name: ", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField((data.Motion ? data.Motion.name : string.Empty));
                 GUILayout.EndHorizontal();
                 GUILayout.Space(10);
                 //Layer
-                GUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("Animator Layer: " , EditorStyles.boldLabel);
-                data.AnimLayer = AnimaManager.LayerFromType(selectedType);
-                EditorGUILayout.LabelField(data.AnimLayer.ToString());
-                GUILayout.EndHorizontal();
-                GUILayout.Space(10);
+                //GUILayout.BeginHorizontal();
+                //EditorGUILayout.LabelField("Animator Layer: ", EditorStyles.boldLabel);
+                //data.AnimLayer = AnimaManager.LayerFromType(selectedType);
+                //EditorGUILayout.LabelField(data.AnimLayer.ToString());
+                //GUILayout.EndHorizontal();
+                //GUILayout.Space(10);
                 //Anim Space
                 GUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("Physic Place, This motion takes places in: ", EditorStyles.boldLabel);
@@ -412,7 +369,8 @@ namespace PulseEditor.Modules.Anima
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
                 int indexPhase = -1;
-                for (int i = 0; i < data.PhaseAnims.Count; i++) {
+                for (int i = 0; i < data.PhaseAnims.Count; i++)
+                {
                     var phase = data.PhaseAnims[i];
                     if (phase.timeStamp.time <= timeInCurrentAnimation && timeInCurrentAnimation < (phase.timeStamp.time + phase.timeStamp.duration))
                     {
@@ -421,8 +379,8 @@ namespace PulseEditor.Modules.Anima
                         break;
                     }
                 }
-                currentAnimPhase = (AnimaPhase)EditorGUILayout.EnumPopup("Phase",currentAnimPhase);
-                if (GUILayout.Button( indexPhase>= 0?"Change":"Add" +" animPhase "+currentAnimPhase+" at "+timeInCurrentAnimation))
+                currentAnimPhase = (AnimaPhase)EditorGUILayout.EnumPopup("Phase", currentAnimPhase);
+                if (GUILayout.Button(indexPhase >= 0 ? "Change" : "Add" + " animPhase " + currentAnimPhase + " at " + timeInCurrentAnimation))
                 {
                     if (indexPhase >= 0)
                     {
@@ -486,7 +444,7 @@ namespace PulseEditor.Modules.Anima
                     {
                         //currentAnimPhase = phase.phase;
                     }
-                    EditorGUI.ProgressBar(GUILayoutUtility.GetRect(50,25), Mathf.InverseLerp(time, endValue, timeInCurrentAnimation), phase.phase.ToString());
+                    EditorGUI.ProgressBar(GUILayoutUtility.GetRect(50, 25), Mathf.InverseLerp(time, endValue, timeInCurrentAnimation), phase.phase.ToString());
                 }
                 GUILayout.EndHorizontal();
                 GUILayout.EndVertical();
@@ -521,7 +479,7 @@ namespace PulseEditor.Modules.Anima
                     });
                     data.EventList = tmpEvents;
                 }
-                if(indexEvent >= 0)
+                if (indexEvent >= 0)
                 {
                     if (GUILayout.Button("Remove Event at " + data.EventList[indexEvent].timeStamp.time))
                     {
@@ -530,7 +488,7 @@ namespace PulseEditor.Modules.Anima
                         data.EventList = tmpEvents;
                     }
                 }
-                if(data.EventList.Count > 0)
+                if (data.EventList.Count > 0)
                 {
                     try
                     {
@@ -550,10 +508,10 @@ namespace PulseEditor.Modules.Anima
                 GUILayout.EndHorizontal();
                 GUILayout.Space(5);
 
-                eventListScroll = GUILayout.BeginScrollView(eventListScroll, new[] { GUILayout.MinHeight(100)});
+                eventListScroll = GUILayout.BeginScrollView(eventListScroll, new[] { GUILayout.MinHeight(100) });
                 GUILayout.BeginHorizontal();
                 int k = 0;
-                for(int i = 0; i < data.EventList.Count; i++)
+                for (int i = 0; i < data.EventList.Count; i++)
                 {
                     k = i;
                     var ev = data.EventList[k];
@@ -584,7 +542,7 @@ namespace PulseEditor.Modules.Anima
                         bool oneTime = evEnt.isOneTimeAction;
                         GUILayout.BeginHorizontal();
                         duration = EditorGUILayout.FloatField("Duration", duration);
-                        if(GUILayout.Button("T",new[] { GUILayout.Width(18) }))
+                        if (GUILayout.Button("T", new[] { GUILayout.Width(18) }))
                         {
                             duration = timeInCurrentAnimation - timeStamp.time;
                         }
@@ -626,12 +584,119 @@ namespace PulseEditor.Modules.Anima
 
         #endregion
 
-        #region Mono #########################################################################################
+        /// <Summary>
+        /// Implement here behaviours methods.
+        /// </Summary>
+        #region Fontionnal Methods ################################################################################################################################################################################################
 
+        /// <summary>
+        /// initialise toutes les assets.
+        /// </summary>
+        private void Initialisation()
+        {
+            allAssets.Clear();
+            asset = null;
+            data = null;
+            selectDataIndex = -1;
+            if (animPreview != null)
+                animPreview.Destroy();
+            foreach (Scopes scope in Enum.GetValues(typeof(Scopes)))
+            {
+                foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
+                {
+                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
+                        allAssets.Add(CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type));
+                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
+                        allAssets.Add(CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type));
+                }
+            }
+            originalAsset = allAssets.Find(ass => { return ((AnimaLibrary)ass).Scope == (Scopes)assetMainFilter && ((AnimaLibrary)ass).AnimType == selectedType; });
+            if (originalAsset)
+            {
+                asset = Core.DeepCopy(originalAsset);
+            }
+            if (currentEditorMode == EditorMode.DataEdition && dataID >= 0)
+            {
+                data = ((AnimaLibrary)asset).DataList.Find(dd => { return dd.Location.id == dataID; });
+            }
+            animPreview = new Previewer();
+        }
+
+        /// <summary>
+        /// A la selection d'un item.
+        /// </summary>
+        private void onSelect()
+        {
+            if (onSelectionEvent != null)
+                onSelectionEvent.Invoke(data, null);
+        }
 
         #endregion
 
-        #region Helpers & Tools ################################################################
+        /// <Summary>
+        /// Implement here overrides methods.
+        /// </Summary>
+        #region Program FLow Methods ################################################################################################################################################################################################
+
+
+        /// <summary>
+        /// refraichie.
+        /// </summary>
+        protected override void OnRedraw()
+        {
+            base.OnRedraw();
+        }
+
+        /// <summary>
+        /// initialise.
+        /// </summary>
+        protected override void OnInitialize()
+        {
+            Initialisation();
+        }
+
+        /// <summary>
+        /// a la fermeture.
+        /// </summary>
+        protected override void OnQuit()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+        }
+
+
+        protected override void OnListChange()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+            animPreview = null;
+            animPreview = new Previewer();
+        }
+
+        protected override void OnHeaderChange()
+        {
+            if (animPreview != null)
+                animPreview.Destroy();
+            animPreview = null;
+            animPreview = new Previewer();
+        }
+
+        protected override void OnBodyRedraw()
+        {
+            AnimDetails((AnimaData)data);
+        }
+
+        protected override void OnHeaderRedraw()
+        {
+            Header();
+        }
+
+        #endregion
+
+        /// <Summary>
+        /// Implement here miscelaneous methods relative to the module in editor mode.
+        /// </Summary>
+        #region Helpers & Tools ################################################################################################################################################################################################
 
         /// <summary>
         /// Cree et configure des Runtime Animator controllers.
@@ -694,7 +759,7 @@ namespace PulseEditor.Modules.Anima
             /// <summary>
             /// la categorie du controller, humanoid, quadruped...
             /// </summary>
-            private AnimaCategory controllerCategory;
+            private AvatarType controllerAvatarType;
 
             #endregion
 
@@ -705,25 +770,25 @@ namespace PulseEditor.Modules.Anima
             /// </summary>
             /// <param name="rtc"></param>
             /// <param name="ownwerName"></param>
-            public static void Open(RuntimeAnimatorController rtc, AnimaCategory category, string ownwerName, Action<object,EventArgs> onDone)
+            public static void Open(RuntimeAnimatorController rtc, AvatarType avatarType, string ownwerName, Action<object, EventArgs> onDone)
             {
                 var window = GetWindow<AnimaMachineEditor>(true);
-                string path = ModuleConstants.AssetsPath;
-                string folderPath = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path,"AnimatorControllers");
+                string path = AssetsPath;
+                string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path, "AnimatorControllers");
                 if (rtc != null)
                     window.rtController = rtc as UnityEditor.Animations.AnimatorController;
                 else
                 {
                     if (!AssetDatabase.IsValidFolder(folderPath))
-                        AssetDatabase.CreateFolder(string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, path), "AnimatorControllers");
-                    window.rtController = AnimatorController.CreateAnimatorControllerAtPath(folderPath+"/"+ ownwerName + "_Controller.controller");
+                        AssetDatabase.CreateFolder(string.Join("/", Core.Path_GAMERESSOURCES, path), "AnimatorControllers");
+                    window.rtController = AnimatorController.CreateAnimatorControllerAtPath(folderPath + "/" + ownwerName + "_Controller.controller");
                     //Configuring
                     window.rtController.name = ownwerName + "_Controller";
-                    foreach(AnimaLayer layer in Enum.GetValues(typeof(AnimaLayer)))
+                    foreach (AnimaType layer in Enum.GetValues(typeof(AnimaType)))
                     {
                         window.rtController.AddLayer(layer.ToString());
                     }
-                    for(int i = 0, len = window.rtController.layers.Length; i < len; i++)
+                    for (int i = 0, len = window.rtController.layers.Length; i < len; i++)
                     {
                         var layer = window.rtController.layers[i];
                         layer.defaultWeight = 1;
@@ -739,7 +804,7 @@ namespace PulseEditor.Modules.Anima
                     {
                         onDone.Invoke(obj, arg);
                     };
-                window.controllerCategory = category;
+                window.controllerAvatarType = avatarType;
                 window.Show();
             }
 
@@ -868,7 +933,7 @@ namespace PulseEditor.Modules.Anima
                 GroupGUI(() =>
                 {
                     layerIndex = EditorGUILayout.Popup("Layer", layerIndex, layerNames.ToArray());
-                }, "Layers",25);
+                }, "Layers", 25);
 
                 if (layerIndex >= 0 && layerIndex < _controller.layers.Length)
                     layer = _controller.layers[layerIndex];
@@ -917,7 +982,7 @@ namespace PulseEditor.Modules.Anima
                                     var stMachine = st.AddStateMachineBehaviour<AnimaStateMachine>();
                                     stMachine.AnimationData = data;
                                 }
-                            }, controllerCategory, type);
+                            }, new DataLocation { globalLocation = assetMainFilter, localLocation = (int)type });
                         }
                         if (stateIndex >= 0 && stateIndex < states.Length)
                         {
@@ -926,7 +991,7 @@ namespace PulseEditor.Modules.Anima
                                 var thatState = states[stateIndex].state.behaviours[0] as AnimaStateMachine;
                                 if (GUILayout.Button("Edit"))
                                 {
-                                    OpenModifier(thatState.AnimationData.ID, controllerCategory, (AnimaType)layerIndex);
+                                    OpenModifier(thatState.AnimationData.Location);
                                 }
                                 if (GUILayout.Button("Replace"))
                                 {
@@ -937,7 +1002,7 @@ namespace PulseEditor.Modules.Anima
                                         {
                                             thatState.AnimationData = data;
                                         }
-                                    }, controllerCategory, (AnimaType)layerIndex);
+                                    }, new DataLocation { globalLocation = assetMainFilter, localLocation = stateIndex });
                                 }
                             }
                             if (GUILayout.Button("-"))
@@ -1046,7 +1111,7 @@ namespace PulseEditor.Modules.Anima
             public void SaveClip()
             {
                 modClip.name = sourceClip.name + "_mod";
-                string path = string.Join("/", PulseEngineMgr.Path_GAMERESSOURCES, ModuleConstants.AssetsPath + "/AnimMods/" + modClip.name + ".anim");
+                string path = string.Join("/", Core.Path_GAMERESSOURCES, AssetsPath + "/AnimMods/" + modClip.name + ".anim");
                 AssetDatabase.CreateAsset(modClip, path);
                 AssetDatabase.SaveAssets();
             }
@@ -1066,7 +1131,7 @@ namespace PulseEditor.Modules.Anima
                     {
                         ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(sourceClip, binding);
                         ObjectReferenceKeyframe[] reversedFrames = new ObjectReferenceKeyframe[keyframes.Length];
-                        for(int i = 0, len = keyframes.Length; i < len; i++)
+                        for (int i = 0, len = keyframes.Length; i < len; i++)
                         {
                             reversedFrames[i] = new ObjectReferenceKeyframe { time = keyframes[i].time, value = keyframes[len - (1 + i)].value };
                         }
@@ -1096,12 +1161,12 @@ namespace PulseEditor.Modules.Anima
                         GroupGUI(() =>
                         {
                             sourceClip = EditorGUILayout.ObjectField("Source clip", sourceClip, typeof(AnimationClip), false) as AnimationClip;
-                            if(sourceClip != null)
+                            if (sourceClip != null)
                             {
                                 if (GUILayout.Button("Next"))
                                     currentStep++;
                             }
-                        },"Select Clip");
+                        }, "Select Clip");
                         break;
                     case 1:
                         GroupGUI(() =>
@@ -1133,7 +1198,7 @@ namespace PulseEditor.Modules.Anima
                                 currentStep++;
                             }
                             GUILayout.EndHorizontal();
-                        },"Select Clip");
+                        }, "Select Clip");
                         break;
                     case 2:
                         GUILayout.BeginHorizontal();
@@ -1156,5 +1221,6 @@ namespace PulseEditor.Modules.Anima
         }
 
         #endregion
+
     }
 }

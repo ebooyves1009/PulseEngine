@@ -63,11 +63,11 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         protected override void OnInitialize()
         {
-            var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), currentScope);
+            var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), assetMainFilter);
             allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
-            allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) asset = a; });
-            if (asset)
-                editedAsset = asset;
+            allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) originalAsset = a; });
+            if (originalAsset)
+                asset = originalAsset;
             RefreshPreview();
         }
 
@@ -78,7 +78,7 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if(onSelectionEvent != null)
             {
-                onSelectionEvent.Invoke(editedData, new EditorEventArgs { Scope = editedAsset != null ? (int)((WeaponLibrary)editedAsset).Scope : 0 });
+                onSelectionEvent.Invoke(data, new EditorEventArgs { Scope = asset != null ? (int)((WeaponLibrary)asset).Scope : 0 });
             }
         }
 
@@ -93,7 +93,7 @@ namespace PulseEditor.Modules.CombatSystem
         public static void OpenEditor()
         {
             var window = GetWindow<WeaponEditor>();
-            window.windowOpenMode = EditorMode.Normal;
+            window.currentEditorMode = EditorMode.Edition;
             window.Show();
         }
 
@@ -103,7 +103,7 @@ namespace PulseEditor.Modules.CombatSystem
         public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
             var window = GetWindow<WeaponEditor>();
-            window.windowOpenMode = EditorMode.Selector;
+            window.currentEditorMode = EditorMode.Selection;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
@@ -119,9 +119,9 @@ namespace PulseEditor.Modules.CombatSystem
         public static void OpenModifier(int _id, WeaponType type, Scopes _scope)
         {
             var window = GetWindow<WeaponEditor>(true);
-            window.windowOpenMode = EditorMode.ItemEdition;
+            window.currentEditorMode = EditorMode.DataEdition;
             window.dataID = _id;
-            window.currentScope = _scope;
+            window.assetMainFilter = _scope;
             window.weaponTypeSelected = type;
             window.OnInitialize();
             window.ShowModal();
@@ -140,22 +140,22 @@ namespace PulseEditor.Modules.CombatSystem
             base.OnRedraw();
 
             GUILayout.BeginHorizontal();
-            if (windowOpenMode != EditorMode.ItemEdition)
+            if (currentEditorMode != EditorMode.DataEdition)
             {
                 ScrollablePanel(() =>
                 {
                     Header();
-                    WeaponList((WeaponLibrary)editedAsset);
+                    WeaponList((WeaponLibrary)asset);
                     Foot();
                 }, true);
             }
-            else if(editedAsset != null && editedData == null)
+            else if(asset != null && data == null)
             {
-                editedData = ((WeaponLibrary)editedAsset).DataList.Find(d => { return d.ID == dataID; });
+                data = ((WeaponLibrary)asset).DataList.Find(d => { return d.ID == dataID; });
             }
             ScrollablePanel(() =>
             {
-                WeaponDetails((WeaponData)editedData);
+                WeaponDetails((WeaponData)data);
             });
             GUILayout.EndHorizontal();
         }
@@ -203,7 +203,7 @@ namespace PulseEditor.Modules.CombatSystem
                 int selected = (int)weaponTypeSelected;
                 selected = MakeHeader((int)weaponTypeSelected, Enum.GetNames(typeof(WeaponType)), index => { weaponTypeSelected = (WeaponType)index; });
             },"Weapon Type",50);
-            return asset != null;
+            return originalAsset != null;
         }
 
         /// <summary>
@@ -225,13 +225,13 @@ namespace PulseEditor.Modules.CombatSystem
                 return;
             Func<bool> listCompatiblesmode = () =>
             {
-                switch (windowOpenMode)
+                switch (currentEditorMode)
                 {
-                    case EditorMode.Normal:
+                    case EditorMode.Edition:
                         return true;
-                    case EditorMode.Selector:
+                    case EditorMode.Selection:
                         return true;
-                    case EditorMode.ItemEdition:
+                    case EditorMode.DataEdition:
                         return false;
                     case EditorMode.Preview:
                         return false;
@@ -274,9 +274,9 @@ namespace PulseEditor.Modules.CombatSystem
                     }, "Weapon Datas List");
                 });
                 if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
-                    editedData = library.DataList[selectDataIndex];
+                    data = library.DataList[selectDataIndex];
                 else
-                    editedData = null;
+                    data = null;
             }
         }
 
@@ -288,7 +288,7 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if (data == null)
                 return;
-            if(windowOpenMode == EditorMode.Selector)
+            if(currentEditorMode == EditorMode.Selection)
             {
                 GroupGUInoStyle(() =>
                 {
@@ -327,13 +327,13 @@ namespace PulseEditor.Modules.CombatSystem
             }
             Func<bool> listCompatiblesmode = () =>
             {
-                switch (windowOpenMode)
+                switch (currentEditorMode)
                 {
-                    case EditorMode.Normal:
+                    case EditorMode.Edition:
                         return true;
-                    case EditorMode.Selector:
+                    case EditorMode.Selection:
                         return false;
-                    case EditorMode.ItemEdition:
+                    case EditorMode.DataEdition:
                         return true;
                     case EditorMode.Preview:
                         return false;

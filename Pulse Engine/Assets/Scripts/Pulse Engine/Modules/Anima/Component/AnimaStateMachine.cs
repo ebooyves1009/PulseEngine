@@ -51,7 +51,7 @@ namespace PulseEngine.Modules.Anima
                     m_controller = new AnimatorOverrideController(_animator.runtimeAnimatorController);
                 _animator.runtimeAnimatorController = m_controller;
                 m_controller[m_currentClipName] = _clip;
-                if (PulseEngine.Core.PulseEngineMgr.DEBUG_MODE_Runtime)
+                if (PulseEngine.Core.DebugMode)
                     Debug.Log("Overriding state " + m_currentClipName + " of " + _animator.name + " with " + _clip.name);
             }
         }

@@ -12,18 +12,12 @@ namespace PulseEngine.Modules.Localisator
     /// L'asset des datas de localisation par Langue.
     /// </summary>
     [System.Serializable]
-    public class LocalisationLibrary : ScriptableObject
+    public class LocalisationLibrary : CoreLibrary
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private List<Localisationdata> libraryDatasList = new List<Localisationdata>();
-
-        [SerializeField]
-        private int libraryLanguage;
-
-        [SerializeField]
-        private int libraryTradType;
+        private List<Localisationdata> dataList = new List<Localisationdata>();
 
         #endregion
 
@@ -33,122 +27,37 @@ namespace PulseEngine.Modules.Localisator
         /// <summary>
         /// La liste des datas localisees pour ce type de data, en cette langue.
         /// </summary>
-        public List<Localisationdata> DatasList { get { return libraryDatasList; } set { libraryDatasList = value; } }
+        public override List<IData> DataList
+        {
+            get
+            {
+                if (dataList == null)
+                {
+                    dataList = new List<Localisationdata>();
+                }
+                return dataList.ConvertAll<object>(new System.Converter<Localisationdata, object>(item => { return (object)item; }));
+            }
+            set
+            {
+                if (dataList == null)
+                {
+                    dataList = new List<Localisationdata>();
+                }
+                dataList = dataList.ConvertAll<Localisationdata>(new System.Converter<object, Localisationdata>(item => { return (Localisationdata)item; })); ;
+            }
+        }
 
         /// <summary>
         /// La langue des datas de l'asset.
         /// </summary>
-        public Languages Langage { get { return (Languages)libraryLanguage; } }
+        public Languages Langage { get { return (Languages)libraryMainLocation; } }
 
         /// <summary>
         /// Le type de TradDatas de l'asset.
         /// </summary>
-        public TradDataTypes TradType { get { return (TradDataTypes)libraryTradType; } }
+        public TradDataTypes TradType { get { return (TradDataTypes)librarySecLocation; } }
 
 
         #endregion
-
-#if UNITY_EDITOR //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        #region Methodes #############################################################
-
-        /// <summary>
-        /// Cree l'asset de Localisation.
-        /// </summary>
-        /// <param name="language">La langue cible</param>
-        /// <param name="tradDataType">Le type cible.</param>
-        /// <returns></returns>
-        public static bool Save(Languages language, TradDataTypes tradDataType)
-        {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
-                return false;
-            if (!AssetDatabase.IsValidFolder(folderPath))
-            {
-                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
-                AssetDatabase.SaveAssets();
-            }
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                LocalisationLibrary asset = ScriptableObject.CreateInstance<LocalisationLibrary>();
-                asset.libraryTradType = (int)tradDataType;
-                asset.libraryLanguage = (int)language;
-                AssetDatabase.CreateAsset(asset, fullPath);
-                AssetDatabase.SaveAssets();
-                //Make a gameobject an addressable
-                var settings = AddressableAssetSettingsDefaultObject.Settings;
-                if (settings != null)
-                {
-                    AddressableAssetGroup g = settings.DefaultGroup;
-                    if (g != null)
-                    {
-                        var guid = AssetDatabase.AssetPathToGUID(fullPath);
-                        //This is the function that actually makes the object addressable
-                        var entry = settings.CreateOrMoveEntry(guid, g);
-                        //You'll need these to run to save the changes!
-                        settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
-                        AssetDatabase.SaveAssets();
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Verifie si l'asset existe.
-        /// </summary>
-        /// <param name="language">La langue cible</param>
-        /// <param name="tradDataType">Le type cible.</param>
-        /// <returns></returns>
-        public static bool Exist(Languages language, TradDataTypes tradDataType)
-        {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
-                return false;
-            if (!AssetDatabase.IsValidFolder(folderPath))
-            {
-                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
-                AssetDatabase.SaveAssets();
-            }
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                if (AssetDatabase.LoadAssetAtPath<LocalisationLibrary>(fullPath) == null)
-                    return false;
-                else
-                    return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Charge l'asset.
-        /// </summary>
-        /// <param name="language">La langue cible</param>
-        /// <param name="tradDataType">Le type cible.</param>
-        /// <returns></returns>
-        public static LocalisationLibrary Load(Languages language, TradDataTypes tradDataType)
-        {
-            string fileName = "Localisator_" + LocalisationManager.LanguageConverter(language) + "_" + tradDataType.ToString() + ".Asset";
-            string path = LocalisationManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (Exist(language, tradDataType))
-            {
-                return AssetDatabase.LoadAssetAtPath(fullPath, typeof(LocalisationLibrary)) as LocalisationLibrary;
-            }
-            else
-                return null;
-        }
-
-        #endregion
-
-#endif
     }
 }

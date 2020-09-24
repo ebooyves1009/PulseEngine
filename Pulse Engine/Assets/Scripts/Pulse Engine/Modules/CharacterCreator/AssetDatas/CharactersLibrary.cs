@@ -13,14 +13,12 @@ namespace PulseEngine.Modules.CharacterCreator
     /// L'asset des characters.
     /// </summary>
     [System.Serializable]
-    public class CharactersLibrary : ScriptableObject
+    public class CharactersLibrary : CoreLibrary
     {
         #region Attributs #########################################################
 
         [SerializeField]
         private List<CharacterData> dataList = new List<CharacterData>();
-        [SerializeField]
-        private int scope;
 
         #endregion
 
@@ -29,109 +27,31 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <summary>
         /// La liste des characters.
         /// </summary>
-        public List<CharacterData> DataList { get => dataList; set => dataList = value; }
+        public override List<IData> DataList
+        {
+            get
+            {
+                if (dataList == null)
+                {
+                    dataList = new List<CharacterData>();
+                }
+                return dataList.ConvertAll<object>(new System.Converter<CharacterData, object>(item => { return (object)item; }));
+            }
+            set
+            {
+                if (dataList == null)
+                {
+                    dataList = new List<CharacterData>();
+                }
+                dataList = dataList.ConvertAll<CharacterData>(new System.Converter<object, CharacterData>(item => { return (CharacterData)item; })); ;
+            }
+        }
 
         /// <summary>
         /// Le scope de l'asset.
         /// </summary>
-        public Scopes Scope { get => (Scopes)scope; set => scope = (int)value; }
+        public Scopes Scope { get => (Scopes)libraryMainLocation; set => libraryMainLocation = (int)value; }
 
         #endregion
-
-#if UNITY_EDITOR //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        #region Methodes #############################################################
-
-        /// <summary>
-        /// Cree l'asset.
-        /// </summary>
-        /// <returns></returns>
-        public static bool Save(CharacterType type, Scopes _scope)
-        {
-            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
-            string path = CharacterManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
-                return false;
-            if (!AssetDatabase.IsValidFolder(folderPath))
-            {
-                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
-                AssetDatabase.SaveAssets();
-            }
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                CharactersLibrary asset = ScriptableObject.CreateInstance<CharactersLibrary>();
-                asset.Scope = _scope;
-                AssetDatabase.CreateAsset(asset, fullPath);
-                AssetDatabase.SaveAssets();
-                //Make a gameobject an addressable
-                var settings = AddressableAssetSettingsDefaultObject.Settings;
-                if (settings != null)
-                {
-                    AddressableAssetGroup g = settings.DefaultGroup;
-                    if (g != null)
-                    {
-                        var guid = AssetDatabase.AssetPathToGUID(fullPath);
-                        //This is the function that actually makes the object addressable
-                        var entry = settings.CreateOrMoveEntry(guid, g);
-                        //You'll need these to run to save the changes!
-                        settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
-                        AssetDatabase.SaveAssets();
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Verifie si l'asset existe.
-        /// </summary>
-        /// <returns></returns>
-        public static bool Exist(CharacterType type, Scopes _scope)
-        {
-            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
-            string path = CharacterManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
-                return false;
-            if (!AssetDatabase.IsValidFolder(folderPath))
-            {
-                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
-                AssetDatabase.SaveAssets();
-            }
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                if (AssetDatabase.LoadAssetAtPath<CharactersLibrary>(fullPath) == null)
-                    return false;
-                else
-                    return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Charge l'asset.
-        /// </summary>
-        /// <returns></returns>
-        public static CharactersLibrary Load(CharacterType type, Scopes _scope)
-        {
-            string fileName = "Characters_" + _scope + "_" + type + ".Asset";
-            string path = CharacterManager.AssetsPath;
-            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
-            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
-            if (Exist(type, _scope))
-            {
-                return AssetDatabase.LoadAssetAtPath(fullPath, typeof(CharactersLibrary)) as CharactersLibrary;
-            }
-            else
-                return null;
-        }
-
-        #endregion
-
-#endif
     }
 }

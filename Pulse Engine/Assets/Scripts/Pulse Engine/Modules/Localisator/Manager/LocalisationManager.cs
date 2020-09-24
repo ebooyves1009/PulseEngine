@@ -18,10 +18,6 @@ namespace PulseEngine.Modules.Localisator
 
         #region Static Attributes and properties #########################################
 
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "LocalisationDatas"; }
 
         #endregion
 
@@ -34,24 +30,10 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(int _id, DatalocationField _field, TradDataTypes _tradDataType, Languages _langage)
+        public static async Task<string> TextData(DatalocationField _field, DataLocation _location)
         {
             string result = string.Empty;
-            LocalisationLibrary handle = null;
-            Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter(_langage) + "_" + _tradDataType.ToString();
-            var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
-            if (locationsIlist == null || locationsIlist.Count <= 0)
-                return string.Empty;
-            var location = locationsIlist.FirstOrDefault();
-            if(location != null)
-            {
-                handle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
-            }
-            if (handle)
-            {
-                data = handle.DatasList.Find(d => { return d.ID == _id; });
-            }
+            Localisationdata data = await CoreData.GetData<Localisationdata,LocalisationLibrary>(_location);
             if (data == null)
                 return string.Empty;
 
@@ -119,27 +101,14 @@ namespace PulseEngine.Modules.Localisator
                 {
                     var code = p.Split('#')[1];
                     var subParts = code.Split('_');
-                    if(subParts.Length > 1)
+                    if(subParts.Length > 2)
                     {
-                        int id = 0;
-                        int type = 0;
-                        if (int.TryParse(subParts[0], out id) && int.TryParse(subParts[1], out type))
+                        DataLocation subLocation = new DataLocation();
+                        if (int.TryParse(subParts[0], out subLocation.id) && int.TryParse(subParts[1], out subLocation.globalLocation) && int.TryParse(subParts[2], out subLocation.localLocation))
                         {
-                            string subkey = "Localisator_" + LanguageConverter(_langage) + "_" + ((TradDataTypes)type).ToString();
-                            var sublocationsIlist = await Addressables.LoadResourceLocationsAsync(subkey).Task;
-                            if (locationsIlist == null || locationsIlist.Count <= 0)
-                                continue;
-                            var sublocation = sublocationsIlist.FirstOrDefault();
-                            if (sublocation != null)
-                            {
-                                var subHandle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
-                                if (subHandle)
-                                {
-                                    var subData = subHandle.DatasList.Find(d => { return d.ID == id; });
-                                    if(subData != null)
-                                        parts[i] = subData.Title.textField;
-                                }
-                            }
+                            var subData = await CoreData.GetData<Localisationdata, LocalisationLibrary>(subLocation);
+                            if (subData != null)
+                                parts[i] = subData.Title.textField;
                         }
                     }
                 }
@@ -154,27 +123,12 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<AudioClip> AudioData(int _id, DatalocationField _field, TradDataTypes _tradDataType, Languages _langage)
+        public static async Task<AudioClip> AudioData(DatalocationField _field, DataLocation _location)
         {
             AudioClip result = null;
-            LocalisationLibrary handle = null;
-            Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter(_langage) + "_" + _tradDataType.ToString();
-            var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
-            if (locationsIlist == null || locationsIlist.Count <= 0)
-                return null;
-            var location = locationsIlist.FirstOrDefault();
-            if(location != null)
-            {
-                handle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
-            }
-            if (handle)
-            {
-                data = handle.DatasList.Find(d => { return d.ID == _id; });
-            }
+            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
             if (data == null)
                 return null;
-
             switch (_field)
             {
                 case DatalocationField.title:
@@ -239,27 +193,12 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<Sprite> ImageData(int _id, DatalocationField _field, TradDataTypes _tradDataType, Languages _langage)
+        public static async Task<Sprite> ImageData(DatalocationField _field, DataLocation _location)
         {
             Sprite result = null;
-            LocalisationLibrary handle = null;
-            Localisationdata data = null;
-            string key = "Localisator_" + LanguageConverter(_langage) + "_" + _tradDataType.ToString();
-            var locationsIlist = await Addressables.LoadResourceLocationsAsync(key).Task;
-            if (locationsIlist == null || locationsIlist.Count <= 0)
-                return null;
-            var location = locationsIlist.FirstOrDefault();
-            if (location != null)
-            {
-                handle = await Addressables.LoadAssetAsync<LocalisationLibrary>(location.PrimaryKey).Task;
-            }
-            if (handle)
-            {
-                data = handle.DatasList.Find(d => { return d.ID == _id; });
-            }
+            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
             if (data == null)
                 return null;
-
             switch (_field)
             {
                 case DatalocationField.title:

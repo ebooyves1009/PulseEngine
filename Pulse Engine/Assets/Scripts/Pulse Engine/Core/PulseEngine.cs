@@ -6,6 +6,10 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using UnityEngine;
 using PulseEngine.Modules.Commander;
+using UnityEditor;
+using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets;
+using UnityEngine.AddressableAssets;
 
 
 //TODO: Les Valeurs et fonctions globales seront ajoutees au fur et a mesure.
@@ -19,7 +23,6 @@ namespace PulseEngine
     /// </summary>
     public static class Core
     {
-
         #region Constants ###########################################################################
 
         /// <summary>
@@ -344,6 +347,17 @@ namespace PulseEngine
         }
     }
 
+    /// <summary>
+    ///  Le reperage d'une data dans les assets.
+    /// </summary>
+    [System.Serializable]
+    public struct DataLocation
+    {
+        public int id;
+        public int globalLocation;
+        public int localLocation;
+    }
+
     #endregion
 
     #region CharacterCreator Structures >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -489,23 +503,275 @@ namespace PulseEngine
 
     #region Interfaces <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
+    /// <summary>
+    /// L'interface des datas du systeme.
+    /// </summary>
+    public interface IData
+    {
+        DataLocation Location { get; set; }
+    }
+
     #endregion
 }
 
 namespace PulseEngine.Datas
 {
+
+    #region Libraries <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+    /// <summary>
+    /// La classe mere des libraies d'assets
+    /// </summary>
+    public abstract class CoreLibrary : ScriptableObject
+    {
+
+        #region Attributes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        /// <summary>
+        /// Usually the GD scope, it's the first asset filter parameter
+        /// </summary>
+        [SerializeField]
+        protected int libraryMainLocation;
+
+        /// <summary>
+        /// Usually the zone, it's the second asset filter parameter
+        /// </summary>
+        [SerializeField]
+        protected int librarySecLocation;
+
+        #endregion
+
+        #region Properties >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        public virtual List<IData> DataList { get; set; }
+
+        #endregion
+
+        #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        /// <summary>
+        /// Cree l'asset.
+        /// </summary>
+        /// <returns></returns>
+        public static bool Save<T>(string assetsPath, params object[] locationFilters) where T : CoreLibrary
+        {
+            string fileName = typeof(T).Name;
+            for (int i = 0; i < locationFilters.Length; i++)
+            {
+                fileName += "_" + (int)locationFilters[i];
+            }
+            fileName += ".asset";
+            string path = assetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
+                return false;
+            if (!AssetDatabase.IsValidFolder(folderPath))
+            {
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
+                AssetDatabase.SaveAssets();
+            }
+            if (AssetDatabase.IsValidFolder(folderPath))
+            {
+                T asset = ScriptableObject.CreateInstance<T>();
+                try
+                {
+                    asset.libraryMainLocation = locationFilters.Length > 0 ? (int)locationFilters[0] : 0;
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() != typeof(InvalidCastException))
+                        throw new Exception("Unknow exeption occured when saving " + fileName);
+                }
+                try
+                {
+                    asset.librarySecLocation = locationFilters.Length > 1 ? (int)locationFilters[1] : 0;
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() != typeof(InvalidCastException))
+                        throw new Exception("Unknow exeption occured when saving " + fileName);
+                }
+                AssetDatabase.CreateAsset(asset, fullPath);
+                AssetDatabase.SaveAssets();
+                //Make a gameobject an addressable
+                var settings = AddressableAssetSettingsDefaultObject.Settings;
+                if (settings != null)
+                {
+                    AddressableAssetGroup g = settings.DefaultGroup;
+                    if (g != null)
+                    {
+                        var guid = AssetDatabase.AssetPathToGUID(fullPath);
+                        //This is the function that actually makes the object addressable
+                        var entry = settings.CreateOrMoveEntry(guid, g);
+                        //You'll need these to run to save the changes!
+                        settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
+                        AssetDatabase.SaveAssets();
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Verifie si l'asset existe.
+        /// </summary>
+        /// <returns></returns>
+        public static bool Exist<T>(string assetsPath, params object[] locationFilters) where T : CoreLibrary
+        {
+            string fileName = typeof(T).Name;
+            for (int i = 0; i < locationFilters.Length; i++)
+            {
+                fileName += "_" + (int)locationFilters[i];
+            }
+            fileName += ".asset";
+            string path = assetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (!AssetDatabase.IsValidFolder(Core.Path_GAMERESSOURCES))
+                return false;
+            if (!AssetDatabase.IsValidFolder(folderPath))
+            {
+                AssetDatabase.CreateFolder(Core.Path_GAMERESSOURCES, path);
+                AssetDatabase.SaveAssets();
+            }
+            if (AssetDatabase.IsValidFolder(folderPath))
+            {
+                if (AssetDatabase.LoadAssetAtPath<T>(fullPath) == null)
+                    return false;
+                else
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Charge l'asset.
+        /// </summary>
+        /// <returns></returns>
+        public static T Load<T>(string assetsPath, params object[] locationFilters) where T : CoreLibrary
+        {
+            string fileName = typeof(T).Name;
+            for (int i = 0; i < locationFilters.Length; i++)
+            {
+                fileName += "_" + (int)locationFilters[i];
+            }
+            fileName += ".asset";
+            string path = assetsPath;
+            string folderPath = string.Join("/", Core.Path_GAMERESSOURCES, path);
+            string fullPath = string.Join("/", Core.Path_GAMERESSOURCES, path, fileName);
+            if (Exist<T>(assetsPath, locationFilters))
+            {
+                return AssetDatabase.LoadAssetAtPath(fullPath, typeof(T)) as T;
+            }
+            else
+                return null;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region Data Access
+
+    /// <summary>
+    /// Classe d'acces aux datas en runtime.
+    /// </summary>
+    public static class CoreData
+    {
+
+        #region Attributs >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+        #endregion
+
+        #region Properties >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+        #endregion
+
+        #region Methodes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        /// <summary>
+        /// Get all module datas with specified parameters
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<List<T>> GetAllDatas<T,Q>() where Q: CoreLibrary where T: IData
+        {
+            string keyNamePart = typeof(Q).Name;
+            List<string> keys = new List<string>();
+            foreach (var loc in Addressables.ResourceLocators)
+            {
+                List<object> _keys = new List<object>(loc.Keys);
+                for (int i = 0; i < _keys.Count; i++)
+                {
+                    var k = _keys[i] as string;
+                    if (k == null)
+                        continue;
+                    if (string.IsNullOrEmpty(k))
+                        continue;
+                    if (k.Contains(keyNamePart))
+                        keys.Add(k);
+                }
+            }
+            List<T> output = new List<T>();
+            for (int i = 0; i < keys.Count; i++)
+            {
+                var library = await Addressables.LoadAssetAsync<Q>(keys[i]).Task;
+                if(library == null)
+                    continue;
+                var datalist = Core.DeepCopy(library).DataList;
+                output.AddRange(datalist.ConvertAll(new Converter<object, T>(data => { return (T)data; })));
+            }
+            return output.Count > 0 ? output.FindAll(item => { return item != null; }) : null;
+        }
+
+        /// <summary>
+        /// Get all module datas with specified parameters
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<List<T>> GetDatas<T,Q>(DataLocation _location) where Q: CoreLibrary where T: IData
+        {
+            var location = await Addressables.LoadResourceLocationsAsync(typeof(T).Name + "_" + _location.globalLocation + "_" + _location.localLocation).Task;
+            if (location == null || location.Count <= 0)
+                return null;
+            var key = location[0].PrimaryKey;
+            var library = await Addressables.LoadAssetAsync<Q>(key).Task;
+            if (library == null)
+                return null;
+            var datalist = Core.DeepCopy(library).DataList;
+            return datalist.FindAll(d=> { return d != null; }).ConvertAll(new Converter<object, T>(data => { return (T)data; }));
+        }
+
+        /// <summary>
+        /// Get module data with ID
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<T> GetData<T, Q>(DataLocation _location) where Q : CoreLibrary where T : class, IData
+        {
+            var list = await GetDatas<T,Q>(_location);
+            return list != null ? list.Find(data => { return data.Location.id == _location.id; }) : null;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
     #region Localisation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     /// <summary>
     /// La Data de localisation contenu dans un asset de localisation, dans une langue precise.
     /// </summary>
     [System.Serializable]
-    public class Localisationdata
+    public class Localisationdata : IData
     {
         #region Attributes ###############################################################
 
         [SerializeField]
-        private int trad_ID;
+        private DataLocation location;
 
         [SerializeField]
         private TradField title;
@@ -565,7 +831,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// L'id de traduction.
         /// </summary>
-        public int ID { get { return trad_ID; } set { trad_ID = value; } }
+        public  DataLocation Location { get { return location; } set { location = value; } }
 
         /// <summary>
         /// Le titre.
@@ -663,7 +929,7 @@ namespace PulseEngine.Datas
         #region Attributes #########################################################
 
         [SerializeField]
-        protected int IdTrad;
+        protected DataLocation tradLocation;
         [SerializeField]
         protected TradDataTypes TradDataType;
 
@@ -678,12 +944,12 @@ namespace PulseEngine.Datas
     /// La data d'animation.
     /// </summary>
     [System.Serializable]
-    public class AnimaData
+    public class AnimaData : IData
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private int id;
+        private DataLocation location;
         [SerializeField]
         private List<AnimeCommand> eventList = new List<AnimeCommand>();
         [SerializeField]
@@ -700,7 +966,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// L'id de l'animation dans la BD des anima data.
         /// </summary>
-        public int ID { get { return id; } set { id = value; } }
+        public DataLocation Location { get { return location; } set { location = value; } }
 
         /// <summary>
         /// La liste des evenements au cours de l'animation.
@@ -733,14 +999,12 @@ namespace PulseEngine.Datas
     /// La Data d'un character.
     /// </summary>
     [System.Serializable]
-    public class CharacterData
+    public class CharacterData : LocalisableData, IData
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private int id;
-        [SerializeField]
-        private int idTrad;
+        private DataLocation location;
         [SerializeField]
         private MindStat stats;
         [SerializeField]
@@ -759,12 +1023,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// l'id dans BD.
         /// </summary>
-        public int ID { get => id; set => id = value; }
-
-        /// <summary>
-        /// l'id des donnees de localisation.
-        /// </summary>
-        public int IdTrad { get => idTrad; set => idTrad = value; }
+        public DataLocation Location { get => location; set => location = value; }
 
         /// <summary>
         /// Les stats du character.
@@ -802,12 +1061,12 @@ namespace PulseEngine.Datas
     /// La data d'une arme.
     /// </summary>
     [System.Serializable]
-    public class WeaponData : LocalisableData
+    public class WeaponData : LocalisableData, IData
     {
         #region Attributs #########################################################
 
         [SerializeField]
-        private int id;
+        private DataLocation location;
         [SerializeField]
         private float range;
         [SerializeField]
@@ -842,7 +1101,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// l'id de l'arme dans la bd des armes.
         /// </summary>
-        public int ID { get => id; set => id = value; }
+        public DataLocation Location { get => location; set => location = value; }
 
         /// <summary>
         /// La portee de l'arme.
@@ -1160,7 +1419,7 @@ namespace PulseEngine.Datas
 
     #endregion
 
-    #region Localisator >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #region ....... >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #endregion
 }
