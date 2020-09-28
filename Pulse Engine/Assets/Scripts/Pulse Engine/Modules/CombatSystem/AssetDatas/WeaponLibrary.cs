@@ -35,7 +35,7 @@ namespace PulseEngine.Modules.CombatSystem
                 {
                     dataList = new List<WeaponData>();
                 }
-                return dataList.ConvertAll<object>(new System.Converter<WeaponData, object>(item => { return (object)item; }));
+                return dataList.ConvertAll<IData>(new System.Converter<WeaponData, IData>(item => { return item; }));
             }
             set
             {
@@ -43,7 +43,7 @@ namespace PulseEngine.Modules.CombatSystem
                 {
                     dataList = new List<WeaponData>();
                 }
-                dataList = dataList.ConvertAll<WeaponData>(new System.Converter<object, WeaponData>(item => { return (WeaponData)item; })); ;
+                dataList = value.ConvertAll<WeaponData>(new System.Converter<IData, WeaponData>(item => { return (WeaponData)item; })); ;
             }
         }
 

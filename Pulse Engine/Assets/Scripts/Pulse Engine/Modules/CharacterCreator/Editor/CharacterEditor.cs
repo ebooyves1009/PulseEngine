@@ -8,6 +8,7 @@ using UnityEditor;
 using System;
 using PulseEngine;
 using System.Threading.Tasks;
+using PulseEngine.Datas;
 
 namespace PulseEditor.Modules.CharacterCreator
 {
@@ -96,7 +97,7 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <summary>
         /// the new character category
         /// </summary>
-        private AnimaCategory newCharCat;
+        private AnimaAvatar newCharAvatarType;
 
         /// <summary>
         /// the index of the currently selected weapon
@@ -111,11 +112,6 @@ namespace PulseEditor.Modules.CharacterCreator
         #region Fonctionnal Attributes ################################################################################################################################################################################################
 
         /// <summary>
-        /// La previsualisation du charactere.
-        /// </summary>
-        private Editor objEditor;
-
-        /// <summary>
         /// Le type de character choisi.
         /// </summary>
         private CharacterType typeSelected;
@@ -123,7 +119,7 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <summary>
         /// Les armes dans l'armurerie du character.
         /// </summary>
-        private List<PulseEngine.Modules.CombatSystem.WeaponData> characterWeapons = new List<PulseEngine.Modules.CombatSystem.WeaponData>();
+        private List<WeaponData> characterWeapons = new List<WeaponData>();
 
         /// <summary>
         /// l'emplacement des armes dans la previsualiation
@@ -165,9 +161,7 @@ namespace PulseEditor.Modules.CharacterCreator
                 {
                     onSelect.Invoke(null, new EditorEventArgs
                     {
-                        ID = ((CharacterData)window.data).ID,
-                        dataType = (int)((CharactersLibrary)window.asset).DataType,
-                        Scope = (int)((CharactersLibrary)window.asset).Scope
+                        dataObjectLocation = window.data.Location
                     });
                 }
             };
@@ -177,13 +171,13 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <summary>
         /// Open the Modifier.
         /// </summary>
-        public static void OpenModifier(int _id, Scopes scope, CharacterType _type)
+        public static void OpenModifier(DataLocation location)
         {
             var window = GetWindow<CharacterEditor>(true);
             window.currentEditorMode = EditorMode.DataEdition;
-            window.typeSelected = _type;
-            window.dataID = _id;
-            window.assetMainFilter = scope;
+            window.typeSelected = (CharacterType)location.localLocation;
+            window.dataID = location.id;
+            window.assetMainFilter = location.globalLocation;
             window.OnInitialize();
             window.ShowUtility();
         }
@@ -200,16 +194,13 @@ namespace PulseEditor.Modules.CharacterCreator
         /// L'entete.
         /// </summary>
         /// <returns></returns>
-        private bool Header()
+        private void Header()
         {
             GroupGUInoStyle(() =>
             {
+                ScopeSelector();
                 MakeHeader((int)typeSelected, Enum.GetNames(typeof(CharacterType)), index => { typeSelected = (CharacterType)index; });
             }, "Character Type", 50);
-            if (asset)
-                return true;
-            else
-                return false;
         }
 
         /// <summary>
@@ -255,7 +246,7 @@ namespace PulseEditor.Modules.CharacterCreator
                     GUILayout.BeginHorizontal();
                     if (addindNewCharacter)
                     {
-                        newCharCat = (AnimaCategory)EditorGUILayout.EnumPopup(newCharCat);
+                        newCharAvatarType = (AnimaCategory)EditorGUILayout.EnumPopup(newCharAvatarType);
                         if (GUILayout.Button("Ok"))
                         {
                             addindNewCharacter = false;
@@ -263,7 +254,7 @@ namespace PulseEditor.Modules.CharacterCreator
                             {
                                 ID = maxId + 1,
                                 TradType = TradDataTypes.Person,
-                                AnimCat = newCharCat
+                                AnimCat = newCharAvatarType
                             });
                         }
                     }

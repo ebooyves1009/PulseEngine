@@ -33,7 +33,7 @@ namespace PulseEngine.Modules.Anima
                 {
                     dataList = new List<AnimaData>();
                 }
-                return dataList.ConvertAll<object>(new System.Converter<AnimaData, object>(item => { return (object)item; }));
+                return dataList.ConvertAll<IData>(new System.Converter<AnimaData, IData>(item => { return item; }));
             }
             set
             {
@@ -41,7 +41,7 @@ namespace PulseEngine.Modules.Anima
                 {
                     dataList = new List<AnimaData>();
                 }
-                dataList = dataList.ConvertAll<AnimaData>(new System.Converter<object, AnimaData>(item => { return (AnimaData)item; })); ;
+                dataList = value.ConvertAll<AnimaData>(new System.Converter<IData, AnimaData>(item => { return (AnimaData)item; })); ;
             }
         }
 

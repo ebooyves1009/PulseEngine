@@ -35,7 +35,7 @@ namespace PulseEngine.Modules.Localisator
                 {
                     dataList = new List<Localisationdata>();
                 }
-                return dataList.ConvertAll<object>(new System.Converter<Localisationdata, object>(item => { return (object)item; }));
+                return dataList.ConvertAll<IData>(new System.Converter<Localisationdata, IData>(item => { return item; }));
             }
             set
             {
@@ -43,7 +43,7 @@ namespace PulseEngine.Modules.Localisator
                 {
                     dataList = new List<Localisationdata>();
                 }
-                dataList = dataList.ConvertAll<Localisationdata>(new System.Converter<object, Localisationdata>(item => { return (Localisationdata)item; })); ;
+                dataList = value.ConvertAll<Localisationdata>(new System.Converter<IData, Localisationdata>(item => { return (Localisationdata)item; })); ;
             }
         }
 

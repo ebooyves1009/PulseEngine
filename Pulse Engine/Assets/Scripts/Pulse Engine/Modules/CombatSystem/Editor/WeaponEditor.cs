@@ -780,5 +780,12 @@ namespace PulseEditor.Modules.CombatSystem
         }
 
         #endregion
+
+
+
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public static string AssetsPath { get => "CombatDatas"; }
     }
 }

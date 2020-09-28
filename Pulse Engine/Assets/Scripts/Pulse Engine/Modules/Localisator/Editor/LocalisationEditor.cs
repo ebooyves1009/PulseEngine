@@ -585,7 +585,7 @@ namespace PulseEditor.Modules.Localisator
 
         #endregion
 
-        #region Utils #######################################################################################################
+        #region Utils ##############################################################################################################################################################################################################
 
 
         /// <summary>
@@ -598,18 +598,6 @@ namespace PulseEditor.Modules.Localisator
         {
             string hashTag = "#" + id + "_" + (int)L + "_"+ (int)T + "#";
             return hashTag;
-        }
-
-        /// <summary>
-        /// Recupere le titre d'une data.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="_tradType"></param>
-        /// <returns></returns>
-        public static object GetData(int id, int _tradType)
-        {
-            TradDataTypes tradType = (TradDataTypes)_tradType;
-            return "";
         }
 
         #endregion

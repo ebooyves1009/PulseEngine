@@ -1732,46 +1732,4 @@ namespace PulseEditor
 
     #endregion
 
-    namespace Modules
-    {
-        #region Children namespaces #####################################################################
-
-        namespace Localisator
-        {
-
-        }
-
-        namespace PhysicSpace
-        {
-
-        }
-
-        namespace StatHandler
-        {
-
-        }
-
-        namespace Commander
-        {
-
-        }
-
-        namespace Anima
-        {
-
-        }
-
-        namespace CharacterCreator
-        {
-
-        }
-
-        namespace CombatSystem
-        {
-
-        }
-
-        #endregion
-    }
-
 }

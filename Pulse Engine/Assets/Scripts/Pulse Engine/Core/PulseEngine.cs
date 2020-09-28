@@ -101,6 +101,14 @@ namespace PulseEngine
         tous,
     }
 
+    public enum DataTypes
+    {
+        Localisation,
+        Anima,
+        CombatSystem,
+        Character,
+    }
+
     #endregion
 
     #region CharacterCreator Enums >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -252,7 +260,7 @@ namespace PulseEngine
     /// <summary>
     /// La categorie d'une animation.
     /// </summary>
-    public enum AvatarType
+    public enum AnimaAvatar
     {
         humanoid,
         quadruped,
@@ -929,9 +937,16 @@ namespace PulseEngine.Datas
         #region Attributes #########################################################
 
         [SerializeField]
-        protected DataLocation tradLocation;
-        [SerializeField]
-        protected TradDataTypes TradDataType;
+        private DataLocation tradLocation;
+
+        #endregion
+
+        #region Properties #########################################################
+
+        /// <summary>
+        /// Traduction file ID.
+        /// </summary>
+        public DataLocation TradLocation { get => tradLocation; set => tradLocation = value; }
 
         #endregion
     }

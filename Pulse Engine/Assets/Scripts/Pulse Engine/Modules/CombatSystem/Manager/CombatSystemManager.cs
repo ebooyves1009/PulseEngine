@@ -12,10 +12,6 @@ namespace PulseEngine.Modules.CombatSystem
     {
         #region Attributes ####################################################################
 
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "CombatDatas"; }
 
         #endregion
 

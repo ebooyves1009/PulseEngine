@@ -35,7 +35,7 @@ namespace PulseEngine.Modules.CharacterCreator
                 {
                     dataList = new List<CharacterData>();
                 }
-                return dataList.ConvertAll<object>(new System.Converter<CharacterData, object>(item => { return (object)item; }));
+                return dataList.ConvertAll<IData>(new System.Converter<CharacterData, IData>(item => { return item; }));
             }
             set
             {
@@ -43,7 +43,7 @@ namespace PulseEngine.Modules.CharacterCreator
                 {
                     dataList = new List<CharacterData>();
                 }
-                dataList = dataList.ConvertAll<CharacterData>(new System.Converter<object, CharacterData>(item => { return (CharacterData)item; })); ;
+                dataList = value.ConvertAll<CharacterData>(new System.Converter<IData, CharacterData>(item => { return (CharacterData)item; })); ;
             }
         }
 

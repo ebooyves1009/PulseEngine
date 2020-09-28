@@ -759,7 +759,7 @@ namespace PulseEditor.Modules.Anima
             /// <summary>
             /// la categorie du controller, humanoid, quadruped...
             /// </summary>
-            private AvatarType controllerAvatarType;
+            private AnimaAvatar controllerAvatarType;
 
             #endregion
 
@@ -770,7 +770,7 @@ namespace PulseEditor.Modules.Anima
             /// </summary>
             /// <param name="rtc"></param>
             /// <param name="ownwerName"></param>
-            public static void Open(RuntimeAnimatorController rtc, AvatarType avatarType, string ownwerName, Action<object, EventArgs> onDone)
+            public static void Open(RuntimeAnimatorController rtc, AnimaAvatar avatarType, string ownwerName, Action<object, EventArgs> onDone)
             {
                 var window = GetWindow<AnimaMachineEditor>(true);
                 string path = AssetsPath;
