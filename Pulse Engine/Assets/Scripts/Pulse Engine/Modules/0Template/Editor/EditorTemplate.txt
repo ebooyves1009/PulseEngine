@@ -1,49 +1,53 @@
 
         /// <Summary>
         /// Implement here
-        /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
-        /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
-        /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
-        /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+        /// 3- Static void RefreshCache(object _dictionnary, DataTypes _dtype); to refresh the static cache dictionnary.
+        /// 4- Static bool registeredToRefresh; to Prevent from registering to OnCacheRefresh several times.
         /// </Summary>
         #region Static Accessors ################################################################################################################################################################################################
-#if UNITY_EDITOR //********************************************************************************************************************************************
+#if UNITY_EDITOR //**********************************************************************
 
         ///<summary>
-        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        /// Active when the editor is already registered to OnCacheRefresh event.
         ///</summary>
-        private static Dictionary<DataLocation, IData> StaticCache;
+        public static bool registeredToRefresh;
 
-        /// <summary>
-        /// Prevent from launching several refreshes.
-        /// </summary>
-        private static bool RefreshingCache;
-
-        /// <summary>
-        /// to retrieve data from outside of the module by reflection
-        /// </summary>
-        /// <param name="_location"></param>
-        /// <returns></returns>
-        public static object GetData(DataLocation _location)
-        {
-            if (StaticCache.ContainsKey(_location))
-            {
-                if (StaticCache[_location] == null && !RefreshingCache)
-                    RefreshCache();
-                return StaticCache[_location];
-            }
-            return null;
-        }
 
         /// <summary>
         /// to refresh the static cache dictionnary
         /// </summary>
-        public static async Task RefreshCache()
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
         {
-            RefreshingCache = true;
+            if (_dtype != DataTypes.)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
 
-            RefreshingCache = false;
+            var allAsset = new List<Library>();
+            foreach(var entry in dictionnary)
+            {
+                if(entry.Value == null)
+                {
+                    var library = allAsset.Find(lib => { return "filterLocation library" });
+                    if (library != null)
+                    {
+                        var data = library.DataList.Find(d =>
+                        {
+                            return d.Location.id == entry.Key.id;
+                        }) as Data from IData;
+                        if(data != null)
+                        {
+                            dictionnary[entry.Key] = data;
+                        }
+                    }
+                }
+            }
+
         }
+
+#endif
+        #endregion
 #endif
     #endregion
 	
@@ -62,9 +66,15 @@
     #endregion
 
 	/// <Summary>
-	/// Implement here Methods To Open the window.
+	/// Implement here Methods To Open the window, and register to OnCacheRefresh
 	/// </Summary>
     #region Door Methods ################################################################################################################################################################################################
+	
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
 
     #endregion
 

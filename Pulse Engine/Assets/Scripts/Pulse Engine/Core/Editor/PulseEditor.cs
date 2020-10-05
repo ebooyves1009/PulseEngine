@@ -11,6 +11,8 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using System.Threading.Tasks;
+using PulseEngine.Datas;
 
 
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
@@ -93,19 +95,24 @@ namespace PulseEditor
         protected EditorMode currentEditorMode;
 
         /// <summary>
+        /// Le data type que cet editeur manipule.
+        /// </summary>
+        protected DataTypes editorDataType;
+
+        /// <summary>
         /// Toutes les assets manipulees par le module.
         /// </summary>
-        protected List<ScriptableObject> allAssets = new List<ScriptableObject>();
+        protected List<CoreLibrary> allAssets = new List<CoreLibrary>();
 
         /// <summary>
         /// l'asset original.
         /// </summary>
-        protected ScriptableObject originalAsset;
+        protected CoreLibrary originalAsset;
 
         /// <summary>
         /// L'asset en cours de modification.
         /// </summary>
-        protected ScriptableObject asset;
+        protected CoreLibrary asset;
 
         /// <summary>
         /// La liste des datas en cours de modification.
@@ -261,28 +268,38 @@ namespace PulseEditor
         {
             GUILayout.BeginVertical();
             OnHeaderRedraw();
+            if(asset != null && asset.DataList != null)
+            {
+                dataList = asset.DataList;
+            }
             GUILayout.BeginHorizontal();
             //left panel
             if(currentEditorMode != EditorMode.DataEdition && dataList != null && dataList.Count > 0)
             {
                 string[] names = new string[dataList.Count];
-                PropertyInfo idField = dataList[0].GetType().GetProperty("Location", BindingFlags.Public);
-                FieldInfo tradField = dataList[0].GetType().GetField("tradLocation", BindingFlags.Public);
-                var localisationEditor = TypeDelegator.GetType("LocalisationEditor");
-                int idValue = -1;
-                int tradvalue = -1;
-                if (localisationEditor != null)
+                PropertyInfo locationField = dataList[0].GetType().GetProperty("Location", BindingFlags.Public);
+                PropertyInfo tradField = dataList[0].GetType().GetProperty("TradLocation", BindingFlags.Public);
+                DataLocation locationFieldValue = default;
+                DataLocation tradFieldValue = default;
+                for (int i = 0, len = dataList.Count; i < len; i++)
                 {
-                    var GetData = localisationEditor.GetMethod("GetData", BindingFlags.Static);
-                    if(GetData != null)
+                    locationFieldValue = locationField != null ? (DataLocation)locationField.GetValue(dataList[i]) : default;
+                    tradFieldValue = tradField != null ? (DataLocation)tradField.GetValue(dataList[i]) : default;
+                    string idValue = (locationFieldValue != default ? locationFieldValue.id.ToString() : "Null ID");
+                    string tradValue = string.Empty;
+                    if (tradFieldValue != default)
                     {
-                        for(int i = 0, len = dataList.Count; i < len; i++)
+                        var cachedData = GetCachedData(tradFieldValue);
+                        if (cachedData != null)
                         {
-                            idValue = idField != null? (int)idField.GetValue(dataList[i]) : -1;
-                            tradvalue = tradField != null? (int)tradField.GetValue(dataList[i]) : -1;
-                            names[i] = idValue.ToString() +"-"+ (string)GetData.Invoke(dataList[i], new[] { (object)idValue, (object)tradvalue });
+                            Localisationdata lData = cachedData as Localisationdata;
+                            if (lData != null)
+                            {
+                                tradValue = lData.Title.textField;
+                            }
                         }
                     }
+                    names[i] = idValue + "_" + tradValue != string.Empty ? tradValue : "null trad name";
                 }
                 //filtering here
                 //TODO: function to filter the list here
@@ -296,7 +313,8 @@ namespace PulseEditor
                     selectDataIndex = MakeList(selectDataIndex, names, dataList);
                     if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
                         data = dataList[selectDataIndex];
-                    OnListButtons();
+                    if(editorDataType != DataTypes.none)
+                        OnListButtons(editorDataType);
                 });
             }
             //right panel
@@ -338,12 +356,9 @@ namespace PulseEditor
         /// <summary>
         /// Appellee a chaque rafraichissement de la fenetre, pour afficher les bouttons de pied de liste.
         /// </summary>
-        protected virtual void OnListButtons()
+        protected virtual void OnListButtons(DataTypes dType)
         {
-            if (dataList != null && dataList.Count > 0)
-            {
-                StandartListButtons(dataList[0], new DataLocation { globalLocation = assetMainFilter, localLocation = assetLocalFilter });
-            }
+            StandartListButtons(dType);
         }
 
         /// <summary>
@@ -730,23 +745,22 @@ namespace PulseEditor
         {
             GroupGUInoStyle(() =>
             {
-                assetMainFilter = (int)((Scopes)EditorGUILayout.EnumPopup((Scopes)assetMainFilter));
+                assetMainFilter = MakeHeader(assetMainFilter, Enum.GetNames(typeof(Scopes)), index => { assetMainFilter = index; });
             }, "Scope Select", 35);
         }
 
         /// <summary>
         /// The standart Add, Remove, Copy/Paste buttons on list of Datas.
         /// </summary>
-        protected void StandartListButtons<T>(T data, DataLocation newDatasLocation) where T: IData
+        protected void StandartListButtons(DataTypes _dtype)
         {
-            if (dataList == null || dataList.Count <= 0)
-                return;
             GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Add"))
             {
                 int maxId = 0;
-                int globalLoc = newDatasLocation.globalLocation;
-                int localLoc = newDatasLocation.localLocation;
+                int globalLoc = assetMainFilter;
+                int localLoc = assetLocalFilter;
                 for (int i = 0; i < dataList.Count; i++)
                 {
                     var idObj = dataList[i] as IData;
@@ -757,12 +771,18 @@ namespace PulseEditor
                             maxId = idValue;
                     }
                 }
-                var item = Activator.CreateInstance(typeof(T)) as IData;
+                var item = Activator.CreateInstance(GetTypeFromData(_dtype)) as IData;
                 if (item != null)
                 {
-                    item.Location = new DataLocation { id = maxId, globalLocation = globalLoc, localLocation = localLoc };
+                    item.Location = new DataLocation { id = maxId, globalLocation = globalLoc, localLocation = localLoc, dType = _dtype };
                     dataList.Add(item);
                 }
+            }
+            if (dataList == null || dataList.Count <= 0)
+            {
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+                return;
             }
             if (data != null)
             {
@@ -797,6 +817,92 @@ namespace PulseEditor
                     }
                 }
             }
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Edit stat.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="_stat"></param>
+        protected void StatEditor<T>(T _stat) where T: PhycisStats
+        {
+            MindStat mindStat = _stat as MindStat;
+            BodyStats bodyStat = _stat as BodyStats;
+            VitalStat vitalStat = _stat as VitalStat;
+            ScrollablePanel(() =>
+            {
+                GUILayout.BeginHorizontal();
+                if (mindStat != null)
+                {
+                    GroupGUI(() =>
+                    {
+                        float Intelligence = EditorGUILayout.FloatField("Intelligence", mindStat.Intelligence);
+                        mindStat.Intelligence = Mathf.Clamp(Intelligence, 1, Intelligence);
+                        float Determination = EditorGUILayout.FloatField("Determination", mindStat.Determination);
+                        mindStat.Determination = Mathf.Clamp(Determination, 1, Determination);
+                        float Dexterity = EditorGUILayout.FloatField("Dexterity", mindStat.Dexterity);
+                        mindStat.Dexterity = Mathf.Clamp(Dexterity, 0, Dexterity);
+                        float Experience = EditorGUILayout.FloatField("Experience", mindStat.Experience);
+                        mindStat.Experience = Mathf.Clamp(Experience, 0, Experience);
+                        float Madness = EditorGUILayout.FloatField("Madness", mindStat.Madness);
+                        mindStat.Madness = Mathf.Clamp(Madness, 0, 100);
+                        float Sociability = EditorGUILayout.FloatField("Sociability", mindStat.Sociability);
+                        mindStat.Sociability = Mathf.Clamp(Sociability, 0, 100);
+                    }, "Minds");
+                }
+                if (bodyStat != null)
+                {
+                    GroupGUI(() =>
+                    {
+                        float Souffle = EditorGUILayout.FloatField("Souffle", bodyStat.Souffle);
+                        bodyStat.Souffle = Mathf.Clamp(Souffle, 0, Souffle);
+                        float SouffleMax = EditorGUILayout.FloatField("SouffleMax", bodyStat.SouffleMax);
+                        bodyStat.SouffleMax = Mathf.Clamp(SouffleMax, Souffle, SouffleMax);
+                        float Endurance = EditorGUILayout.FloatField("Endurance", bodyStat.Endurance);
+                        bodyStat.Endurance = Mathf.Clamp(Endurance, 0, Endurance);
+                        float EnduranceMax = EditorGUILayout.FloatField("EnduranceMax", bodyStat.EnduranceMax);
+                        bodyStat.EnduranceMax = Mathf.Clamp(EnduranceMax, Endurance, EnduranceMax);
+                        float Strenght = EditorGUILayout.FloatField("Strenght", bodyStat.Strenght);
+                        bodyStat.Strenght = Mathf.Clamp(Strenght, 0, Strenght);
+                        float Speed = EditorGUILayout.FloatField("Speed", bodyStat.Speed);
+                        bodyStat.Speed = Mathf.Clamp(Speed, 1, Speed);
+                    }, "Body");
+                }
+                if (vitalStat != null)
+                {
+                    GroupGUI(() =>
+                    {
+                        float Age = EditorGUILayout.FloatField("Age", vitalStat.Age);
+                        vitalStat.Age = Mathf.Clamp(Age, 0, Age);
+                        float Health = EditorGUILayout.FloatField("Health", vitalStat.Health);
+                        vitalStat.Health = Mathf.Clamp(Health, 0, Health);
+                        float Longevity = EditorGUILayout.FloatField("Longevity", vitalStat.Longevity);
+                        vitalStat.Longevity = Mathf.Clamp(Longevity, Health, Longevity);
+                        float Karma = EditorGUILayout.FloatField("Karma", vitalStat.Karma);
+                        vitalStat.Karma = Mathf.Clamp(Karma, -500, 500);
+                    }, "Vitals");
+                }
+                GroupGUI(() =>
+                {
+                    float Mass = EditorGUILayout.FloatField("Mass", _stat.Mass);
+                    _stat.Mass = Mathf.Clamp(Mass, 0, Mass);
+                    float density = EditorGUILayout.FloatField("Density", _stat.Density);
+                    _stat.Density = Mathf.Clamp(density, 1, density);
+                    float elasticity = EditorGUILayout.FloatField("Elasticity", _stat.Elasticity);
+                    _stat.Elasticity = Mathf.Clamp(elasticity, 0, 100);
+                    float Frozability = EditorGUILayout.FloatField("Frozability", _stat.Frozability);
+                    _stat.Frozability = Mathf.Clamp(Frozability, 0, 100);
+                    float Inflammability = EditorGUILayout.FloatField("Inflammability", _stat.Inflammability);
+                    _stat.Inflammability = Mathf.Clamp(Inflammability, 0, 100);
+                    float Resistance = EditorGUILayout.FloatField("Resistance", _stat.Resistance);
+                    _stat.Resistance = Mathf.Clamp(Resistance, density, 2 * density);
+                    float Roughness = EditorGUILayout.FloatField("Roughness", _stat.Roughness);
+                    _stat.Roughness = Mathf.Clamp(Roughness, 0, 100);
+                }, "Physic Props");
+                GUILayout.EndHorizontal();
+            });
         }
 
         #endregion
@@ -825,6 +931,7 @@ namespace PulseEditor
 
         private void OnDisable()
         {
+            clipBoard = null;
             OnQuit();
             CloseWindow();
         }
@@ -948,6 +1055,100 @@ namespace PulseEditor
             return sides[0];
         }
 
+        /// <summary>
+        /// Return the corresponding Type from dataTypes
+        /// </summary>
+        /// <param name="dType"></param>
+        /// <returns></returns>
+        public static Type GetTypeFromData(DataTypes dType)
+        {
+            switch (dType)
+            {
+                default:
+                    return null;
+                case DataTypes.Localisation:
+                    return typeof(Localisationdata);
+                case DataTypes.Anima:
+                    return typeof(AnimaData);
+                case DataTypes.Weapon:
+                    return typeof(WeaponData);
+                case DataTypes.Character:
+                    return typeof(CharacterData);
+            }
+        }
+
+#if UNITY_EDITOR //<><><><><><><><><><>>><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+
+        ///<summary>
+        /// for fast retrieval of assets datas.
+        ///</summary>
+        private static Dictionary<DataTypes, Dictionary<DataLocation,IData>> StaticCache;
+
+        /// <summary>
+        /// Prevent from launching several refreshes.
+        /// </summary>
+        private static bool RefreshingCache;
+
+        /// <summary>
+        /// Emit lors d'une requete de rafraichissement du cache statique.
+        /// </summary>
+        public static EventHandler<DataTypes> OnCacheRefresh;
+
+
+        /// <summary>
+        /// Get the cache data at data location
+        /// </summary>
+        /// <param name="_location"></param>
+        /// <returns></returns>
+        public static IData GetCachedData(DataLocation _location)
+        {
+            //if the static cache doesnt exist
+            if (StaticCache == null)
+                StaticCache = new Dictionary<DataTypes, Dictionary<DataLocation, IData>>();
+            //if the data type dictionnary is null
+            if (StaticCache[_location.dType] == null)
+                StaticCache[_location.dType] = new Dictionary<DataLocation, IData>();
+            //if the data type dictionnary exist
+            if (StaticCache.ContainsKey(_location.dType))
+            {
+                //if the location exist in the datatype's dictionnary
+                if (StaticCache[_location.dType].ContainsKey(_location))
+                {
+                    if (StaticCache[_location.dType][_location] == null)
+                        RefreshCache(_location.dType);
+                    return StaticCache[_location.dType][_location];
+                }
+                else
+                {
+                    StaticCache[_location.dType].Add(_location, null);
+                    return null;
+                }
+            }
+            else
+            {
+                RefreshCache(_location.dType);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// to refresh the static cache dictionnary
+        /// </summary>
+        public static async Task RefreshCache(DataTypes _dtype)
+        {
+            //if we're already refreshing cache, skip
+            if (RefreshingCache)
+                return;
+            RefreshingCache = true;
+            if(OnCacheRefresh != null)
+            OnCacheRefresh.Invoke(StaticCache[_dtype], _dtype);
+            //we can only request cache refreshes every second
+            await Task.Delay(1000);
+            RefreshingCache = false;
+        }
+
+#endif
 
         #endregion
     }
@@ -1035,7 +1236,7 @@ namespace PulseEditor
         /// <summary>
         /// the target's accessories to render.
         /// </summary>
-        private Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)> accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)>();
+        private Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Vector3 RotOffset)> accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Vector3 RotOffset)>();
         /// <summary>
         /// arrow indicator
         /// </summary>
@@ -1107,7 +1308,7 @@ namespace PulseEditor
         /// </summary>
         /// <param name="_motion"></param>
         /// <param name="_target"></param>
-        public float Previsualize(Motion _motion, float aspectRatio = 1.77f, GameObject _target = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rotation)[] accessories)
+        public float Previsualize(Motion _motion, float aspectRatio = 1.77f, GameObject _target = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Vector3 rotation)[] accessories)
         {
             GUILayout.BeginVertical("GroupBox");
             if (!_motion)
@@ -1157,7 +1358,7 @@ namespace PulseEditor
         /// Initialise the avatar.
         /// </summary>
         /// <param name="_avatar"></param>
-        private bool Initialize(Motion _motion, GameObject _avatar = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rotation)[] accessories)
+        private bool Initialize(Motion _motion, GameObject _avatar = null, params (GameObject go, HumanBodyBones bone, Vector3 offset, Vector3 rotation)[] accessories)
         {
             if (previewRenderer == null)
             {
@@ -1268,7 +1469,7 @@ namespace PulseEditor
                     if (accessory.go == null)
                         continue;
                     if (accesoriesPool == null)
-                        accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Quaternion RotOffset)>();
+                        accesoriesPool = new Dictionary<HumanBodyBones, (GameObject go, Vector3 offset, Vector3 RotOffset)>();
                     if (accesoriesPool.ContainsKey(accessory.bone))
                     {
                         if (accesoriesPool[accessory.bone].go.name.Contains(accessory.go.name))
@@ -1493,7 +1694,7 @@ namespace PulseEditor
                     if (acc.Value.go.transform.parent != bone)
                         acc.Value.go.transform.SetParent(bone);
                     acc.Value.go.transform.localPosition = acc.Value.offset;
-                    acc.Value.go.transform.localRotation = acc.Value.RotOffset;
+                    acc.Value.go.transform.localRotation = Quaternion.Euler(acc.Value.RotOffset);
                 }
             }
         }

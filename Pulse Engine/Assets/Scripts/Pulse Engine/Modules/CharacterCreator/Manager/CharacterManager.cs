@@ -14,10 +14,6 @@ namespace PulseEngine.Modules.CharacterCreator
     {
         #region Attributes ####################################################################
 
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "CharactersDatas"; }
 
         #endregion
 

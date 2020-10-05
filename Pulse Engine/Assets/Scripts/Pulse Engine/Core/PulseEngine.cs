@@ -103,9 +103,10 @@ namespace PulseEngine
 
     public enum DataTypes
     {
+        none,
         Localisation,
         Anima,
-        CombatSystem,
+        Weapon,
         Character,
     }
 
@@ -359,11 +360,50 @@ namespace PulseEngine
     ///  Le reperage d'une data dans les assets.
     /// </summary>
     [System.Serializable]
-    public struct DataLocation
+    public struct DataLocation : IEquatable<DataLocation>
     {
         public int id;
         public int globalLocation;
         public int localLocation;
+        public DataTypes dType;
+
+
+        public override bool Equals(object o)
+        {
+            DataLocation other = (DataLocation)o;
+            if (other != default && other != null)
+                return Equals(other);
+            else
+                return ReferenceEquals(this, o);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public bool Equals(DataLocation other)
+        {
+            return dType == other.dType && globalLocation == other.globalLocation && localLocation == other.localLocation && id == other.id;
+        }
+
+        public static bool operator ==(DataLocation x, object y)
+        {
+            var dt = (DataLocation)y;
+            if (dt != null)
+                return x.Equals(dt);
+            else
+                return ((object)x).Equals(y);
+        }
+
+        public static bool operator !=(DataLocation x, object y)
+        {
+            var dt = (DataLocation)y;
+            if (dt != null)
+                return !x.Equals(dt);
+            else
+                return !((object)x).Equals(y);
+        }
     }
 
     #endregion
@@ -839,7 +879,12 @@ namespace PulseEngine.Datas
         /// <summary>
         /// L'id de traduction.
         /// </summary>
-        public  DataLocation Location { get { return location; } set { location = value; } }
+        public  DataLocation Location { get { return location; } set {
+                var tmp = value;
+                tmp.dType = DataTypes.Localisation;
+                location = tmp;
+            }
+        }
 
         /// <summary>
         /// Le titre.
@@ -946,7 +991,16 @@ namespace PulseEngine.Datas
         /// <summary>
         /// Traduction file ID.
         /// </summary>
-        public DataLocation TradLocation { get => tradLocation; set => tradLocation = value; }
+        public DataLocation TradLocation
+        {
+            get { return tradLocation; }
+            set
+            {
+                var tmp = value;
+                tmp.dType = DataTypes.Localisation;
+                tradLocation = tmp;
+            }
+        }
 
         #endregion
     }
@@ -981,7 +1035,16 @@ namespace PulseEngine.Datas
         /// <summary>
         /// L'id de l'animation dans la BD des anima data.
         /// </summary>
-        public DataLocation Location { get { return location; } set { location = value; } }
+        public DataLocation Location
+        {
+            get { return location; }
+            set
+            {
+                var tmp = value;
+                tmp.dType = DataTypes.Anima;
+                location = tmp;
+            }
+        }
 
         /// <summary>
         /// La liste des evenements au cours de l'animation.
@@ -1029,7 +1092,7 @@ namespace PulseEngine.Datas
         [SerializeField]
         private Avatar animatorAvatar;
         [SerializeField]
-        private List<Vector3Int> armurie;
+        private List<DataLocation> armurie;
 
         #endregion
 
@@ -1038,7 +1101,16 @@ namespace PulseEngine.Datas
         /// <summary>
         /// l'id dans BD.
         /// </summary>
-        public DataLocation Location { get => location; set => location = value; }
+        public DataLocation Location
+        {
+            get { return location; }
+            set
+            {
+                var tmp = value;
+                tmp.dType = DataTypes.Character;
+                location = tmp;
+            }
+        }
 
         /// <summary>
         /// Les stats du character.
@@ -1063,7 +1135,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// La liste des armes detenues par le personnage; IDs, types et scope.
         /// </summary>
-        public List<Vector3Int> Armurie { get => armurie; set => armurie = value; }
+        public List<DataLocation> Armurie { get => armurie; set => armurie = value; }
 
         #endregion
     }
@@ -1116,7 +1188,16 @@ namespace PulseEngine.Datas
         /// <summary>
         /// l'id de l'arme dans la bd des armes.
         /// </summary>
-        public DataLocation Location { get => location; set => location = value; }
+        public DataLocation Location
+        {
+            get { return location; }
+            set
+            {
+                var tmp = value;
+                tmp.dType = DataTypes.Weapon;
+                location = tmp;
+            }
+        }
 
         /// <summary>
         /// La portee de l'arme.

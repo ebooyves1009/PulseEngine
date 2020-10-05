@@ -9,6 +9,7 @@ using System;
 using PulseEngine;
 using System.Threading.Tasks;
 using PulseEngine.Datas;
+using System.Reflection;
 
 namespace PulseEditor.Modules.CharacterCreator
 {
@@ -16,7 +17,8 @@ namespace PulseEditor.Modules.CharacterCreator
     /// L'editeur de characters.
     /// </summary>
     public class CharacterEditor : PulseEditorMgr
-    { /// <Summary>
+    { 
+       /// <Summary>
       /// Implement here
       /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
       /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
@@ -27,40 +29,60 @@ namespace PulseEditor.Modules.CharacterCreator
 #if UNITY_EDITOR //********************************************************************************************************************************************
 
         ///<summary>
-        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        /// Active when the editor is already registered to OnCacheRefresh event.
         ///</summary>
-        private static Dictionary<DataLocation, IData> StaticCache;
+        public static bool registeredToRefresh;
 
-        /// <summary>
-        /// Prevent from launching several refreshes.
-        /// </summary>
-        private static bool RefreshingCache;
-
-        /// <summary>
-        /// to retrieve data from outside of the module by reflection
-        /// </summary>
-        /// <param name="_location"></param>
-        /// <returns></returns>
-        public static object GetData(DataLocation _location)
-        {
-            if (StaticCache.ContainsKey(_location))
-            {
-                if (StaticCache[_location] == null && !RefreshingCache)
-                    RefreshCache();
-                return StaticCache[_location];
-            }
-            return null;
-        }
 
         /// <summary>
         /// to refresh the static cache dictionnary
         /// </summary>
-        public static async Task RefreshCache()
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
         {
-            RefreshingCache = true;
+            if (_dtype != DataTypes.Character)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
 
-            RefreshingCache = false;
+            var allAsset = new List<CharactersLibrary>();
+            //get all assets
+            foreach(Scopes scp in Enum.GetValues(typeof(Scopes)))
+            {
+                if (CoreLibrary.Exist<CharactersLibrary>(AssetsPath, scp)) {
+                    var load = CoreLibrary.Load<CharactersLibrary>(AssetsPath, scp);
+                    if (load != null)
+                        allAsset.Add(load);
+                }
+                else if (CoreLibrary.Save<CharactersLibrary>(AssetsPath, scp))
+                {
+                    var load = CoreLibrary.Load<CharactersLibrary>(AssetsPath, scp);
+                    if (load != null)
+                        allAsset.Add(load);
+                }
+            }
+            //fill the missings
+            foreach (var entry in dictionnary)
+            {
+                if (entry.Value == null)
+                {
+                    var library = allAsset.Find(lib => { return (int)lib.Scope == entry.Key.globalLocation; });
+                    if (library != null)
+                    {
+                        var data = library.DataList.Find(d =>
+                        {
+                            return d.Location.id == entry.Key.id;
+                        }) as CharacterData;
+                        if (data != null)
+                        {
+                            dictionnary[entry.Key] = data;
+                        }
+                    }
+                }
+            }
+
         }
+
 #endif
         #endregion
 
@@ -111,10 +133,11 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </Summary>
         #region Fonctionnal Attributes ################################################################################################################################################################################################
 
+
         /// <summary>
-        /// Le type de character choisi.
+        /// Le chemin d'access des datas.
         /// </summary>
-        private CharacterType typeSelected;
+        public const string AssetsPath = "CharactersDatas"; 
 
         /// <summary>
         /// Les armes dans l'armurerie du character.
@@ -124,7 +147,7 @@ namespace PulseEditor.Modules.CharacterCreator
         /// <summary>
         /// l'emplacement des armes dans la previsualiation
         /// </summary>
-        List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Quaternion rot)>();
+        List<(GameObject go, HumanBodyBones bone, Vector3 offset, Vector3 rot)> weaponLocationTab = new List<(GameObject go, HumanBodyBones bone, Vector3 offset, Vector3 rot)>();
 
 
         //TODO: clothes list of this character
@@ -143,8 +166,11 @@ namespace PulseEditor.Modules.CharacterCreator
         [MenuItem(Menu_EDITOR_MENU + "Character Editor")]
         public static void OpenEditor()
         {
+            if (!registeredToRefresh)
+                OnCacheRefresh += RefreshCache;
             var window = GetWindow<CharacterEditor>();
             window.currentEditorMode = EditorMode.Edition;
+            window.editorDataType = DataTypes.Character;
             window.Show();
         }
 
@@ -153,8 +179,14 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </summary>
         public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<CharacterEditor>(true);
             window.currentEditorMode = EditorMode.Selection;
+            window.editorDataType = DataTypes.Character;
             window.onSelectionEvent += (obj, arg) =>
             {
                 if (onSelect != null)
@@ -173,9 +205,15 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </summary>
         public static void OpenModifier(DataLocation location)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<CharacterEditor>(true);
             window.currentEditorMode = EditorMode.DataEdition;
-            window.typeSelected = (CharacterType)location.localLocation;
+            window.editorDataType = DataTypes.Character;
+            window.assetLocalFilter = location.localLocation;
             window.dataID = location.id;
             window.assetMainFilter = location.globalLocation;
             window.OnInitialize();
@@ -199,83 +237,8 @@ namespace PulseEditor.Modules.CharacterCreator
             GroupGUInoStyle(() =>
             {
                 ScopeSelector();
-                MakeHeader((int)typeSelected, Enum.GetNames(typeof(CharacterType)), index => { typeSelected = (CharacterType)index; });
+                MakeHeader(assetLocalFilter, Enum.GetNames(typeof(CharacterType)), index => { assetLocalFilter = index; });
             }, "Character Type", 50);
-        }
-
-        /// <summary>
-        /// La liste des characters.
-        /// </summary>
-        /// <param name="library"></param>
-        private void CharacterList(CharactersLibrary library)
-        {
-            if (!library)
-                return;
-            Func<bool> listCompatiblesmode = () =>
-            {
-                switch (currentEditorMode)
-                {
-                    case EditorMode.Edition:
-                        return true;
-                    case EditorMode.Selection:
-                        return true;
-                    case EditorMode.DataEdition:
-                        return false;
-                    case EditorMode.Preview:
-                        return false;
-                    default:
-                        return false;
-                }
-            };
-            if (listCompatiblesmode())
-            {
-                GroupGUI(() =>
-                {
-                    GUILayout.BeginVertical();
-                    List<string> listContent = new List<string>();
-                    int maxId = 0;
-                    for (int i = 0; i < library.DataList.Count; i++)
-                    {
-                        var data = library.DataList[i];
-                        var nameList = LocalisationEditor.GetTexts(data.IdTrad, TradDataTypes.Person);
-                        string name = nameList.Length > 0 ? nameList[0] : string.Empty;
-                        listContent.Add(name);
-                    }
-                    selectDataIndex = MakeList(selectDataIndex, listContent.ToArray(), library.DataList);
-                    GUILayout.Space(5);
-                    GUILayout.BeginHorizontal();
-                    if (addindNewCharacter)
-                    {
-                        newCharAvatarType = (AnimaCategory)EditorGUILayout.EnumPopup(newCharAvatarType);
-                        if (GUILayout.Button("Ok"))
-                        {
-                            addindNewCharacter = false;
-                            library.DataList.Add(new CharacterData
-                            {
-                                ID = maxId + 1,
-                                TradType = TradDataTypes.Person,
-                                AnimCat = newCharAvatarType
-                            });
-                        }
-                    }
-                    else
-                    {
-                        if (GUILayout.Button("+"))
-                        {
-                            addindNewCharacter = true;
-                        }
-                        if (data != null)
-                        {
-                            if (GUILayout.Button("-"))
-                            {
-                                library.DataList.RemoveAt(selectDataIndex);
-                            }
-                        }
-                    }
-                    GUILayout.EndHorizontal();
-                    GUILayout.EndVertical();
-                }, "Characters Datas List");
-            }
         }
 
         /// <summary>
@@ -291,43 +254,40 @@ namespace PulseEditor.Modules.CharacterCreator
                 GUILayout.BeginVertical();
                 //Game object ---------------------------------------------------------------------------------------------------
                 GUILayout.BeginHorizontal();
-                if (data.Character)
-                {
-                    if (objEditor == null || data.Character != objEditor.target)
-                        objEditor = Editor.CreateEditor(data.Character);
-                    objEditor.OnInteractivePreviewGUI(GUILayoutUtility.GetRect(150, 150), null);
-                }
-                else
-                {
-                    GUILayout.BeginArea(GUILayoutUtility.GetRect(150, 150));
-                    GUILayout.EndArea();
-                }
                 //ID
                 GUILayout.BeginVertical();
-                EditorGUILayout.LabelField("ID: " + data.ID.ToString(), style_label);
+                EditorGUILayout.LabelField("ID: " + data.Location.id.ToString(), style_label);
                 GUILayout.Space(5);
                 //Trad
-                EditorGUILayout.LabelField("Trad Id: " + data.IdTrad, style_label);
+                EditorGUILayout.LabelField("Trad Id: " + data.TradLocation.id, style_label);
                 GUILayout.Space(5);
-                data.TradType = TradDataTypes.Person;
-                var texts = LocalisationEditor.GetTexts(data.IdTrad, TradDataTypes.Person);
-                string name = texts.Length > 0 ? texts[0] : string.Empty;
+                var locData = GetCachedData(data.TradLocation) as Localisationdata;
+                string name = locData != null ? locData.Title.textField : string.Empty;
                 GUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("Name:", style_label);
                 EditorGUILayout.LabelField(name);
                 if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
                 {
-                    LocalisationEditor.OpenSelector((obj, arg) =>
+                    var locEditorType = TypeInfo.GetType("LocalisationEditor");
+                    if (locEditorType != null)
                     {
-                        var a = arg as EditorEventArgs;
-                        if (a == null)
-                            return;
-                        data.IdTrad = a.ID;
-                    }, data.TradType);
+                        var locopenSelMethod = locEditorType.GetMethod("OpenSelector", BindingFlags.Public);
+                        if(locopenSelMethod != null)
+                        {
+                            Action<object,EventArgs> parameters = (obj, arg) =>
+                            {
+                                var a = arg as EditorEventArgs;
+                                if (a == null)
+                                    return;
+                                data.TradLocation = a.dataObjectLocation;
+                            };
+                            locopenSelMethod.Invoke(null, new object[] { parameters, TradDataTypes.Person });
+                        }
+                    }
                 }
                 if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
                 {
-                    LocalisationEditor.OpenModifier(data.IdTrad, data.TradType);
+                    LocalisationEditor.OpenModifier(data.TradLocation);
                 }
                 GUILayout.EndHorizontal();
                 EditorGUILayout.LabelField("Character:", style_label);
@@ -345,11 +305,7 @@ namespace PulseEditor.Modules.CharacterCreator
                 EditorGUILayout.LabelField("Stats:", style_label);
                 if (GUILayout.Button("Edit " + name + " Stats"))
                 {
-                    StatEditor.OpenStatWindow(data.Stats, (obj) => {
-                        var st = obj as StatData;
-                        if (st != null)
-                            data.Stats = st;
-                    }, name + "'s Stats");
+                    StatEditor(data.Stats);
                 }
                 GUILayout.EndHorizontal();
 
@@ -366,26 +322,30 @@ namespace PulseEditor.Modules.CharacterCreator
                 EditorGUILayout.LabelField("Weaponry:", style_label);
                 if (GUILayout.Button("Edit " + name + "'s Weaponry"))
                 {
-                    List<(int, WeaponType, Scopes)> ps = new List<(int, WeaponType, Scopes)>();
-                    for (int i = 0; i < data.Armurie.Count; i++)
+                    var wpEditor = TypeInfo.GetType("CombatSystem.WeaponEditor.WeaponryEditor");
+                    if (wpEditor != null)
                     {
-                        var weap = data.Armurie[i];
-                        ps.Add((weap.x, (WeaponType)weap.y, (Scopes)weap.z));
-                    }
-                    CombatSystem.WeaponEditor.WeaponryEditor.Open(ps, (obj, arg) =>
-                    {
-                        var result = obj as List<(PulseEngine.Modules.CombatSystem.WeaponData, Scopes)>;
-                        if (result != null)
+                        var openMethod = wpEditor.GetMethod("Open", BindingFlags.Public);
+                        if (openMethod != null)
                         {
-                            List<Vector3Int> sp = new List<Vector3Int>();
-                            for (int i = 0; i < result.Count; i++)
-                            {
-                                var weap = result[i];
-                                sp.Add(new Vector3Int(weap.Item1.ID, (int)weap.Item1.TypeArme, (int)weap.Item2));
-                            }
-                            data.Armurie = sp;
+                            Action<object, EventArgs> parameters = (obj, arg) =>
+                             {
+                                 var collection = obj as List<WeaponData>;
+                                 if (collection != null)
+                                 {
+                                     List<DataLocation> wpLocations = new List<DataLocation>();
+                                     for (int i = 0; i < collection.Count; i++)
+                                     {
+                                         wpLocations.Add(collection[i].Location);
+                                     }
+                                     data.Armurie = wpLocations;
+                                 }
+                             };
+                            openMethod.Invoke(null, new object[] { parameters });
                         }
-                    });
+                    }
+                    else
+                        PulseDebug.LogWarning("Combat System Module is missing");
                 }
                 GUILayout.EndHorizontal();
 
@@ -394,19 +354,30 @@ namespace PulseEditor.Modules.CharacterCreator
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Edit " + name + " Runtime Controller"))
                 {
-                    Anima.AnimaEditor.AnimaMachineEditor.Open(data.AnimatorController, data.AnimCat, name, (obj, arg) =>
+                    var machineEditor = TypeInfo.GetType("Anima.AnimaEditor.AnimaMachineEditor");
+                    if(machineEditor != null)
                     {
-                        var rt = obj as RuntimeAnimatorController;
-                        if (rt != null)
-                            data.AnimatorController = rt;
-                        RefreshPreview();
-                    });
+                        var openMethod = machineEditor.GetMethod("Open", BindingFlags.Public);
+                        if(openMethod != null)
+                        {
+                            Action<object, EventArgs> parameters = (obj, arg) =>
+                             {
+                                 var rt = obj as RuntimeAnimatorController;
+                                 if (rt != null)
+                                     data.AnimatorController = rt;
+                                 RefreshPreview();
+                             };
+                            openMethod.Invoke(null, new object[] { data.AnimatorController, data.AnimatorAvatar, name, parameters });
+                        }
+                    }
+                    else
+                        PulseDebug.LogWarning("Anima Module is missing");
                 }
                 GUILayout.EndHorizontal();
 
 
                 GUILayout.EndVertical();
-            }, data.ID + " Edition");
+            }, data.Location.id + " Edition");
         }
 
         /// <summary>
@@ -455,7 +426,8 @@ namespace PulseEditor.Modules.CharacterCreator
                     string[] weaponNames = new string[characterWeapons.Count];
                     for (int i = 0; i < characterWeapons.Count; i++)
                     {
-                        weaponNames[i] = LocalisationEditor.GetTexts(characterWeapons[i].IdTrad, characterWeapons[i].TradType)[0];
+                        var cachedData = GetCachedData(characterWeapons[i].Location) as Localisationdata;
+                        weaponNames[i] = cachedData != null ? cachedData.Title.textField : "null";
                     }
                     var newCharWeaponIDx = EditorGUILayout.Popup("Armurie", characterWeaponsIndex, weaponNames);
                     if (characterWeaponsIndex != newCharWeaponIDx)
@@ -464,11 +436,11 @@ namespace PulseEditor.Modules.CharacterCreator
                         {
                             weaponLocationTab.Clear();
                             var select_weapon = characterWeapons[newCharWeaponIDx];
-                            for (int i = 0, len = select_weapon.Weapons.Count; i < len; i++)
+                            for (int i = 0, len = select_weapon.ComponentParts.Count; i < len; i++)
                             {
-                                var part = select_weapon.Weapons[i];
+                                var part = select_weapon.ComponentParts[i];
                                 var place = select_weapon.CarryPlaces[i];
-                                weaponLocationTab.Add((part, place.ParentBone, place.PositionOffset, place.RotationOffset));
+                                weaponLocationTab.Add((part, place.ParentBone, place.positionOffset, place.rotationOffset));
                             }
                         }
                     }
@@ -482,16 +454,6 @@ namespace PulseEditor.Modules.CharacterCreator
             }, "Animation preview");
         }
 
-        /// <summary>
-        /// la panel de sauvegarde.
-        /// </summary>
-        private void SaveAndCancel()
-        {
-            if (asset == null)
-                return;
-            SaveBarPanel(() => { Select((CharacterData)data); });
-        }
-
 
         #endregion
 
@@ -500,24 +462,6 @@ namespace PulseEditor.Modules.CharacterCreator
         /// </Summary>
         #region Fontionnal Methods ################################################################################################################################################################################################
 
-        /// <summary>
-        /// Sauvegarde las modifications.
-        /// </summary>
-        private void Save()
-        {
-            SaveAsset(asset, originalAsset);
-            Close();
-        }
-
-        /// <summary>
-        /// Annule les modifications.
-        /// </summary>
-        /// <param name="msg"></param>
-        private void Cancel(string msg)
-        {
-            if (EditorUtility.DisplayDialog("Warning", msg, "Yes", "No"))
-                Close();
-        }
 
         /// <summary>
         /// la selection d'un item.
@@ -529,28 +473,29 @@ namespace PulseEditor.Modules.CharacterCreator
                 return;
             EditorEventArgs eventArgs = new EditorEventArgs
             {
-                ID = data.ID,
-                dataType = (int)((CharactersLibrary)asset).DataType
+                dataObjectLocation = data.Location
             };
             if (onSelectionEvent != null)
                 onSelectionEvent.Invoke(this, eventArgs);
         }
 
         /// <summary>
-        /// Reinitialise les listes d'equipement propre a 1 character.
+        /// Initialise les listes d'equipement propre a 1 character.
         /// </summary>
         private void SetPreviewAdditives(CharacterData _data)
         {
             if (_data == null)
                 return;
             //Weapons
-            var W_collection = new List<(int, WeaponType, Scopes)>();
+            var W_collection = new List<WeaponData>();
             for (int i = 0, len = _data.Armurie.Count; i < len; i++)
             {
                 var item = _data.Armurie[i];
-                W_collection.Add((item.x, (WeaponType)item.y, (Scopes)item.z));
+                var cachedData = GetCachedData(item) as WeaponData;
+                if (cachedData != null)
+                    W_collection.Add(cachedData);
             }
-            characterWeapons = CombatSystem.WeaponEditor.GetWeapons(W_collection);
+            characterWeapons = W_collection;
         }
 
         /// <summary>
@@ -575,42 +520,39 @@ namespace PulseEditor.Modules.CharacterCreator
         protected override void OnInitialize()
         {
             base.OnInitialize();
+            SelectAction = () => { Select((CharacterData)data); };
             if (!originalAsset)
             {
-                originalAsset = CharactersLibrary.Load(typeSelected, assetMainFilter);
-                if (!originalAsset && CharactersLibrary.Save(typeSelected, assetMainFilter))
-                    originalAsset = CharactersLibrary.Load(typeSelected, assetMainFilter);
+                originalAsset = CoreLibrary.Load<CharactersLibrary>(AssetsPath, new object[] { assetMainFilter, assetLocalFilter });
+                if (!originalAsset && CoreLibrary.Save<CharactersLibrary>(AssetsPath, new object[] { assetMainFilter, assetLocalFilter }))
+                    originalAsset = CoreLibrary.Load<CharactersLibrary>(AssetsPath, new object[] { assetMainFilter, assetLocalFilter });
                 if (originalAsset)
-                    asset = originalAsset;
+                    asset = Core.DeepCopy(originalAsset);
+                if (asset != null)
+                    dataList = asset.DataList;
             }
-            if (currentEditorMode == EditorMode.DataEdition)
+            if (currentEditorMode == EditorMode.DataEdition && dataList != null)
             {
-                data = ((CharactersLibrary)asset).DataList.Find(d => { return d.ID == dataID; });
+                data = dataList.Find(d => { return d.Location.id == dataID; });
                 if (((CharacterData)data) != null)
                     SetPreviewAdditives((CharacterData)data);
             }
             RefreshPreview();
         }
 
-        protected override void OnRedraw()
+        protected override void OnBodyRedraw()
         {
-            base.OnRedraw();
-            if (!Header())
-                return;
-            GUILayout.BeginHorizontal();
-            ScrollablePanel(() =>
-            {
-                CharacterList((CharactersLibrary)asset);
-                SaveAndCancel();
-            }, true);
-            GUILayout.Space(5);
             ScrollablePanel(() =>
             {
                 Details((CharacterData)data);
                 GUILayout.Space(5);
                 AnimationsPreview((CharacterData)data);
             });
-            GUILayout.EndHorizontal();
+        }
+
+        protected override void OnHeaderRedraw()
+        {
+            Header();
         }
 
         protected override void OnQuit()

@@ -1,18 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor.Globals;
-using PulseEngine.Core;
-using PulseEngine.Modules;
-using PulseEditor.Modules.Localisator;
-using PulseEngine.Module.CharacterCreator;
-using UnityEditor;
-using System;
 using PulseEngine.Modules.CombatSystem;
-using PulseEditor.Modules.StatHandler;
-using PulseEngine.Modules.StatHandler;
+using System;
+using UnityEditor;
 using System.Linq;
-using PulseEngine.Modules.PhysicSpace;
+using PulseEngine;
+using PulseEngine.Datas;
 
 namespace PulseEditor.Modules.CombatSystem
 {
@@ -21,22 +14,74 @@ namespace PulseEditor.Modules.CombatSystem
     /// </summary>
     public class WeaponEditor : PulseEditorMgr
     {
-        #region Fonctionnal Attributes ################################################################
+        /// <Summary>
+        /// Implement here
+        /// 3- Static void RefreshCache(object _dictionnary, DataTypes _dtype); to refresh the static cache dictionnary.
+        /// 4- Static bool registeredToRefresh; to Prevent from registering to OnCacheRefresh several times.
+        /// </Summary>
+        #region Static Accessors ################################################################################################################################################################################################
+#if UNITY_EDITOR //**********************************************************************
+
+        ///<summary>
+        /// Active when the editor is already registered to OnCacheRefresh event.
+        ///</summary>
+        public static bool registeredToRefresh;
+
 
         /// <summary>
-        /// La liste des gameobject et leurs previsualisation.
+        /// to refresh the static cache dictionnary
         /// </summary>
-        private Dictionary<GameObject, Editor> weaponPartsEditors = new Dictionary<GameObject, Editor>();
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
+        {
+            if (_dtype != DataTypes.Weapon)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
 
+            var allAsset = new List<WeaponLibrary>();
+            foreach(var scp in Enum.GetValues(typeof(Scopes))){
+                if(CoreLibrary.Exist<WeaponLibrary>(AssetsPath, scp))
+                {
+                    var load = CoreLibrary.Load<WeaponLibrary>(AssetsPath, scp);
+                    if (load != null)
+                        allAsset.Add(load);
+                }else if (CoreLibrary.Save<WeaponLibrary>(AssetsPath, scp))
+                {
+                    var load = CoreLibrary.Load<WeaponLibrary>(AssetsPath, scp);
+                    if (load != null)
+                        allAsset.Add(load);
+                }
+            }
 
+            foreach (var entry in dictionnary)
+            {
+                if (entry.Value == null)
+                {
+                    var library = allAsset.Find(lib => { return lib.Scope == (Scopes)entry.Key.globalLocation; });
+                    if (library != null)
+                    {
+                        var data = library.DataList.Find(d =>
+                        {
+                            return d.Location.id == entry.Key.id;
+                        }) as WeaponData;
+                        if (data != null)
+                        {
+                            dictionnary[entry.Key] = data;
+                        }
+                    }
+                }
+            }
+
+        }
+
+#endif
         #endregion
 
-        #region Visual Attributes ################################################################
-
-        /// <summary>
-        /// Le type d'arme selectionne.
-        /// </summary>
-        private WeaponType weaponTypeSelected;
+        /// <Summary>
+        /// Declare here every attribute used for visual behaviour of the editor window.
+        /// </Summary>
+        #region Visual Attributes ################################################################################################################################################################################################
 
         /// <summary>
         /// the preview.
@@ -55,36 +100,29 @@ namespace PulseEditor.Modules.CombatSystem
 
         #endregion
 
-        #region Fonctionnal Methods ################################################################
+        /// <Summary>
+        /// Declare here every attribute used for deep behaviour ot the editor window.
+        /// </Summary>
+        #region Fonctionnal Attributes ################################################################################################################################################################################################
+
+        /// <summary>
+        /// La liste des gameobject et leurs previsualisation.
+        /// </summary>
+        private Dictionary<GameObject, Editor> weaponPartsEditors = new Dictionary<GameObject, Editor>();
 
 
         /// <summary>
-        /// Initialisation.
+        /// Le chemin d'access des datas.
         /// </summary>
-        protected override void OnInitialize()
-        {
-            var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), assetMainFilter);
-            allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
-            allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) originalAsset = a; });
-            if (originalAsset)
-                asset = originalAsset;
-            RefreshPreview();
-        }
+        public const string AssetsPath = "CombatDatas"; 
 
-        /// <summary>
-        /// Executed at item selection in selection mode
-        /// </summary>
-        protected void SelectItem()
-        {
-            if(onSelectionEvent != null)
-            {
-                onSelectionEvent.Invoke(data, new EditorEventArgs { Scope = asset != null ? (int)((WeaponLibrary)asset).Scope : 0 });
-            }
-        }
 
         #endregion
 
-        #region Static Methods ################################################################
+        /// <Summary>
+        /// Implement here Methods To Open the window, and register to OnCacheRefresh
+        /// </Summary>
+        #region Door Methods ################################################################################################################################################################################################
 
         /// <summary>
         /// open weapon editor.
@@ -92,8 +130,14 @@ namespace PulseEditor.Modules.CombatSystem
         [MenuItem(Menu_EDITOR_MENU + "Weapon Editor")]
         public static void OpenEditor()
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<WeaponEditor>();
             window.currentEditorMode = EditorMode.Edition;
+            window.editorDataType = DataTypes.Weapon;
             window.Show();
         }
 
@@ -102,8 +146,14 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         public static void OpenSelector(Action<object, EventArgs> onSelect)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<WeaponEditor>();
             window.currentEditorMode = EditorMode.Selection;
+            window.editorDataType = DataTypes.Weapon;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
@@ -116,49 +166,29 @@ namespace PulseEditor.Modules.CombatSystem
         /// <summary>
         /// open weapon Modifier.
         /// </summary>
-        public static void OpenModifier(int _id, WeaponType type, Scopes _scope)
+        public static void OpenModifier(DataLocation _location)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<WeaponEditor>(true);
             window.currentEditorMode = EditorMode.DataEdition;
-            window.dataID = _id;
-            window.assetMainFilter = _scope;
-            window.weaponTypeSelected = type;
+            window.editorDataType = DataTypes.Weapon;
+            window.dataID = _location.id;
+            window.assetMainFilter = _location.globalLocation;
             window.OnInitialize();
             window.ShowModal();
         }
 
         #endregion
 
-        #region Visual Methods ################################################################
+        /// <Summary>
+        /// Implement here Methods related to GUI.
+        /// </Summary>
+        #region GUI Methods ################################################################################################################################################################################################
 
-
-        /// <summary>
-        /// Refresh.
-        /// </summary>
-        protected override void OnRedraw()
-        {
-            base.OnRedraw();
-
-            GUILayout.BeginHorizontal();
-            if (currentEditorMode != EditorMode.DataEdition)
-            {
-                ScrollablePanel(() =>
-                {
-                    Header();
-                    WeaponList((WeaponLibrary)asset);
-                    Foot();
-                }, true);
-            }
-            else if(asset != null && data == null)
-            {
-                data = ((WeaponLibrary)asset).DataList.Find(d => { return d.ID == dataID; });
-            }
-            ScrollablePanel(() =>
-            {
-                WeaponDetails((WeaponData)data);
-            });
-            GUILayout.EndHorizontal();
-        }
 
         /// <summary>
         /// Refresh the preview
@@ -171,47 +201,11 @@ namespace PulseEditor.Modules.CombatSystem
         }
 
         /// <summary>
-        /// on item changed on a list.
-        /// </summary>
-        protected override void OnListChange()
-        {
-            RefreshPreview();
-        }
-
-        /// <summary>
-        /// on header changed.
-        /// </summary>
-        protected override void OnHeaderChange()
-        {
-            RefreshPreview();
-        }
-
-
-        #endregion
-
-        #region Common Windows ################################################################
-
-
-        /// <summary>
         /// The header.
         /// </summary>
-        protected bool Header()
+        protected void Header()
         {
-            var bkpType = weaponTypeSelected;
-            GroupGUInoStyle(() =>
-            {
-                int selected = (int)weaponTypeSelected;
-                selected = MakeHeader((int)weaponTypeSelected, Enum.GetNames(typeof(WeaponType)), index => { weaponTypeSelected = (WeaponType)index; });
-            },"Weapon Type",50);
-            return originalAsset != null;
-        }
-
-        /// <summary>
-        /// The footer.
-        /// </summary>
-        protected void Foot()
-        {
-            SaveBarPanel(SelectItem);
+            ScopeSelector();
         }
 
         /// <summary>
@@ -260,7 +254,7 @@ namespace PulseEditor.Modules.CombatSystem
                         GUILayout.BeginHorizontal();
                         if (GUILayout.Button("+"))
                         {
-                            library.DataList.Add(new WeaponData { ID = maxId + 1, TradType = TradDataTypes.Weapon, TypeArme = weaponTypeSelected }) ;
+                            library.DataList.Add(new WeaponData { ID = maxId + 1, TradType = TradDataTypes.Weapon, TypeArme = weaponTypeSelected });
                         }
                         if (selectDataIndex >= 0 && selectDataIndex < library.DataList.Count)
                         {
@@ -288,7 +282,7 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if (data == null)
                 return;
-            if(currentEditorMode == EditorMode.Selection)
+            if (currentEditorMode == EditorMode.Selection)
             {
                 GroupGUInoStyle(() =>
                 {
@@ -537,7 +531,7 @@ namespace PulseEditor.Modules.CombatSystem
                             weaponInfos.Add((data.Weapons[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].PositionOffset, data.CarryPlaces[i].RotationOffset));
                     }
                     if (preview != null)
-                        preview.Previsualize(data.IdleMove.Motion, 18/9, null, weaponInfos.ToArray());
+                        preview.Previsualize(data.IdleMove.Motion, 18 / 9, null, weaponInfos.ToArray());
                     GUILayout.EndVertical();
                 }, "Preview");
             }
@@ -605,9 +599,106 @@ namespace PulseEditor.Modules.CombatSystem
             GUILayout.EndHorizontal();
         }
 
+
         #endregion
 
-        #region Helpers & Tools ################################################################
+        /// <Summary>
+        /// Implement here behaviours methods.
+        /// </Summary>
+        #region Fontionnal Methods ################################################################################################################################################################################################
+
+
+        /// <summary>
+        /// Initialisation.
+        /// </summary>
+        protected override void OnInitialize()
+        {
+            RefreshAssetSelect();
+        }
+
+        /// <summary>
+        /// To call whenever we need to refresh asset selection.
+        /// </summary>
+        protected void RefreshAssetSelect()
+        {
+            var all = LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), assetMainFilter);
+            allAssets = all.ConvertAll<ScriptableObject>(new Converter<WeaponLibrary, ScriptableObject>(target => { return (ScriptableObject)target; }));
+            allAssets.ForEach(a => { if (((WeaponLibrary)a).LibraryWeaponType == weaponTypeSelected) originalAsset = a; });
+            if (originalAsset)
+                asset = originalAsset;
+            RefreshPreview();
+        }
+
+        /// <summary>
+        /// Executed at item selection in selection mode
+        /// </summary>
+        protected void SelectItem()
+        {
+            if (onSelectionEvent != null)
+            {
+                onSelectionEvent.Invoke(data, new EditorEventArgs { Scope = asset != null ? (int)((WeaponLibrary)asset).Scope : 0 });
+            }
+        }
+
+
+        #endregion
+
+        /// <Summary>
+        /// Implement here overrides methods.
+        /// </Summary>
+        #region Program FLow Methods ################################################################################################################################################################################################
+
+
+        /// <summary>
+        /// Refresh.
+        /// </summary>
+        protected override void OnRedraw()
+        {
+            base.OnRedraw();
+
+            GUILayout.BeginHorizontal();
+            if (currentEditorMode != EditorMode.DataEdition)
+            {
+                ScrollablePanel(() =>
+                {
+                    Header();
+                    WeaponList((WeaponLibrary)asset);
+                    Foot();
+                }, true);
+            }
+            else if (asset != null && data == null)
+            {
+                data = ((WeaponLibrary)asset).DataList.Find(d => { return d.ID == dataID; });
+            }
+            ScrollablePanel(() =>
+            {
+                WeaponDetails((WeaponData)data);
+            });
+            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// on item changed on a list.
+        /// </summary>
+        protected override void OnListChange()
+        {
+            RefreshPreview();
+        }
+
+        /// <summary>
+        /// on header changed.
+        /// </summary>
+        protected override void OnHeaderChange()
+        {
+            RefreshPreview();
+        }
+
+        #endregion
+
+        /// <Summary>
+        /// Implement here miscelaneous methods relative to the module in editor mode.
+        /// </Summary>
+        #region Helpers & Tools ################################################################################################################################################################################################
 
         /// <summary>
         /// Charge tous les assets d'arme.
@@ -618,13 +709,13 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if (inputLibrary == null)
                 inputLibrary = new List<WeaponLibrary>();
-            foreach(WeaponType type in Enum.GetValues(typeof(WeaponType)))
+            foreach (WeaponType type in Enum.GetValues(typeof(WeaponType)))
             {
                 if (type == WeaponType.aucun)
                     continue;
                 if (WeaponLibrary.Exist(type, _scope))
                     inputLibrary.Add(WeaponLibrary.Load(type, _scope));
-                else if(WeaponLibrary.Save(type, _scope))
+                else if (WeaponLibrary.Save(type, _scope))
                     inputLibrary.Add(WeaponLibrary.Load(type, _scope));
             }
             return inputLibrary;
@@ -643,10 +734,10 @@ namespace PulseEditor.Modules.CombatSystem
             {
                 allAs.Add(scope, LibraryFiller(new List<WeaponLibrary>(), scope));
             }
-            foreach(var item in collection)
+            foreach (var item in collection)
             {
                 var subCol = allAs[item._scope];
-                if(subCol != null)
+                if (subCol != null)
                 {
                     var library = subCol.Find(lib => { return lib.LibraryWeaponType == item._type; });
                     if (library != null)
@@ -681,12 +772,12 @@ namespace PulseEditor.Modules.CombatSystem
 
             #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-            public static void Open(List<(int _id, WeaponType type, Scopes _scope)> weaponRefs, Action<object,EventArgs> onSelect)
+            public static void Open(List<(int _id, WeaponType type, Scopes _scope)> weaponRefs, Action<object, EventArgs> onSelect)
             {
                 var window = GetWindow<WeaponryEditor>();
                 window.Init(weaponRefs);
                 if (onSelect != null)
-                    window.onSelectionEvent += (obj,arg)=>
+                    window.onSelectionEvent += (obj, arg) =>
                     {
                         onSelect.Invoke(obj, arg);
                     };
@@ -697,17 +788,18 @@ namespace PulseEditor.Modules.CombatSystem
             protected void Init(List<(int _id, WeaponType type, Scopes _scope)> Refs)
             {
                 List<WeaponLibrary> all = new List<WeaponLibrary>();
-                foreach (Scopes sc in Enum.GetValues(typeof(Scopes))) {
+                foreach (Scopes sc in Enum.GetValues(typeof(Scopes)))
+                {
                     all.AddRange(LibraryFiller(allAssets.ConvertAll<WeaponLibrary>(new Converter<ScriptableObject, WeaponLibrary>(target => { return (WeaponLibrary)target; })), sc));
                 }
-                for(int i = 0; i < Refs.Count; i++)
+                for (int i = 0; i < Refs.Count; i++)
                 {
                     WeaponData data = null;
                     Scopes _scope = Scopes.tous;
-                    for(int j = 0; j < all.Count; j++)
+                    for (int j = 0; j < all.Count; j++)
                     {
                         var Library = all[j];
-                        if(Library.Scope == Refs[i]._scope)
+                        if (Library.Scope == Refs[i]._scope)
                         {
                             var d = Library.DataList.Find(d2 => { return d2.ID == Refs[i]._id; });
                             if (d != null)
@@ -718,7 +810,7 @@ namespace PulseEditor.Modules.CombatSystem
                         }
                     }
                     if (data != null)
-                        dataBase.Add((data,_scope));
+                        dataBase.Add((data, _scope));
                 }
             }
 
@@ -773,19 +865,12 @@ namespace PulseEditor.Modules.CombatSystem
                             onSelectionEvent.Invoke(dataBase, null);
                         Close();
                     }
-                },"",50);
+                }, "", 50);
             }
 
             #endregion
         }
 
         #endregion
-
-
-
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "CombatDatas"; }
     }
 }

@@ -1,14 +1,12 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using PulseEngine.Modules.Anima;
-using PulseEngine.Modules;
 using System;
 using UnityEditor;
 using UnityEditor.Animations;
 using System.Linq;
 using PulseEngine;
 using PulseEngine.Datas;
-using System.Threading.Tasks;
 
 namespace PulseEditor.Modules.Anima
 {
@@ -16,89 +14,33 @@ namespace PulseEditor.Modules.Anima
     /// l'editeur d'animation.
     /// </summary>
     public class AnimaEditor : PulseEditorMgr
-    { 
-        
-      /// <Summary>
-      /// Implement here
-      /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
-      /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
-      /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
-      /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
-      /// </Summary>
+    {
+
+        /// <Summary>
+        /// Implement here
+        /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
+        /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
+        /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
+        /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+        /// </Summary>
         #region Static Accessors ################################################################################################################################################################################################
 #if UNITY_EDITOR //********************************************************************************************************************************************
 
         ///<summary>
-        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        /// Active when the editor is already registered to OnCacheRefresh event.
         ///</summary>
-        private static Dictionary<DataLocation, IData> StaticCache;
-
-        /// <summary>
-        /// Prevent from launching several refreshes.
-        /// </summary>
-        private static bool RefreshingCache;
-
-        /// <summary>
-        /// to retrieve data from outside of the module by reflection
-        /// </summary>
-        /// <param name="_location"></param>
-        /// <returns></returns>
-        public static object GetData(DataLocation _location)
-        {
-            if (StaticCache.ContainsKey(_location))
-            {
-                if (StaticCache[_location] == null && !RefreshingCache)
-                    RefreshCache();
-                return StaticCache[_location];
-            }
-            Localisationdata result = null;
-            var allAsset = new List<AnimaLibrary>();
-
-            foreach (Scopes scope in Enum.GetValues(typeof(Scopes)))
-            {
-                foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
-                {
-                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
-                    {
-                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
-                        if (load != null)
-                            allAsset.Add(load);
-                    }
-                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
-                    {
-                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
-                        if (load != null)
-                            allAsset.Add(load);
-                    }
-                }
-            }
-
-            if (allAsset != null && allAsset.Count > 0 && _location.id > 0)
-            {
-                int index = allAsset.FindIndex(library => { return library.Scope == (Scopes)_location.globalLocation && library.AnimType == (AnimaType)_location.localLocation; });
-                if (index >= 0)
-                {
-                    AnimaLibrary asset = allAsset[index];
-                    var data = asset.DataList.Find(dt => {
-                        var d = dt as Localisationdata;
-                        return d != null && d.Location.id == _location.id;
-                    }) as Localisationdata;
-                    if (data != null)
-                    {
-                        result = data;
-                    }
-                }
-            }
-            StaticCache.Add(_location, result);
-            return result;
-        }
+        public static bool registeredToRefresh;
 
         /// <summary>
         /// to refresh the static cache dictionnary
         /// </summary>
-        public static async Task RefreshCache()
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
         {
-            RefreshingCache = true;
+            if (_dtype != DataTypes.Anima)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
 
             var allAsset = new List<AnimaLibrary>();
 
@@ -121,7 +63,7 @@ namespace PulseEditor.Modules.Anima
                 }
             }
 
-            foreach (var entry in StaticCache)
+            foreach (var entry in dictionnary)
             {
                 if (entry.Value == null)
                 {
@@ -134,14 +76,12 @@ namespace PulseEditor.Modules.Anima
                         }) as AnimaData;
                         if (data != null)
                         {
-                            StaticCache[entry.Key] = data;
+                            dictionnary[entry.Key] = data;
                         }
                     }
                 }
-                await Task.Delay(10);
             }
 
-            RefreshingCache = false;
         }
 #endif
         #endregion
@@ -211,18 +151,30 @@ namespace PulseEditor.Modules.Anima
         [MenuItem(Menu_EDITOR_MENU + "Anima Editor")]
         public static void OpenEditor()
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<AnimaEditor>();
             window.currentEditorMode = EditorMode.Edition;
+            window.editorDataType = DataTypes.Anima;
             window.Show();
         }
 
         /// <summary>
         /// open Anima selector.
         /// </summary>
-        public static void OpenSelector(Action<object, EventArgs> onSelect)
+        public static void OpenSelector(Action<object, EditorEventArgs> onSelect)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<AnimaEditor>();
             window.currentEditorMode = EditorMode.Selection;
+            window.editorDataType = DataTypes.Anima;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) => {
@@ -238,8 +190,14 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         public static void OpenSelector(Action<object, EventArgs> onSelect, DataLocation location)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<AnimaEditor>();
             window.currentEditorMode = EditorMode.Selection;
+            window.editorDataType = DataTypes.Anima;
             window.noHeader = true;
             window.assetMainFilter = location.globalLocation;
             window.selectedType = (AnimaType)location.localLocation;
@@ -258,8 +216,14 @@ namespace PulseEditor.Modules.Anima
         /// </summary>
         public static void OpenModifier(DataLocation location)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<AnimaEditor>(true);
             window.currentEditorMode = EditorMode.DataEdition;
+            window.editorDataType = DataTypes.Anima;
             window.assetMainFilter = location.globalLocation;
             window.selectedType = (AnimaType)location.localLocation;
             window.dataID = location.id;

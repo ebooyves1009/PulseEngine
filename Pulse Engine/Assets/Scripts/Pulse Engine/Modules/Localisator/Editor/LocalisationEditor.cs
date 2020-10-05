@@ -23,84 +23,28 @@ namespace PulseEditor.Modules.Localisator
     {
         /// <Summary>
         /// Implement here
-        /// 1- static Dictionnary<Vector3Int,object> StaticCache; for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets.
-        /// 2- Static object GetData(Vector3int dataLocation); to retrieve data from outside of the module by reflection. it returns null when nothing found and mark the entry on the dictionnary or trigger refresh.
-        /// 3- Static void RefreshCache(); to refresh the static cache dictionnary.
-        /// 4- Static bool RefreshingCache; to Prevent from launching several refreshes
+        /// 3- Static void RefreshCache(object _dictionnary, DataTypes _dtype); to refresh the static cache dictionnary.
+        /// 4- Static bool registeredToRefresh; to Prevent from registering to OnCacheRefresh several times.
         /// </Summary>
         #region Static Accessors ################################################################################################################################################################################################
 #if UNITY_EDITOR //**********************************************************************
 
         ///<summary>
-        /// for fast retrieval of assets datas, where Vector3 is the unique path of the data in assets
+        /// Active when the editor is already registered to OnCacheRefresh event.
         ///</summary>
-        private static Dictionary<DataLocation, Localisationdata> StaticCache;
+        public static bool registeredToRefresh;
 
-        /// <summary>
-        /// Prevent from launching several refreshes.
-        /// </summary>
-        private static bool RefreshingCache;
-
-        /// <summary>
-        /// to retrieve data from outside of the module by reflection.  
-        /// </summary>
-        /// <param name="_location"></param>
-        /// <returns></returns>
-        public static Localisationdata GetData(DataLocation _location)
-        {
-            if (StaticCache.ContainsKey(_location))
-            {
-                if (StaticCache[_location] == null && !RefreshingCache)
-                    RefreshCache();
-                return StaticCache[_location];
-            }
-            Localisationdata result = null;
-            var allAsset = new List<LocalisationLibrary>();
-
-            foreach (Languages langue in Enum.GetValues(typeof(Languages)))
-            {
-                foreach (TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
-                {
-                    if (CoreLibrary.Exist<LocalisationLibrary>(AssetsPath, langue, type))
-                    {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
-                        if (load != null)
-                            allAsset.Add(load);
-                    }
-                    else if (CoreLibrary.Save<LocalisationLibrary>(AssetsPath, langue, type))
-                    {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
-                        if (load != null)
-                            allAsset.Add(load);
-                    }
-                }
-            }
-
-            if (allAsset != null && allAsset.Count > 0 && _location.id > 0)
-            {
-                int index = allAsset.FindIndex(library => { return library.Langage == (Languages)_location.globalLocation && library.TradType == (TradDataTypes)_location.localLocation; });
-                if (index >= 0)
-                {
-                    LocalisationLibrary asset = allAsset[index];
-                    var data = asset.DataList.Find(dt => {
-                        var d = dt as Localisationdata;
-                        return d != null && d.Location.id == _location.id; }) as Localisationdata;
-                    if (data != null)
-                    {
-                        result = data;
-                    }
-                }
-            }
-            StaticCache.Add(_location, result);
-            return result;
-        }
 
         /// <summary>
         /// to refresh the static cache dictionnary
         /// </summary>
-        public static async Task RefreshCache()
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
         {
-            RefreshingCache = true;
+            if (_dtype != DataTypes.Localisation)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
 
             var allAsset = new List<LocalisationLibrary>();
 
@@ -122,7 +66,7 @@ namespace PulseEditor.Modules.Localisator
                     }
                 }
             }
-            foreach(var entry in StaticCache)
+            foreach(var entry in dictionnary)
             {
                 if(entry.Value == null)
                 {
@@ -135,14 +79,12 @@ namespace PulseEditor.Modules.Localisator
                         }) as Localisationdata;
                         if(data != null)
                         {
-                            StaticCache[entry.Key] = data;
+                            dictionnary[entry.Key] = data;
                         }
                     }
                 }
-                await Task.Delay(10);
             }
 
-            RefreshingCache = false;
         }
 
 #endif
@@ -164,16 +106,6 @@ namespace PulseEditor.Modules.Localisator
         /// Le chemin d'access des datas.
         /// </summary>
         const string AssetsPath = "LocalisationDatas";
-
-        /// <summary>
-        /// La langue choisie.
-        /// </summary>
-        private Languages selectedLangage;
-
-        /// <summary>
-        /// Le type de data choisie.
-        /// </summary>
-        private TradDataTypes selectedDataType;
 
         /// <summary>
         /// L'asset temporaire du meme type de data mais pas de la meme langue.
@@ -204,19 +136,31 @@ namespace PulseEditor.Modules.Localisator
         [MenuItem(Menu_EDITOR_MENU + "Localisator Editor")]
         public static void OpenEditor()
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<LocalisationEditor>();
             window.currentEditorMode = EditorMode.Edition;
+            window.editorDataType = DataTypes.Localisation;
             window.Show();
         }
 
         /// <summary>
         /// Open the selector
         /// </summary>
-        public static void OpenSelector(Action<object, EventArgs> onSelect, TradDataTypes dtype)
+        public static void OpenSelector(Action<object, EditorEventArgs> onSelect, TradDataTypes dType)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<LocalisationEditor>(true, "Localisator Selector");
             window.currentEditorMode = EditorMode.Selection;
-            window.selectedDataType = dtype;
+            window.editorDataType = DataTypes.Localisation;
+            window.assetLocalFilter = (int)dType;
             if (onSelect != null)
             {
                 window.onSelectionEvent += (obj, arg) =>
@@ -230,12 +174,19 @@ namespace PulseEditor.Modules.Localisator
         /// <summary>
         /// Open the Item selector
         /// </summary>
-        public static void OpenModifier(int _id, TradDataTypes dType)
+        public static void OpenModifier(DataLocation _location)
         {
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
             var window = GetWindow<LocalisationEditor>(true, "Localisator Modifier");
             window.currentEditorMode = EditorMode.DataEdition;
-            window.selectedDataType = dType;
-            window.dataID = _id;
+            window.editorDataType = DataTypes.Localisation;
+            window.assetLocalFilter = _location.localLocation;
+            window.assetMainFilter = _location.globalLocation;
+            window.dataID = _location.id;
             window.ShowAuxWindow();
         }
 
@@ -257,11 +208,11 @@ namespace PulseEditor.Modules.Localisator
         {
             GroupGUInoStyle(() =>
             {
-                selectedLangage = (Languages)MakeHeader((int)selectedLangage, Enum.GetNames(typeof(Languages)));
+                assetMainFilter = MakeHeader(assetMainFilter, Enum.GetNames(typeof(Languages)));
             }, "Language", 50);
             GroupGUInoStyle(() =>
             {
-                selectedDataType = (TradDataTypes)MakeHeader((int)selectedDataType, Enum.GetNames(typeof(TradDataTypes)));
+                assetLocalFilter = MakeHeader(assetLocalFilter, Enum.GetNames(typeof(TradDataTypes)));
             }, "Type", 50);
         }
         
@@ -398,13 +349,13 @@ namespace PulseEditor.Modules.Localisator
                 {
                     GUILayout.BeginVertical();
                     var IEdataTypes = from a in allAssets.ConvertAll(new Converter<ScriptableObject, LocalisationLibrary>(obj => { return (LocalisationLibrary)obj; }))
-                                      where a.Langage == selectedLangage
+                                      where a.Langage == (Languages)assetMainFilter
                                       select a.TradType.ToString();
                     string[] dataTypes = IEdataTypes.ToArray();
                     hashtag_dataTypeIndex = EditorGUILayout.Popup(hashtag_dataTypeIndex, dataTypes);
                     var dataType = ((LocalisationLibrary)allAssets[hashtag_dataTypeIndex]).TradType;
                     var filteredList = from a in allAssets.ConvertAll(new Converter<ScriptableObject, LocalisationLibrary>(obj => { return (LocalisationLibrary)obj; }))
-                                       where a.TradType == dataType && a.Langage == selectedLangage
+                                       where a.TradType == dataType && a.Langage == (Languages)assetMainFilter
                                        select a;
                     var target = filteredList.FirstOrDefault();
                     int index = 0;
@@ -423,7 +374,7 @@ namespace PulseEditor.Modules.Localisator
                         {
                             hashtag_id = ((Localisationdata)target.DataList[index]).Location.id;
                             if (hashtag_id > 0)
-                                EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, selectedLangage, dataType));
+                                EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, (Languages)assetMainFilter, dataType));
                         }
                     }
                     GUILayout.EndVertical();
@@ -479,8 +430,8 @@ namespace PulseEditor.Modules.Localisator
             var matchingAsset = allAssets.Find(library =>
             {
                 var lib = library as LocalisationLibrary;
-                return lib.Langage == selectedLangage &&
-                lib.TradType == selectedDataType;
+                return lib.Langage == (Languages)assetMainFilter &&
+                lib.TradType == (TradDataTypes)assetLocalFilter;
             });
             if(matchingAsset != null)
             {
@@ -514,7 +465,7 @@ namespace PulseEditor.Modules.Localisator
                             if (((LocalisationLibrary)asset).TradType == TradDataTypes.Person)
                                 newOne.Title = data.Title;
                             otherAsset.DataList.Add(newOne);
-                            EditorUtility.CopySerialized(otherAsset, auXasset);
+                            EditorUtility.SetDirty(otherAsset);
                         }
                     }
                 }
@@ -562,11 +513,6 @@ namespace PulseEditor.Modules.Localisator
                 PageDetailsEdition((Localisationdata)data);
                 HashTagGenerator();
             }
-        }
-
-        protected override void OnListButtons()
-        {
-            base.OnListButtons();
         }
 
         protected override void OnHeaderRedraw()
