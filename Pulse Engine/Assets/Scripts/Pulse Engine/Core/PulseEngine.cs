@@ -101,6 +101,9 @@ namespace PulseEngine
         tous,
     }
 
+    /// <summary>
+    /// The datatype of a data. Useful for static retrival of datas in Editor mode.
+    /// </summary>
     public enum DataTypes
     {
         none,
@@ -1278,7 +1281,7 @@ namespace PulseEngine.Datas
     /// La data statistique Physique associee a des objets.
     /// </summary>
     [System.Serializable]
-    public class PhycisStats
+    public struct PhycisStats
     {
         #region Attributs #########################################################
 
@@ -1355,7 +1358,7 @@ namespace PulseEngine.Datas
     /// La data statistique vitale associee a des objets.
     /// </summary>
     [System.Serializable]
-    public class VitalStat : PhycisStats
+    public struct VitalStat
     {
         #region Attributs #########################################################
 
@@ -1367,6 +1370,8 @@ namespace PulseEngine.Datas
         private float age;
         [SerializeField]
         private float karma;
+        [SerializeField]
+        private PhycisStats phycics_stats;
 
         #endregion
 
@@ -1392,6 +1397,11 @@ namespace PulseEngine.Datas
         /// </summary>
         public float Karma { get { return karma; } set { karma = value; } }
 
+        /// <summary>
+        /// The physic stats.
+        /// </summary>
+        public PhycisStats PhycicsStats { get => phycics_stats; set => phycics_stats = value; }
+
         #endregion
     }
 
@@ -1400,7 +1410,7 @@ namespace PulseEngine.Datas
     /// La data statistique physiques associee a des etres vivants.
     /// </summary>
     [System.Serializable]
-    public class BodyStats : VitalStat
+    public struct BodyStats
     {
         #region Attributs #########################################################
 
@@ -1416,6 +1426,8 @@ namespace PulseEngine.Datas
         private float souffleMax;
         [SerializeField]
         private float speed;
+        [SerializeField]
+        private VitalStat vital_stat;
 
         #endregion
 
@@ -1451,6 +1463,10 @@ namespace PulseEngine.Datas
         /// </summary>
         public float Speed { get => speed; set => speed = value; }
 
+        /// <summary>
+        /// the Vital Stats.
+        /// </summary>
+        public VitalStat VitalStats { get => vital_stat; set => vital_stat = value; }
 
         #endregion
     }
@@ -1459,7 +1475,7 @@ namespace PulseEngine.Datas
     /// La data statistique Mentale associee a des etres vivants.
     /// </summary>
     [System.Serializable]
-    public class MindStat : BodyStats
+    public struct MindStat
     {
         #region Attributs #########################################################
 
@@ -1475,6 +1491,8 @@ namespace PulseEngine.Datas
         private float determination;
         [SerializeField]
         private float madness;
+        [SerializeField]
+        private BodyStats body_stat;
 
         #endregion
 
@@ -1509,6 +1527,11 @@ namespace PulseEngine.Datas
         /// Probability to be imprevisible.
         /// </summary>
         public float Madness { get => madness; set => madness = value; }
+
+        /// <summary>
+        /// The body stats.
+        /// </summary>
+        public BodyStats BodyStats { get => body_stat; set => body_stat = value; }
 
         #endregion
     }

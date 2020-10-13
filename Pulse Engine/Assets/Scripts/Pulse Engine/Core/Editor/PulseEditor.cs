@@ -16,6 +16,11 @@ using PulseEngine.Datas;
 
 
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
+
+
+    ///<Notes>
+    /// 1- 
+    ///</Notes>
 namespace PulseEditor
 {
     #region Enums #################################################################################
@@ -34,6 +39,17 @@ namespace PulseEditor
     public enum NodeEdgeSide
     {
         upper, lower, lefty, righty
+    }
+
+    /// <summary>
+    /// The Modules editors.
+    /// </summary>
+    public enum ModulesEditors
+    {
+        LocalisationEditor,
+        WeaponEditor,
+        AnimaEditor,
+        CharacterEditor
     }
 
     #endregion
@@ -822,68 +838,105 @@ namespace PulseEditor
         }
 
         /// <summary>
-        /// Edit stat.
+        /// Edit MindStat.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="_stat"></param>
-        protected void StatEditor<T>(T _stat) where T: PhycisStats
+        protected void StatEditor(MindStat _stat)
         {
-            MindStat mindStat = _stat as MindStat;
-            BodyStats bodyStat = _stat as BodyStats;
-            VitalStat vitalStat = _stat as VitalStat;
+            MindStat mindStat = (MindStat)_stat;
             ScrollablePanel(() =>
             {
                 GUILayout.BeginHorizontal();
-                if (mindStat != null)
+
+                GroupGUI(() =>
                 {
-                    GroupGUI(() =>
-                    {
-                        float Intelligence = EditorGUILayout.FloatField("Intelligence", mindStat.Intelligence);
-                        mindStat.Intelligence = Mathf.Clamp(Intelligence, 1, Intelligence);
-                        float Determination = EditorGUILayout.FloatField("Determination", mindStat.Determination);
-                        mindStat.Determination = Mathf.Clamp(Determination, 1, Determination);
-                        float Dexterity = EditorGUILayout.FloatField("Dexterity", mindStat.Dexterity);
-                        mindStat.Dexterity = Mathf.Clamp(Dexterity, 0, Dexterity);
-                        float Experience = EditorGUILayout.FloatField("Experience", mindStat.Experience);
-                        mindStat.Experience = Mathf.Clamp(Experience, 0, Experience);
-                        float Madness = EditorGUILayout.FloatField("Madness", mindStat.Madness);
-                        mindStat.Madness = Mathf.Clamp(Madness, 0, 100);
-                        float Sociability = EditorGUILayout.FloatField("Sociability", mindStat.Sociability);
-                        mindStat.Sociability = Mathf.Clamp(Sociability, 0, 100);
-                    }, "Minds");
-                }
-                if (bodyStat != null)
+                    float Intelligence = EditorGUILayout.FloatField("Intelligence", mindStat.Intelligence);
+                    mindStat.Intelligence = Mathf.Clamp(Intelligence, 1, Intelligence);
+                    float Determination = EditorGUILayout.FloatField("Determination", mindStat.Determination);
+                    mindStat.Determination = Mathf.Clamp(Determination, 1, Determination);
+                    float Dexterity = EditorGUILayout.FloatField("Dexterity", mindStat.Dexterity);
+                    mindStat.Dexterity = Mathf.Clamp(Dexterity, 0, Dexterity);
+                    float Experience = EditorGUILayout.FloatField("Experience", mindStat.Experience);
+                    mindStat.Experience = Mathf.Clamp(Experience, 0, Experience);
+                    float Madness = EditorGUILayout.FloatField("Madness", mindStat.Madness);
+                    mindStat.Madness = Mathf.Clamp(Madness, 0, 100);
+                    float Sociability = EditorGUILayout.FloatField("Sociability", mindStat.Sociability);
+                    mindStat.Sociability = Mathf.Clamp(Sociability, 0, 100);
+                }, "Minds");
+                GUILayout.EndHorizontal();
+            });
+            StatEditor(mindStat.BodyStats);
+        }
+
+        /// <summary>
+        /// Edit BodyStats.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="_stat"></param>
+        protected void StatEditor(BodyStats _stat)
+        {
+            BodyStats bodyStat = (BodyStats)_stat;
+            ScrollablePanel(() =>
+            {
+                GUILayout.BeginHorizontal();
+                GroupGUI(() =>
                 {
-                    GroupGUI(() =>
-                    {
-                        float Souffle = EditorGUILayout.FloatField("Souffle", bodyStat.Souffle);
-                        bodyStat.Souffle = Mathf.Clamp(Souffle, 0, Souffle);
-                        float SouffleMax = EditorGUILayout.FloatField("SouffleMax", bodyStat.SouffleMax);
-                        bodyStat.SouffleMax = Mathf.Clamp(SouffleMax, Souffle, SouffleMax);
-                        float Endurance = EditorGUILayout.FloatField("Endurance", bodyStat.Endurance);
-                        bodyStat.Endurance = Mathf.Clamp(Endurance, 0, Endurance);
-                        float EnduranceMax = EditorGUILayout.FloatField("EnduranceMax", bodyStat.EnduranceMax);
-                        bodyStat.EnduranceMax = Mathf.Clamp(EnduranceMax, Endurance, EnduranceMax);
-                        float Strenght = EditorGUILayout.FloatField("Strenght", bodyStat.Strenght);
-                        bodyStat.Strenght = Mathf.Clamp(Strenght, 0, Strenght);
-                        float Speed = EditorGUILayout.FloatField("Speed", bodyStat.Speed);
-                        bodyStat.Speed = Mathf.Clamp(Speed, 1, Speed);
-                    }, "Body");
-                }
-                if (vitalStat != null)
+                    float Souffle = EditorGUILayout.FloatField("Souffle", bodyStat.Souffle);
+                    bodyStat.Souffle = Mathf.Clamp(Souffle, 0, Souffle);
+                    float SouffleMax = EditorGUILayout.FloatField("SouffleMax", bodyStat.SouffleMax);
+                    bodyStat.SouffleMax = Mathf.Clamp(SouffleMax, Souffle, SouffleMax);
+                    float Endurance = EditorGUILayout.FloatField("Endurance", bodyStat.Endurance);
+                    bodyStat.Endurance = Mathf.Clamp(Endurance, 0, Endurance);
+                    float EnduranceMax = EditorGUILayout.FloatField("EnduranceMax", bodyStat.EnduranceMax);
+                    bodyStat.EnduranceMax = Mathf.Clamp(EnduranceMax, Endurance, EnduranceMax);
+                    float Strenght = EditorGUILayout.FloatField("Strenght", bodyStat.Strenght);
+                    bodyStat.Strenght = Mathf.Clamp(Strenght, 0, Strenght);
+                    float Speed = EditorGUILayout.FloatField("Speed", bodyStat.Speed);
+                    bodyStat.Speed = Mathf.Clamp(Speed, 1, Speed);
+                }, "Body");
+                GUILayout.EndHorizontal();
+            });
+            StatEditor(bodyStat.VitalStats);
+        }
+
+        /// <summary>
+        /// Edit VitalStat.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="_stat"></param>
+        protected void StatEditor(VitalStat _stat)
+        {
+            VitalStat vitalStat = (VitalStat)_stat;
+            ScrollablePanel(() =>
+            {
+                GUILayout.BeginHorizontal();
+                GroupGUI(() =>
                 {
-                    GroupGUI(() =>
-                    {
-                        float Age = EditorGUILayout.FloatField("Age", vitalStat.Age);
-                        vitalStat.Age = Mathf.Clamp(Age, 0, Age);
-                        float Health = EditorGUILayout.FloatField("Health", vitalStat.Health);
-                        vitalStat.Health = Mathf.Clamp(Health, 0, Health);
-                        float Longevity = EditorGUILayout.FloatField("Longevity", vitalStat.Longevity);
-                        vitalStat.Longevity = Mathf.Clamp(Longevity, Health, Longevity);
-                        float Karma = EditorGUILayout.FloatField("Karma", vitalStat.Karma);
-                        vitalStat.Karma = Mathf.Clamp(Karma, -500, 500);
-                    }, "Vitals");
-                }
+                    float Age = EditorGUILayout.FloatField("Age", vitalStat.Age);
+                    vitalStat.Age = Mathf.Clamp(Age, 0, Age);
+                    float Health = EditorGUILayout.FloatField("Health", vitalStat.Health);
+                    vitalStat.Health = Mathf.Clamp(Health, 0, Health);
+                    float Longevity = EditorGUILayout.FloatField("Longevity", vitalStat.Longevity);
+                    vitalStat.Longevity = Mathf.Clamp(Longevity, Health, Longevity);
+                    float Karma = EditorGUILayout.FloatField("Karma", vitalStat.Karma);
+                    vitalStat.Karma = Mathf.Clamp(Karma, -500, 500);
+                }, "Vitals");
+                GUILayout.EndHorizontal();
+            });
+            StatEditor(vitalStat.PhycicsStats);
+        }
+
+        /// <summary>
+        /// Edit PhycisStats.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="_stat"></param>
+        protected void StatEditor(PhycisStats _stat)
+        {
+            ScrollablePanel(() =>
+            {
+                GUILayout.BeginHorizontal();
                 GroupGUI(() =>
                 {
                     float Mass = EditorGUILayout.FloatField("Mass", _stat.Mass);
@@ -1146,6 +1199,24 @@ namespace PulseEditor
             //we can only request cache refreshes every second
             await Task.Delay(1000);
             RefreshingCache = false;
+        }
+
+        /// <summary>
+        /// To Open a module selector.
+        /// </summary>
+        /// <param name="_onSelection"></param>
+        public static void ModuleEditor(ModulesEditors _module, Action<object,EditorEventArgs> _onSelection, params object[] arguments)
+        {
+            MethodInfo method;
+        }
+
+        /// <summary>
+        /// to open a module modifier.
+        /// </summary>
+        /// <param name="_dataLoc"></param>
+        public static void ModuleEditor(ModulesEditors _module, DataLocation _dataLoc, params object[] _arguments)
+        {
+
         }
 
 #endif

@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor.Globals;
 using PulseEditor.Modules.Anima;
 using PulseEngine.Modules.Anima;
 using UnityEditor;
 using System.Reflection;
 using System;
 
-public class TesterEditor : PulseEditorMgr
+public class TesterEditor
 {
     private UnityEditor.Animations.AnimatorController controller;
     private UnityEditor.Animations.AnimatorState treeState;
@@ -20,8 +19,8 @@ public class TesterEditor : PulseEditorMgr
     [MenuItem("Test editor/test")]
     public static void ShowWindow()
     {
-        var win = GetWindow<TesterEditor>();
-        win.Show();
+        //var win = GetWindow<TesterEditor>();
+        //win.Show();
     }
 
     private void OnEnable()
@@ -30,7 +29,7 @@ public class TesterEditor : PulseEditorMgr
 
     private void Update()
     {
-        Repaint();
+        //Repaint();
     }
 
     public static void Showing()

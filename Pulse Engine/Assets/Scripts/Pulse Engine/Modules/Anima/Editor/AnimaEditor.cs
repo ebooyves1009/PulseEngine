@@ -528,8 +528,9 @@ namespace PulseEditor.Modules.Anima
                         GUILayout.EndHorizontal();
                         if (GUILayout.Button("Customize Event"))
                         {
+                            //TODO: Editor of Commands => action.
                             throw new NotImplementedException("You have to open the command modifier here");
-                            //evEnt.command//TODO: Editor of Commands => action.
+                            //evEnt.command
                         }
                         GUILayout.EndVertical();
 
