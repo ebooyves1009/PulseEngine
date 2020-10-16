@@ -133,12 +133,12 @@ namespace PulseEditor
         /// <summary>
         /// La liste des datas en cours de modification.
         /// </summary>
-        protected List<IData> dataList;
+        protected List<object> dataList;
 
         /// <summary>
         /// La data en cours de modification.
         /// </summary>
-        protected IData data;
+        protected object data;
 
         /// <summary>
         /// l'index de l'asset dans all assets.
@@ -168,7 +168,7 @@ namespace PulseEditor
         /// <summary>
         /// The copied object on the clipboard.
         /// </summary>
-        protected IData clipBoard;
+        protected object clipBoard;
 
         #endregion
 
@@ -284,38 +284,48 @@ namespace PulseEditor
         {
             GUILayout.BeginVertical();
             OnHeaderRedraw();
-            if(asset != null && asset.DataList != null)
+            if(asset != null && asset.DataList != null && dataList == null)
             {
-                dataList = asset.DataList;
+                dataList = asset.DataList.Cast<object>().ToList();
             }
             GUILayout.BeginHorizontal();
             //left panel
-            if(currentEditorMode != EditorMode.DataEdition && dataList != null && dataList.Count > 0)
+            if (currentEditorMode != EditorMode.DataEdition && dataList != null)
             {
                 string[] names = new string[dataList.Count];
-                PropertyInfo locationField = dataList[0].GetType().GetProperty("Location", BindingFlags.Public);
-                PropertyInfo tradField = dataList[0].GetType().GetProperty("TradLocation", BindingFlags.Public);
-                DataLocation locationFieldValue = default;
-                DataLocation tradFieldValue = default;
-                for (int i = 0, len = dataList.Count; i < len; i++)
+                if (dataList.Count > 0)
                 {
-                    locationFieldValue = locationField != null ? (DataLocation)locationField.GetValue(dataList[i]) : default;
-                    tradFieldValue = tradField != null ? (DataLocation)tradField.GetValue(dataList[i]) : default;
-                    string idValue = (locationFieldValue != default ? locationFieldValue.id.ToString() : "Null ID");
-                    string tradValue = string.Empty;
-                    if (tradFieldValue != default)
+                    Type Ttype = dataList[0].GetType();
+                    PropertyInfo locationField = Ttype.GetProperty("Location");
+                    PropertyInfo tradField = Ttype.GetProperty("TradLocation");
+                    DataLocation locationFieldValue = default;
+                    DataLocation tradFieldValue = default;
+                    bool traductible = Ttype.BaseType == typeof(LocalisableData);
+                    bool tradData = Ttype == typeof(Localisationdata);
+                    for (int i = 0, len = dataList.Count; i < len; i++)
                     {
-                        var cachedData = GetCachedData(tradFieldValue);
-                        if (cachedData != null)
+                        locationFieldValue = locationField != null ? (DataLocation)locationField.GetValue(dataList[i]) : default;
+                        tradFieldValue = tradField != null ? (DataLocation)tradField.GetValue(dataList[i]) : default;
+                        string idValue = (locationFieldValue != default(DataLocation) ? locationFieldValue.id.ToString() : "Null ID");
+                        string tradValue = string.Empty;
+                        if (tradFieldValue != default(DataLocation) && traductible)
                         {
-                            Localisationdata lData = cachedData as Localisationdata;
-                            if (lData != null)
+                            var cachedData = GetCachedData(tradFieldValue);
+                            if (cachedData != null)
                             {
-                                tradValue = lData.Title.textField;
+                                Localisationdata lData = cachedData as Localisationdata;
+                                if (lData != null)
+                                {
+                                    tradValue = lData.Title.textField;
+                                }
                             }
+                        } else if (tradData)
+                        {
+                            var titleValue = ((Localisationdata)dataList[i]).Title.textField;
+                            tradValue = titleValue != null ? titleValue : "Empty title";
                         }
+                        names[i] = idValue + "_" + tradValue != string.Empty ? tradValue : "null trad name";
                     }
-                    names[i] = idValue + "_" + tradValue != string.Empty ? tradValue : "null trad name";
                 }
                 //filtering here
                 //TODO: function to filter the list here
@@ -326,21 +336,32 @@ namespace PulseEditor
                 {
                     //search and filter
                     //listing
-                    selectDataIndex = MakeList(selectDataIndex, names, dataList);
-                    if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
-                        data = dataList[selectDataIndex];
-                    if(editorDataType != DataTypes.none)
-                        OnListButtons(editorDataType);
-                });
+                    GroupGUI(() =>
+                    {
+                        MakeList(selectDataIndex, names, index => selectDataIndex = index, dataList.ToArray());
+                        //if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
+                        //    data = dataList[selectDataIndex];
+                        if (editorDataType != DataTypes.none)
+                            OnListButtons(editorDataType);
+                    }, editorDataType.ToString() + " Items");
+                    //foot panel
+                    OnFootRedraw();
+                    //save panel
+                    SaveBarPanel();
+
+                },true);
             }
-            //right panel
-            OnBodyRedraw();
+            ScrollablePanel(() =>
+            {
+                //right panel
+                OnBodyRedraw();
+            });
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            //save panel
-            SaveBarPanel();
-            //foot panel
-            OnFootRedraw();
+            ////save panel
+            //SaveBarPanel();
+            ////foot panel
+            //OnFootRedraw();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
@@ -565,7 +586,7 @@ namespace PulseEditor
                             else
                             {
                                 if(onSelectionEvent != null)
-                                    onSelectionEvent.Invoke(data, new EditorEventArgs{ dataObjectLocation = data.Location });
+                                    onSelectionEvent.Invoke(data, new EditorEventArgs{ dataObjectLocation = ((IData)data).Location });
                             }
                             Close();
                         }),
@@ -643,7 +664,7 @@ namespace PulseEditor
         /// <param name="_index"></param>
         /// <param name="_collection"></param>
         /// <returns></returns>
-        protected int MakeList(int _index, string[] _collection, params object[] dataCollection)
+        protected int MakeList(int _index, string[] _collection, Action<int> beforeChange = null, object[] dataCollection = null)
         {
             List<GUIContent> listContent = new List<GUIContent>();
             for (int i = 0; i < _collection.Length; i++)
@@ -663,12 +684,14 @@ namespace PulseEditor
                 listContent.Add(new GUIContent { text = i + "-" + title });
             }
             int tmp = ListItems(_index, listContent.ToArray());
+            if (beforeChange != null)
+                beforeChange.Invoke(tmp);
             if (tmp != _index)
                 ListChange();
             if (dataCollection != null && dataCollection.Length > 0)
             {
                 if (tmp >= 0 && tmp < dataCollection.Length)
-                    data = dataCollection[tmp] as IData;
+                    data = dataCollection[tmp];
                 else
                     data = null;
             }
@@ -724,7 +747,7 @@ namespace PulseEditor
             int selId = GUILayout.Toolbar(_index, _collection);
             if (beforeEmitSignal != null)
                 beforeEmitSignal.Invoke(selId);
-            if (selId != _index)
+            if (selId != _index || asset == null)
                 HeaderChange();
             return selId;
         }
@@ -744,7 +767,7 @@ namespace PulseEditor
                 scroolPos = PanelsScrools[scrollPanCount];
             else
                 PanelsScrools.Add(scrollPanCount, scroolPos);
-            var options = new[] { GUILayout.MinWidth(100), GUILayout.Width(300) };
+            var options = new[] { /*GUILayout.MinWidth(100),*/ GUILayout.Width(minSize.x / 2) };
             scroolPos = GUILayout.BeginScrollView(scroolPos, fixedSize ? options : null);
             GUILayout.BeginVertical();
             if (guiFunctions != null)
@@ -790,7 +813,7 @@ namespace PulseEditor
                 var item = Activator.CreateInstance(GetTypeFromData(_dtype)) as IData;
                 if (item != null)
                 {
-                    item.Location = new DataLocation { id = maxId, globalLocation = globalLoc, localLocation = localLoc, dType = _dtype };
+                    item.Location = new DataLocation { id = maxId + 1, globalLocation = globalLoc, localLocation = localLoc, dType = _dtype };
                     dataList.Add(item);
                 }
             }
@@ -807,6 +830,7 @@ namespace PulseEditor
                     int index = dataList.FindIndex(item => { return ReferenceEquals(item, data); });
                     if (index >= 0)
                         dataList.RemoveAt(index);
+                    ListChange();
                 }
                 if(clipBoard != null)
                 {
@@ -819,6 +843,7 @@ namespace PulseEditor
                         }
                         else
                             dataList.Add(clipBoard);
+                        ListChange();
                     }
                     if (GUILayout.Button("X"))
                     {
@@ -1018,11 +1043,17 @@ namespace PulseEditor
         /// </summary>
         private void HeaderChange()
         {
+            if (asset != null)
+            {
+                asset.DataList = dataList.Cast<IData>().ToList();
+                SaveAsset(asset, originalAsset);
+            }
             allAssets.Clear();
             originalAsset = null;
             asset = null;
             data = null;
             selectDataIndex = -1;
+            dataList = null;
             OnInitialize();
             OnHeaderChange();
         }
@@ -1032,19 +1063,23 @@ namespace PulseEditor
         /// </summary>
         private void ListChange()
         {
-            if (selectDataIndex > 0)
-            {
-                var idField = dataList[0].GetType().GetField("id", BindingFlags.NonPublic);
-                object idData = idField.GetValue(data);
-                int idDataValue = idData != null ? (int)idData : -1;
-                int correspondingIndex = dataList.FindIndex(dt =>
-                {
-                    object idObject = (int)idField.GetValue(dt);
-                    int idValue = idObject != null ? (int)idObject : -1;
-                    return idValue >= 0 && idDataValue >= 0 && idValue == idDataValue;
-                });
-                selectDataIndex = correspondingIndex;
-            }
+            //if (selectDataIndex >= 0 && data != null)
+            //{
+            //    var location_Prop = dataList[0].GetType().GetProperty("Location");
+            //    if (location_Prop != null)
+            //    {
+            //        DataLocation locValue = (DataLocation)location_Prop.GetValue(data);
+            //        if (locValue != default(DataLocation))
+            //        {
+            //            int correspondingIndex = dataList.FindIndex(dt =>
+            //            {
+            //                DataLocation objLoc = (DataLocation)location_Prop.GetValue(dt);
+            //                return locValue == objLoc;
+            //            });
+            //            selectDataIndex = correspondingIndex;
+            //        }
+            //    }
+            //}
             data = null;
             dataID = -1;
             //OnInitialize();
@@ -1156,11 +1191,13 @@ namespace PulseEditor
         /// <returns></returns>
         public static IData GetCachedData(DataLocation _location)
         {
+            if (_location.dType == DataTypes.none)
+                return default;
             //if the static cache doesnt exist
             if (StaticCache == null)
                 StaticCache = new Dictionary<DataTypes, Dictionary<DataLocation, IData>>();
             //if the data type dictionnary is null
-            if (StaticCache[_location.dType] == null)
+            if (!StaticCache.ContainsKey(_location.dType) || StaticCache[_location.dType] == null)
                 StaticCache[_location.dType] = new Dictionary<DataLocation, IData>();
             //if the data type dictionnary exist
             if (StaticCache.ContainsKey(_location.dType))
@@ -1205,18 +1242,47 @@ namespace PulseEditor
         /// To Open a module selector.
         /// </summary>
         /// <param name="_onSelection"></param>
-        public static void ModuleEditor(ModulesEditors _module, Action<object,EditorEventArgs> _onSelection, params object[] arguments)
+        public static void ModuleSelector(ModulesEditors _module, Action<object,EditorEventArgs> _onSelection, params object[] arguments)
         {
-            MethodInfo method;
+            Type moduleClass = Type.GetType("PulseEditor.Modules."+_module.ToString());
+            if (moduleClass == null)
+                return;
+            MethodInfo method = moduleClass.GetMethod("OpenSelector");
+            if (method == null)
+                return;
+            object selection = _onSelection as object;
+            method.Invoke(null, new[] { selection, arguments });
+        }
+
+        /// <summary>
+        /// to open a module Editor.
+        /// </summary>
+        /// <param name="_dataLoc"></param>
+        public static void ModuleEditor(ModulesEditors _module, params object[] _arguments)
+        {
+            Type moduleClass = Type.GetType("PulseEditor.Modules." + _module.ToString());
+            if (moduleClass == null)
+                return;
+            MethodInfo method = moduleClass.GetMethod("OpenEditor");
+            if (method == null)
+                return;
+            method.Invoke(null, _arguments);
         }
 
         /// <summary>
         /// to open a module modifier.
         /// </summary>
         /// <param name="_dataLoc"></param>
-        public static void ModuleEditor(ModulesEditors _module, DataLocation _dataLoc, params object[] _arguments)
+        public static void ModuleModifier(ModulesEditors _module, DataLocation _dataLoc, params object[] _arguments)
         {
-
+            Type moduleClass = Type.GetType("PulseEditor.Modules." + _module.ToString());
+            if (moduleClass == null)
+                return;
+            MethodInfo method = moduleClass.GetMethod("OpenModifier");
+            if (method == null)
+                return;
+            object location = _dataLoc as object;
+            method.Invoke(null, new[] { location, _arguments });
         }
 
 #endif
@@ -1992,6 +2058,56 @@ namespace PulseEditor
 
     }
 
+
+
+    /// <summary>
+    /// Open the stat editor
+    /// </summary>
+    public class StatWinEditor: PulseEditorMgr
+    {
+        /// <summary>
+        /// L'action a la fermeture.
+        /// </summary>
+        Action<object> onClose;
+
+        /// <summary>
+        /// La data stat.
+        /// </summary>
+        object statData;
+
+
+        /// <summary>
+        /// Open the stat editor.
+        /// </summary>
+        /// <param name="stat"></param>
+        public static void OpenEditor(object _stat, Action<object> _onClose)
+        {
+            var window = GetWindow<StatWinEditor>();
+            window.onClose = _onClose;
+            window.statData = _stat;
+            window.ShowModal();
+        }
+
+
+        protected override void OnRedraw()
+        {
+            if (statData.GetType() == typeof(MindStat))
+                StatEditor((MindStat)statData);
+            else if (statData.GetType() == typeof(BodyStats))
+                StatEditor((BodyStats)statData);
+            else if (statData.GetType() == typeof(VitalStat))
+                StatEditor((VitalStat)statData);
+            else if (statData.GetType() == typeof(PhycisStats))
+                StatEditor((PhycisStats)statData);
+            GUILayout.Space(20);
+            if (GUILayout.Button("Done"))
+            {
+                if (onClose != null)
+                    onClose.Invoke(statData);
+                Close();
+            }
+        }
+    }
 
     /// <summary>
     /// Les arguments d'un evenement d'editeur.

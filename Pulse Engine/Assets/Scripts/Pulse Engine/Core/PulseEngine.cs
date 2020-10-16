@@ -68,9 +68,28 @@ namespace PulseEngine
                 return default(T);
             }
 
-            string sourceJson = JsonUtility.ToJson(original);
+            T nouvo = default;
 
-            T nouvo = JsonUtility.FromJson<T>(sourceJson);
+            try
+            {
+                return original;
+                string sourceJson = JsonUtility.ToJson(original);
+                var n = JsonUtility.FromJson<T>(sourceJson);
+                //nouvo = JsonUtility.FromJson<T>(sourceJson);
+            }
+            catch
+            {
+                try
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        ms.Position = 0;
+                        nouvo = (T)bf.Deserialize(ms);
+                    }
+                }
+                catch { }
+            }
 
             return nouvo;
         }
@@ -392,6 +411,8 @@ namespace PulseEngine
 
         public static bool operator ==(DataLocation x, object y)
         {
+            if (y == null)
+                return false;
             var dt = (DataLocation)y;
             if (dt != null)
                 return x.Equals(dt);
@@ -401,6 +422,8 @@ namespace PulseEngine
 
         public static bool operator !=(DataLocation x, object y)
         {
+            if (y == null)
+                return true;
             var dt = (DataLocation)y;
             if (dt != null)
                 return !x.Equals(dt);
@@ -437,6 +460,13 @@ namespace PulseEngine
         /// le champ vocal.
         /// </summary>
         public AudioClip audioField;
+
+        public TradField(string str = "")
+        {
+            textField = str;
+            imageField = null;
+            audioField = null;
+        }
     }
 
     #endregion
@@ -573,7 +603,8 @@ namespace PulseEngine.Datas
     /// <summary>
     /// La classe mere des libraies d'assets
     /// </summary>
-    public abstract class CoreLibrary : ScriptableObject
+    [System.Serializable]
+    public class CoreLibrary : ScriptableObject
     {
 
         #region Attributes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -599,6 +630,8 @@ namespace PulseEngine.Datas
         #endregion
 
         #region Methods >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#if UNITY_EDITOR
 
         /// <summary>
         /// Cree l'asset.
@@ -719,6 +752,8 @@ namespace PulseEngine.Datas
             else
                 return null;
         }
+
+#endif
 
         #endregion
     }
@@ -1166,17 +1201,17 @@ namespace PulseEngine.Datas
         [SerializeField]
         private float merchantValue;
         [SerializeField]
-        private List<int> materials;
+        private List<int> materials = new List<int>();
         [SerializeField]
         private List<GameObject> componentParts = new List<GameObject>();
         [SerializeField]
         private PhycisStats physicProperties;
         [SerializeField]
-        private AnimaData idle_move;
+        private DataLocation idle_move;
         [SerializeField]
-        private List<AnimaData> attack_moves = new List<AnimaData>();
+        private DataLocation draw_move;
         [SerializeField]
-        private List<AnimaData> defense_moves = new List<AnimaData>();
+        private DataLocation sheath_move;
         [SerializeField]
         private List<WeaponPlace> restPlaces = new List<WeaponPlace>();
         [SerializeField]
@@ -1251,7 +1286,17 @@ namespace PulseEngine.Datas
         /// <summary>
         /// l'idle avec l'arme.
         /// </summary>
-        public AnimaData IdleMove { get => idle_move; set => idle_move = value; }
+        public DataLocation IdleMove { get => idle_move; set => idle_move = value; }
+
+        /// <summary>
+        /// le degainage avec l'arme.
+        /// </summary>
+        public DataLocation DrawMove { get => draw_move; set => draw_move = value; }
+
+        /// <summary>
+        /// le rengainage avec l'arme.
+        /// </summary>
+        public DataLocation SheathMove { get => sheath_move; set => sheath_move = value; }
 
         /// <summary>
         /// Les emplacements rengaine de l'arme. un pour chaque object

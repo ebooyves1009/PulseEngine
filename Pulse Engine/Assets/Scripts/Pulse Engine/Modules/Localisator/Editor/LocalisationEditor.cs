@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 
 //TODO: implementer les details de la data.
-namespace PulseEditor.Modules.Localisator
+namespace PulseEditor.Modules
 {
 
     /// <summary>
@@ -208,11 +208,11 @@ namespace PulseEditor.Modules.Localisator
         {
             GroupGUInoStyle(() =>
             {
-                assetMainFilter = MakeHeader(assetMainFilter, Enum.GetNames(typeof(Languages)));
+                MakeHeader(assetMainFilter, Enum.GetNames(typeof(Languages)), index => assetMainFilter = index);
             }, "Language", 50);
             GroupGUInoStyle(() =>
             {
-                assetLocalFilter = MakeHeader(assetLocalFilter, Enum.GetNames(typeof(TradDataTypes)));
+                MakeHeader(assetLocalFilter, Enum.GetNames(typeof(TradDataTypes)), index => assetLocalFilter = index);
             }, "Type", 50);
         }
         
@@ -432,11 +432,12 @@ namespace PulseEditor.Modules.Localisator
                 var lib = library as LocalisationLibrary;
                 return lib.Langage == (Languages)assetMainFilter &&
                 lib.TradType == (TradDataTypes)assetLocalFilter;
-            });
+            }) as LocalisationLibrary;
             if(matchingAsset != null)
             {
                 originalAsset = matchingAsset;
-                asset = Core.DeepCopy(matchingAsset);
+                asset = matchingAsset;
+                //asset = Core.DeepCopy(matchingAsset);
                 return true;
             }
             return false;
@@ -511,6 +512,13 @@ namespace PulseEditor.Modules.Localisator
             if (currentEditorMode == EditorMode.Edition || currentEditorMode == EditorMode.DataEdition)
             {
                 PageDetailsEdition((Localisationdata)data);
+            }
+        }
+
+        protected override void OnFootRedraw()
+        {
+            if (currentEditorMode == EditorMode.Edition || currentEditorMode == EditorMode.DataEdition)
+            {
                 HashTagGenerator();
             }
         }

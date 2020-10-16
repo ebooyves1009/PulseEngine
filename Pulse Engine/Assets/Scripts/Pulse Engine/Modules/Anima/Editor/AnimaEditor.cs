@@ -8,7 +8,7 @@ using System.Linq;
 using PulseEngine;
 using PulseEngine.Datas;
 
-namespace PulseEditor.Modules.Anima
+namespace PulseEditor.Modules
 {
     /// <summary>
     /// l'editeur d'animation.

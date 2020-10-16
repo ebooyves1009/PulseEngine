@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor.Modules.Anima;
 using PulseEngine.Modules.Anima;
 using UnityEditor;
 using System.Reflection;

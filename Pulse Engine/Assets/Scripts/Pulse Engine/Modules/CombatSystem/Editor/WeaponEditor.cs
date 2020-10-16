@@ -7,7 +7,7 @@ using System.Linq;
 using PulseEngine;
 using PulseEngine.Datas;
 
-namespace PulseEditor.Modules.CombatSystem
+namespace PulseEditor.Modules
 {
     /// <summary>
     /// L'editeur d'arsenal.
@@ -111,6 +111,10 @@ namespace PulseEditor.Modules.CombatSystem
         /// </summary>
         private Dictionary<GameObject, Editor> weaponPartsEditors = new Dictionary<GameObject, Editor>();
 
+        /// <summary>
+        /// The current previsualised animation clip.
+        /// </summary>
+        private AnimationClip previewClip;
 
         /// <summary>
         /// Le chemin d'access des datas.
@@ -276,6 +280,7 @@ namespace PulseEditor.Modules.CombatSystem
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
             //Global params
+            DataLocation previewCliploc = default(DataLocation);
             GroupGUI(() =>
             {
                 //ID
@@ -289,13 +294,15 @@ namespace PulseEditor.Modules.CombatSystem
                 EditorGUILayout.LabelField(name);
                 if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
                 {
-                    //TODO: You have to open the Localisation selector here.
-                    throw new NotImplementedException("You have to open the Localisation selector here");
+                    ModuleSelector(ModulesEditors.LocalisationEditor, (obj, arg) =>
+                    {
+                        if (arg != null)
+                            data.TradLocation = arg.dataObjectLocation;
+                    }, TradDataTypes.Weapon);
                 }
                 if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
                 {
-                    //TODO: You have to open the Localisation modifier here.
-                    throw new NotImplementedException("You have to open the Localisation modifier here");
+                    ModuleModifier(ModulesEditors.LocalisationEditor, data.TradLocation);
                 }
                 GUILayout.EndHorizontal();
 
@@ -310,36 +317,48 @@ namespace PulseEditor.Modules.CombatSystem
                 EditorGUILayout.LabelField("Weapon's Stats:");
                 if (GUILayout.Button("Edit " + name + " Stats"))
                 {
-                    //TODO: You have to open the Stats modifier here.
-                    throw new NotImplementedException("You have to open the Stats modifier here");
-                }
-                GUILayout.EndHorizontal();
-                //Stat Donnees
-                GUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("Stat given to Owner:");
-                if (GUILayout.Button("Edit given Stats"))
-                {
-                    //TODO: You have to open the stats modifier here.
-                    throw new NotImplementedException("You have to open the stats modifier here");
+                    StatWinEditor.OpenEditor(data.PhysicProperties, obj =>
+                    {
+                        if (obj != null)
+                            data.PhysicProperties = (PhycisStats)obj;
+                    });
                 }
                 GUILayout.EndHorizontal();
                 //animation au repos
                 EditorGUILayout.LabelField("Arm and Disasm animations:");
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Equip Animation"))
+                if (GUILayout.Button("Draw Animation"))
                 {
-                    //TODO: You have to open the Anima selector here.
-                    throw new NotImplementedException("You have to open the Anima selector here");
+                    ModuleSelector(ModulesEditors.AnimaEditor, (obj, arg) =>
+                    {
+                        if (arg != null)
+                        {
+                            data.DrawMove = arg.dataObjectLocation;
+                            previewCliploc = arg.dataObjectLocation;
+                        }
+                    });
                 }
                 if (GUILayout.Button("Idle Animation"))
                 {
-                    //TODO: You have to open the Anima selector here.
-                    throw new NotImplementedException("You have to open the Anima selector here");
+                    ModuleSelector(ModulesEditors.AnimaEditor, (obj, arg) =>
+                    {
+                        if (arg != null)
+                        {
+                            data.IdleMove = arg.dataObjectLocation;
+                            previewCliploc = arg.dataObjectLocation;
+                        }
+                    });
                 }
-                if (GUILayout.Button("UnEquip Animation"))
+                if (GUILayout.Button("Sheath Animation"))
                 {
-                    //TODO: You have to open the Anima selector here.
-                    throw new NotImplementedException("You have to open the Anima selector here");
+                    ModuleSelector(ModulesEditors.AnimaEditor, (obj, arg) =>
+                    {
+                        if (arg != null)
+                        {
+                            data.SheathMove = arg.dataObjectLocation;
+                            previewCliploc = arg.dataObjectLocation;
+                        }
+                    });
                 }
                 GUILayout.EndHorizontal();
                 //Weapon game objects
@@ -376,7 +395,18 @@ namespace PulseEditor.Modules.CombatSystem
 
             }, "Common Parameters");
             //preview.
-            if (data.IdleMove != null && data.IdleMove.Motion)
+            if (previewClip == null)
+            {
+                previewCliploc = data.IdleMove;
+            }
+            if (previewCliploc != default(DataLocation))
+            {
+                AnimaData dataAnim = GetCachedData(previewCliploc) as AnimaData;
+                if (dataAnim != null)
+                    previewClip = dataAnim.Motion;
+            }
+
+            if (data.IdleMove != null && previewClip)
             {
                 GroupGUI(() =>
                 {
@@ -391,7 +421,7 @@ namespace PulseEditor.Modules.CombatSystem
                             weaponInfos.Add((data.ComponentParts[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].positionOffset, data.CarryPlaces[i].rotationOffset));
                     }
                     if (preview != null)
-                        preview.Previsualize(data.IdleMove.Motion, 18 / 9, null, weaponInfos.ToArray());
+                        preview.Previsualize(previewClip, 18 / 9, null, weaponInfos.ToArray());
                     GUILayout.EndVertical();
                 }, "Preview");
             }
@@ -496,7 +526,8 @@ namespace PulseEditor.Modules.CombatSystem
         {
             if (onSelectionEvent != null)
             {
-                onSelectionEvent.Invoke(data, new EditorEventArgs { dataObjectLocation = data != null ? data.Location : default });
+                IData idata = data as IData;
+                onSelectionEvent.Invoke(data, new EditorEventArgs { dataObjectLocation = idata != null ? idata.Location : default });
             }
         }
 

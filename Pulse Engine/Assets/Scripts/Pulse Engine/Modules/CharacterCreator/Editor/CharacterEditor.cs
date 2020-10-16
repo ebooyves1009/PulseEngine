@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using PulseEditor.Modules.Localisator;
 using PulseEngine.Modules;
 using PulseEngine.Modules.CharacterCreator;
 using UnityEditor;
@@ -10,8 +9,9 @@ using PulseEngine;
 using System.Threading.Tasks;
 using PulseEngine.Datas;
 using System.Reflection;
+using System.Linq;
 
-namespace PulseEditor.Modules.CharacterCreator
+namespace PulseEditor.Modules
 {
     /// <summary>
     /// L'editeur de characters.
@@ -191,10 +191,11 @@ namespace PulseEditor.Modules.CharacterCreator
             {
                 if (onSelect != null)
                 {
+                    IData idata = window.data as IData;
                     onSelect.Invoke(null, new EditorEventArgs
                     {
-                        dataObjectLocation = window.data.Location
-                    });
+                        dataObjectLocation = idata != null ? idata.Location : default
+                    }); ;
                 }
             };
             window.ShowUtility();
@@ -529,11 +530,13 @@ namespace PulseEditor.Modules.CharacterCreator
                 if (originalAsset)
                     asset = Core.DeepCopy(originalAsset);
                 if (asset != null)
-                    dataList = asset.DataList;
+                    dataList = asset.DataList.Cast<object>().ToList();
             }
             if (currentEditorMode == EditorMode.DataEdition && dataList != null)
             {
-                data = dataList.Find(d => { return d.Location.id == dataID; });
+                data = dataList.Find(d => {
+                    CharacterData c = d as CharacterData;
+                    return c != null && c.Location.id == dataID; });
                 if (((CharacterData)data) != null)
                     SetPreviewAdditives((CharacterData)data);
             }
