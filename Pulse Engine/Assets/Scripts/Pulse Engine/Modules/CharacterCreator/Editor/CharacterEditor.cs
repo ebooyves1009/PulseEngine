@@ -528,7 +528,7 @@ namespace PulseEditor.Modules
                 if (!originalAsset && CoreLibrary.Save<CharactersLibrary>(AssetsPath, new object[] { assetMainFilter, assetLocalFilter }))
                     originalAsset = CoreLibrary.Load<CharactersLibrary>(AssetsPath, new object[] { assetMainFilter, assetLocalFilter });
                 if (originalAsset)
-                    asset = Core.DeepCopy(originalAsset);
+                    asset = Core.LibraryClone(originalAsset);
                 if (asset != null)
                     dataList = asset.DataList.Cast<object>().ToList();
             }

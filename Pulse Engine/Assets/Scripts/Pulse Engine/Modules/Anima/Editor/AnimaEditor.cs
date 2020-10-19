@@ -578,7 +578,7 @@ namespace PulseEditor.Modules
             originalAsset = allAssets.Find(ass => { return ((AnimaLibrary)ass).Scope == (Scopes)assetMainFilter && ((AnimaLibrary)ass).AnimType == selectedType; });
             if (originalAsset)
             {
-                asset = Core.DeepCopy(originalAsset);
+                asset = Core.LibraryClone(originalAsset);
             }
             if (currentEditorMode == EditorMode.DataEdition && dataID >= 0)
             {

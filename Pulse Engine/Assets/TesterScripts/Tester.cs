@@ -1,18 +1,28 @@
-﻿using System.Collections;
+﻿using PulseEngine.Datas;
+using PulseEngine;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
-using eWindow = UnityEditor.EditorGUILayout;
-using Window = UnityEngine.GUILayout;
-using System;
-using PulseEngine.Modules.Anima;
-using UnityEngine.Events;
-using System.Reflection;
+using PulseEngine.Modules.Localisator;
 
-[CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/testerData", order = 1)]
-public class Tester : ScriptableObject
+public class Tester : MonoBehaviour
 {
-    public List<string> linker = new List<string>();
+    string text = "";
+
+    private async void OnGUI()
+    {
+        if(GUILayout.Button("Get the first"))
+        {
+            var locData = await CoreData.GetData<Localisationdata,LocalisationLibrary>(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 });
+            if(locData != null)
+            {
+                text = locData.Title.textField;
+            }
+        }
+        if(GUILayout.Button(text))
+        {
+        }
+    }
 }
 
 

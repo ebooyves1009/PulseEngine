@@ -436,8 +436,7 @@ namespace PulseEditor.Modules
             if(matchingAsset != null)
             {
                 originalAsset = matchingAsset;
-                asset = matchingAsset;
-                //asset = Core.DeepCopy(matchingAsset);
+                asset = Core.LibraryClone(matchingAsset);
                 return true;
             }
             return false;
@@ -453,20 +452,43 @@ namespace PulseEditor.Modules
             for (int i = 0, len = allAssets.Count; i < len; i++)
             {
                 var otherAsset = allAssets[i] as LocalisationLibrary;
+                if (otherAsset == null)
+                    continue;
+                if (otherAsset.Langage == ((LocalisationLibrary)asset).Langage)
+                    continue;
                 if (otherAsset.TradType == ((LocalisationLibrary)asset).TradType)
                 {
                     for (int j = 0, len2 = ((LocalisationLibrary)asset).DataList.Count; j < len2; j++)
                     {
-                        var data = ((LocalisationLibrary)asset).DataList[j] as Localisationdata;
-                        if (data != null && otherAsset.DataList.FindIndex(d => {
+                        var locData = ((LocalisationLibrary)asset).DataList[j] as Localisationdata;
+                        if (locData == null)
+                            continue;
+                        int foundIndex = otherAsset.DataList.FindIndex(d => {
                             var dt = d as Localisationdata;
-                            return dt != null && dt.Location.id == data.Location.id; }) < 0)
+                            return dt != null && dt.Location.id == locData.Location.id;
+                        });
+                        bool found = !(foundIndex < 0);
+
+                        if (!found)
                         {
-                            Localisationdata newOne = new Localisationdata { Location = new DataLocation { id = data.Location.id, localLocation = (int)otherAsset.TradType , globalLocation = (int)otherAsset.Langage} };
+                            Localisationdata newOne = new Localisationdata { Location = new DataLocation { id = locData.Location.id, localLocation = (int)otherAsset.TradType , globalLocation = (int)otherAsset.Langage} };
                             if (((LocalisationLibrary)asset).TradType == TradDataTypes.Person)
-                                newOne.Title = data.Title;
-                            otherAsset.DataList.Add(newOne);
+                                newOne.Title = locData.Title;
+                            var dList = otherAsset.DataList;
+                            if (dList == null)
+                                dList = new List<IData>();
+                            dList.Add(newOne);
+                            otherAsset.DataList = dList;
                             EditorUtility.SetDirty(otherAsset);
+                        }else if(((LocalisationLibrary)asset).TradType == TradDataTypes.Person)
+                        {
+                            var dList = otherAsset.DataList;
+                            var item = dList[foundIndex] as Localisationdata;
+                            if (item == null)
+                                continue;
+                            item.Title = locData.Title;
+                            dList[foundIndex] = item;
+                            otherAsset.DataList = dList;
                         }
                     }
                 }

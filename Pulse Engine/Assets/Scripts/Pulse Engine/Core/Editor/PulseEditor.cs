@@ -133,12 +133,12 @@ namespace PulseEditor
         /// <summary>
         /// La liste des datas en cours de modification.
         /// </summary>
-        protected List<object> dataList;
+        protected List<dynamic> dataList;
 
         /// <summary>
         /// La data en cours de modification.
         /// </summary>
-        protected object data;
+        protected dynamic data;
 
         /// <summary>
         /// l'index de l'asset dans all assets.
@@ -168,7 +168,7 @@ namespace PulseEditor
         /// <summary>
         /// The copied object on the clipboard.
         /// </summary>
-        protected object clipBoard;
+        protected dynamic clipBoard;
 
         #endregion
 
@@ -324,7 +324,7 @@ namespace PulseEditor
                             var titleValue = ((Localisationdata)dataList[i]).Title.textField;
                             tradValue = titleValue != null ? titleValue : "Empty title";
                         }
-                        names[i] = idValue + "_" + tradValue != string.Empty ? tradValue : "null trad name";
+                        names[i] = idValue + " -> " + (tradValue != string.Empty ? tradValue : "null trad name");
                     }
                 }
                 //filtering here
@@ -339,6 +339,8 @@ namespace PulseEditor
                     GroupGUI(() =>
                     {
                         MakeList(selectDataIndex, names, index => selectDataIndex = index, dataList.ToArray());
+                        if (asset != null)
+                            asset.DataList = dataList.Cast<IData>().ToList();
                         //if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
                         //    data = dataList[selectDataIndex];
                         if (editorDataType != DataTypes.none)
@@ -681,7 +683,7 @@ namespace PulseEditor
                 if (name.Length >= titleChars.Length)
                     pointDeSuspension = "...";
                 string title = string.IsNullOrEmpty(name) ? "<<<< None >>>>" : new string(titleChars) + pointDeSuspension;
-                listContent.Add(new GUIContent { text = i + "-" + title });
+                listContent.Add(new GUIContent { text = (i+1) + " | " + title });
             }
             int tmp = ListItems(_index, listContent.ToArray());
             if (beforeChange != null)
@@ -836,14 +838,30 @@ namespace PulseEditor
                 {
                     if (GUILayout.Button("Paste"))
                     {
-                        int index = dataList.FindIndex(item => { return ReferenceEquals(item, data); });
-                        if (index >= 0)
+                        int maxID = 0;
+                        for (int i = 0; i < dataList.Count; i++)
                         {
-                            dataList.Insert(index, clipBoard);
+                            var iiTem = dataList[i] as IData;
+                            if (iiTem == null)
+                                continue;
+                            if (iiTem.Location.id > maxID)
+                                maxID = iiTem.Location.id;
                         }
-                        else
-                            dataList.Add(clipBoard);
-                        ListChange();
+                        var iClipBoard = clipBoard as IData;
+                        if (iClipBoard != null)
+                        {
+                            DataLocation loc = iClipBoard.Location;
+                            loc.id = maxID + 1;
+                            iClipBoard.Location = loc;
+                            int nextID = selectDataIndex + 1;
+                            if (nextID >= 0 && nextID < dataList.Count)
+                            {
+                                dataList.Insert(nextID, iClipBoard);
+                            }
+                            else
+                                dataList.Add(iClipBoard);
+                            ListChange();
+                        }
                     }
                     if (GUILayout.Button("X"))
                     {
@@ -854,7 +872,7 @@ namespace PulseEditor
                 {
                     if (GUILayout.Button("Copy"))
                     {
-                        clipBoard = Core.DeepCopy(data);
+                        clipBoard = Core.ObjectClone(data);
                     }
                 }
             }
@@ -1054,6 +1072,8 @@ namespace PulseEditor
             data = null;
             selectDataIndex = -1;
             dataList = null;
+            clipBoard = null;
+            GUI.FocusControl(null);
             OnInitialize();
             OnHeaderChange();
         }
@@ -1082,6 +1102,7 @@ namespace PulseEditor
             //}
             data = null;
             dataID = -1;
+            GUI.FocusControl(null);
             //OnInitialize();
             OnListChange();
         }

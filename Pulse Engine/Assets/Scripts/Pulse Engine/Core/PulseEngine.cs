@@ -50,10 +50,20 @@ namespace PulseEngine
         #region HelperMethods ###########################################################################
 
         /// <summary>
-        /// Copie par valeur.
+        /// Copie par valeur un scriptable.
         /// </summary>
         /// <returns></returns>
-        public static T DeepCopy<T>(T original)
+        public static Q LibraryClone<Q>(Q original) where Q : ScriptableObject
+        {
+            Q newOne = ScriptableObject.Instantiate(original);
+            return newOne;
+        }
+
+        /// <summary>
+        /// Copie par valeur un objet
+        /// </summary>
+        /// <returns></returns>
+        public static T ObjectClone<T>(T original) where T: new()
         {
 
             if (!typeof(T).IsSerializable)
@@ -72,21 +82,21 @@ namespace PulseEngine
 
             try
             {
-                return original;
-                string sourceJson = JsonUtility.ToJson(original);
-                var n = JsonUtility.FromJson<T>(sourceJson);
-                //nouvo = JsonUtility.FromJson<T>(sourceJson);
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    bf.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.Clone);
+                    bf.Serialize(ms, original);
+                    ms.Position = 0;
+                    nouvo = (T)bf.Deserialize(ms);
+                }
             }
             catch
             {
                 try
                 {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        BinaryFormatter bf = new BinaryFormatter();
-                        ms.Position = 0;
-                        nouvo = (T)bf.Deserialize(ms);
-                    }
+                    string sourceJson = JsonUtility.ToJson(original);
+                    nouvo = JsonUtility.FromJson<T>(sourceJson);
                 }
                 catch { }
             }
@@ -658,6 +668,7 @@ namespace PulseEngine.Datas
             if (AssetDatabase.IsValidFolder(folderPath))
             {
                 T asset = ScriptableObject.CreateInstance<T>();
+
                 try
                 {
                     asset.libraryMainLocation = locationFilters.Length > 0 ? (int)locationFilters[0] : 0;
@@ -688,6 +699,8 @@ namespace PulseEngine.Datas
                         var guid = AssetDatabase.AssetPathToGUID(fullPath);
                         //This is the function that actually makes the object addressable
                         var entry = settings.CreateOrMoveEntry(guid, g);
+                        //simplify entry names
+
                         //You'll need these to run to save the changes!
                         settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
                         AssetDatabase.SaveAssets();
@@ -760,7 +773,7 @@ namespace PulseEngine.Datas
 
     #endregion
 
-    #region Data Access
+    #region Data Access <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
     /// <summary>
     /// Classe d'acces aux datas en runtime.
@@ -808,7 +821,7 @@ namespace PulseEngine.Datas
                 var library = await Addressables.LoadAssetAsync<Q>(keys[i]).Task;
                 if(library == null)
                     continue;
-                var datalist = Core.DeepCopy(library).DataList;
+                var datalist = Core.LibraryClone(library).DataList;
                 output.AddRange(datalist.ConvertAll(new Converter<object, T>(data => { return (T)data; })));
             }
             return output.Count > 0 ? output.FindAll(item => { return item != null; }) : null;
@@ -820,14 +833,15 @@ namespace PulseEngine.Datas
         /// <returns></returns>
         public static async Task<List<T>> GetDatas<T,Q>(DataLocation _location) where Q: CoreLibrary where T: IData
         {
-            var location = await Addressables.LoadResourceLocationsAsync(typeof(T).Name + "_" + _location.globalLocation + "_" + _location.localLocation).Task;
+            string path = typeof(T).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
+            var location = await Addressables.LoadResourceLocationsAsync(path).Task;
             if (location == null || location.Count <= 0)
                 return null;
             var key = location[0].PrimaryKey;
             var library = await Addressables.LoadAssetAsync<Q>(key).Task;
             if (library == null)
                 return null;
-            var datalist = Core.DeepCopy(library).DataList;
+            var datalist = Core.LibraryClone(library).DataList;
             return datalist.FindAll(d=> { return d != null; }).ConvertAll(new Converter<object, T>(data => { return (T)data; }));
         }
 
