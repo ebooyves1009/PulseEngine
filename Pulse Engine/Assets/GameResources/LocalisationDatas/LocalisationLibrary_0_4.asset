@@ -14,4 +14,77 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   libraryMainLocation: 0
   librarySecLocation: 4
-  dataList: []
+  dataList:
+  - location:
+      id: 1
+      globalLocation: 0
+      localLocation: 4
+      dType: 1
+    title:
+      textField: Bible
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    header:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    banner:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    groupName:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    toolTip:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    description:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    details:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    infos:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child1:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child2:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child3:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child4:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child5:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    child6:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    footPage:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    conclusion:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}
+    end:
+      textField: 
+      imageField: {fileID: 0}
+      audioField: {fileID: 0}

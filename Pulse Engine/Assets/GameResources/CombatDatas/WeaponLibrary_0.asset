@@ -14,44 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   libraryMainLocation: 0
   librarySecLocation: 0
-  dataList:
-  - tradLocation:
-      id: 1
-      globalLocation: 0
-      localLocation: 0
-      dType: 1
-    location:
-      id: 0
-      globalLocation: 0
-      localLocation: 0
-      dType: 3
-    range: 0
-    damageType: 0
-    damageValues: 0
-    merchantValue: 0
-    materials: 
-    componentParts: []
-    physicProperties:
-      volume: 0
-      density: 0
-      mass: 0
-      inflammability: 0
-      frozability: 0
-      resistance: 0
-      elasticity: 0
-      roughness: 0
-    idle_move:
-      location:
-        id: 0
-        globalLocation: 0
-        localLocation: 0
-        dType: 0
-      eventList: []
-      phaseAnims: []
-      physicPlace: 0
-      motion: {fileID: 0}
-    attack_moves: []
-    defense_moves: []
-    restPlaces: []
-    carryPlaces: []
-    projectilesOutPoints: []
+  dataList: []

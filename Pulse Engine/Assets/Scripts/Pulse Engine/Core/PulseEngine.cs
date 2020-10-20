@@ -699,7 +699,10 @@ namespace PulseEngine.Datas
                         var guid = AssetDatabase.AssetPathToGUID(fullPath);
                         //This is the function that actually makes the object addressable
                         var entry = settings.CreateOrMoveEntry(guid, g);
+
                         //simplify entry names
+                        var parts = fullPath.Split(new[] { '/', '.' });
+                        entry.SetAddress(parts[parts.Length - 2], true);
 
                         //You'll need these to run to save the changes!
                         settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
@@ -833,7 +836,7 @@ namespace PulseEngine.Datas
         /// <returns></returns>
         public static async Task<List<T>> GetDatas<T,Q>(DataLocation _location) where Q: CoreLibrary where T: IData
         {
-            string path = typeof(T).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
+            string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
             var location = await Addressables.LoadResourceLocationsAsync(path).Task;
             if (location == null || location.Count <= 0)
                 return null;

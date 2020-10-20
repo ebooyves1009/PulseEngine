@@ -21,7 +21,7 @@ MonoBehaviour:
       localLocation: 0
       dType: 1
     title:
-      textField: Atango
+      textField: Yves Eboo
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     header:
@@ -41,7 +41,7 @@ MonoBehaviour:
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     description:
-      textField: est l'ami de #3_0_0# mais ne connait pas son frere #2_0_0#
+      textField: le ptit de #2_0_0# , il a en sa possesion une #1_0_4#
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     details:
@@ -94,7 +94,7 @@ MonoBehaviour:
       localLocation: 0
       dType: 1
     title:
-      textField: Mbida
+      textField: Serge eboo
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     header:
@@ -114,80 +114,7 @@ MonoBehaviour:
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     description:
-      textField: il est le grand frere de #3_0_0#
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    details:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    infos:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child1:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child2:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child3:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child4:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child5:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child6:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    footPage:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    conclusion:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    end:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-  - location:
-      id: 3
-      globalLocation: 0
-      localLocation: 0
-      dType: 1
-    title:
-      textField: Carlos
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    header:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    banner:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    groupName:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    toolTip:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    description:
-      textField: '#3_0_0# est le frere de #2_0_0# et amis de #1_0_0#'
+      textField: le grand de #1_0_0#
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     details:

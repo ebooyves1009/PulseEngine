@@ -9,19 +9,22 @@ public class Tester : MonoBehaviour
 {
     string text = "";
 
-    private async void OnGUI()
+    private void OnGUI()
     {
         if(GUILayout.Button("Get the first"))
         {
-            var locData = await CoreData.GetData<Localisationdata,LocalisationLibrary>(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 });
-            if(locData != null)
-            {
-                text = locData.Title.textField;
-            }
+            LocData();
         }
         if(GUILayout.Button(text))
         {
         }
+    }
+
+    private async void LocData()
+    {
+        string t = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.title);
+        string d = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.description);
+        text = t + " || " + d;
     }
 }
 

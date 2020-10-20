@@ -21,7 +21,7 @@ MonoBehaviour:
       localLocation: 0
       dType: 1
     title:
-      textField: Atango
+      textField: Yves Eboo
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     header:
@@ -94,80 +94,7 @@ MonoBehaviour:
       localLocation: 0
       dType: 1
     title:
-      textField: Mbida
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    header:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    banner:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    groupName:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    toolTip:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    description:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    details:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    infos:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child1:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child2:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child3:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child4:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child5:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    child6:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    footPage:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    conclusion:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-    end:
-      textField: 
-      imageField: {fileID: 0}
-      audioField: {fileID: 0}
-  - location:
-      id: 3
-      globalLocation: 1
-      localLocation: 0
-      dType: 1
-    title:
-      textField: Carlos
+      textField: Serge eboo
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     header:

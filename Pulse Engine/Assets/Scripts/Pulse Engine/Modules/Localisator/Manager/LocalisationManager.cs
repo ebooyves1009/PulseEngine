@@ -30,7 +30,7 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(DatalocationField _field, DataLocation _location)
+        public static async Task<string> TextData(DataLocation _location, DatalocationField _field)
         {
             string result = string.Empty;
             Localisationdata data = await CoreData.GetData<Localisationdata,LocalisationLibrary>(_location);
@@ -123,7 +123,7 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<AudioClip> AudioData(DatalocationField _field, DataLocation _location)
+        public static async Task<AudioClip> AudioData(DataLocation _location, DatalocationField _field)
         {
             AudioClip result = null;
             Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
@@ -193,7 +193,7 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<Sprite> ImageData(DatalocationField _field, DataLocation _location)
+        public static async Task<Sprite> ImageData(DataLocation _location, DatalocationField _field)
         {
             Sprite result = null;
             Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
