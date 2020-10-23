@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a1c12f7248a02e4fa540b8297268fc7, type: 3}
-  m_Name: LocalisationLibrary_0_0(Clone)
+  m_Name: LocalisationLibrary_0_0
   m_EditorClassIdentifier: 
   libraryMainLocation: 0
   librarySecLocation: 0

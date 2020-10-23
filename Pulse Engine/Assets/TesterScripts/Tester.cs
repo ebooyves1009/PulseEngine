@@ -26,6 +26,11 @@ public class Tester : MonoBehaviour
         string d = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.description);
         text = t + " || " + d;
     }
+
+    private static dynamic PlayGround()
+    {
+        return 1 + 1;
+    }
 }
 
 
