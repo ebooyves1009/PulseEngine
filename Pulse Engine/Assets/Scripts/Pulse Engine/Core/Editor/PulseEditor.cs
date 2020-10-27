@@ -1227,7 +1227,7 @@ namespace PulseEditor
                 if (StaticCache[_location.dType].ContainsKey(_location))
                 {
                     if (StaticCache[_location.dType][_location] == null)
-                        RefreshCache(_location.dType);
+                        Task.Factory.StartNew(()=> RefreshCache(_location.dType));
                     return StaticCache[_location.dType][_location];
                 }
                 else
@@ -1238,7 +1238,7 @@ namespace PulseEditor
             }
             else
             {
-                RefreshCache(_location.dType);
+                Task.Factory.StartNew(() => RefreshCache(_location.dType));
                 return null;
             }
         }

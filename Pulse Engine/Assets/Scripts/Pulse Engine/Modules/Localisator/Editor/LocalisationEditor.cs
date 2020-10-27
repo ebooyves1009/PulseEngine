@@ -108,11 +108,6 @@ namespace PulseEditor.Modules
         const string AssetsPath = "LocalisationDatas";
 
         /// <summary>
-        /// L'asset temporaire du meme type de data mais pas de la meme langue.
-        /// </summary>
-        private LocalisationLibrary auXasset;
-
-        /// <summary>
         /// le type data du hash tag selectionne.
         /// </summary>
         private int hashtag_dataTypeIndex;
@@ -552,7 +547,7 @@ namespace PulseEditor.Modules
 
         protected override void OnQuit()
         {
-            auXasset = null;
+
         }
 
         #endregion

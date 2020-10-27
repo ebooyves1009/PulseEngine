@@ -43,7 +43,7 @@ namespace PulseEngine
         /// <summary>
         /// switch debug on or off.
         /// </summary>
-        public const bool DebugMode = true;
+        public static bool DebugMode = true;
 
         #endregion
 
