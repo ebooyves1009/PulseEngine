@@ -10,6 +10,8 @@ using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets;
 using UnityEngine.AddressableAssets;
+using System.Text;
+using PulseEngine.Datas;
 
 
 //TODO: Les Valeurs et fonctions globales seront ajoutees au fur et a mesure.
@@ -102,6 +104,130 @@ namespace PulseEngine
             }
 
             return nouvo;
+        }
+
+        #endregion
+
+        #region Extensions ###########################################################################
+        
+        /// <summary>
+        /// Limit a string to a certain number of characters.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="maxCharacters"></param>
+        /// <returns></returns>
+        public static string Limit(this string str, int maxCharacters = 40)
+        {
+            if (str.Length <= maxCharacters || string.IsNullOrEmpty(str))
+                return str;
+            int maximum = (maxCharacters > 3 ? maxCharacters - 3 : maxCharacters);
+            char[] chain = new char[maxCharacters];
+            for (int i = 0; i < maximum; i++) { chain[i] = str[i]; }
+            if(maximum < maxCharacters)
+                for (int i = maximum; i < maxCharacters; i++) { chain[i] = '.'; }
+            return new string(chain);
+        }
+
+        /// <summary>
+        /// Encadre un texte dans des balises Html couleur
+        /// </summary>
+        /// <param name="txt"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public static string Hightlight(this string txt, Color col)
+        {
+            if (string.IsNullOrEmpty(txt))
+                return txt;
+            string htmlCol = ColorUtility.ToHtmlStringRGB(col);
+            return "<color=#" + htmlCol + ">" + txt + "</color>";
+        }
+
+        /// <summary>
+        /// Encadre un texte dans des balises gras
+        /// </summary>
+        /// <param name="txt"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public static string Bold(this string txt)
+        {
+            if (string.IsNullOrEmpty(txt))
+                return txt;
+            return "<b>" + txt + "</b>";
+        }
+
+        /// <summary>
+        /// Encadre un texte dans des balises italic
+        /// </summary>
+        /// <param name="txt"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public static string Italic(this string txt)
+        {
+            if (string.IsNullOrEmpty(txt))
+                return txt;
+            return "<i>" + txt + "</i>";
+        }
+
+        /// <summary>
+        /// Encadre un texte dans des balises de soulignage
+        /// </summary>
+        /// <param name="txt"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        public static string Underline(this string txt)
+        {
+            if (string.IsNullOrEmpty(txt))
+                return txt;
+            return "<u>" + txt + "</u>";
+        }
+
+        /// <summary>
+        /// Return the selected field
+        /// </summary>
+        /// <param name="dta"></param>
+        /// <param name="fld"></param>
+        /// <returns></returns>
+        public static TradField GetTradField(this Localisationdata dta, DatalocationField fld)
+        {
+            switch (fld)
+            {
+                case DatalocationField.title:
+                    return dta.Title;
+                case DatalocationField.header:
+                    return dta.Header;
+                case DatalocationField.banner:
+                    return dta.Banner;
+                case DatalocationField.groupName:
+                    return dta.GroupName;
+                case DatalocationField.toolTip:
+                    return dta.ToolTip;
+                case DatalocationField.description:
+                    return dta.Description;
+                case DatalocationField.details:
+                    return dta.Details;
+                case DatalocationField.infos:
+                    return dta.Infos;
+                case DatalocationField.child1:
+                    return dta.Child1;
+                case DatalocationField.child2:
+                    return dta.Child2;
+                case DatalocationField.child3:
+                    return dta.Child3;
+                case DatalocationField.child4:
+                    return dta.Child4;
+                case DatalocationField.child5:
+                    return dta.Child5;
+                case DatalocationField.child6:
+                    return dta.Child6;
+                case DatalocationField.footPage:
+                    return dta.FootPage;
+                case DatalocationField.conclusion:
+                    return dta.Conclusion;
+                case DatalocationField.end:
+                    return dta.End;
+                default:
+                    return dta.Title;
+            }
         }
 
         #endregion
@@ -1234,7 +1360,7 @@ namespace PulseEngine.Datas
         [SerializeField]
         private List<GameObject> componentParts = new List<GameObject>();
         [SerializeField]
-        private PhycisStats physicProperties;
+        private PhysicStats physicProperties;
         [SerializeField]
         private DataLocation idle_move;
         [SerializeField]
@@ -1310,7 +1436,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// Les proprietes physiques.
         /// </summary>
-        public PhycisStats PhysicProperties { get => physicProperties; set => physicProperties = value; }
+        public PhysicStats PhysicProperties { get => physicProperties; set => physicProperties = value; }
 
         /// <summary>
         /// l'idle avec l'arme.
@@ -1355,7 +1481,7 @@ namespace PulseEngine.Datas
     /// La data statistique Physique associee a des objets.
     /// </summary>
     [System.Serializable]
-    public struct PhycisStats
+    public struct PhysicStats
     {
         #region Attributs #########################################################
 
@@ -1445,7 +1571,7 @@ namespace PulseEngine.Datas
         [SerializeField]
         private float karma;
         [SerializeField]
-        private PhycisStats phycics_stats;
+        private PhysicStats phycics_stats;
 
         #endregion
 
@@ -1474,7 +1600,7 @@ namespace PulseEngine.Datas
         /// <summary>
         /// The physic stats.
         /// </summary>
-        public PhycisStats PhycicsStats { get => phycics_stats; set => phycics_stats = value; }
+        public PhysicStats PhycicsStats { get => phycics_stats; set => phycics_stats = value; }
 
         #endregion
     }

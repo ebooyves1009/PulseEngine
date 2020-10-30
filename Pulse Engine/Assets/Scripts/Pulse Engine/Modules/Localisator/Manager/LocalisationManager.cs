@@ -18,6 +18,25 @@ namespace PulseEngine.Modules.Localisator
 
         #region Static Attributes and properties #########################################
 
+        #region colors .................................................
+
+        /// <summary>
+        /// the hightlight color of the person name
+        /// </summary>
+        public static Color PersonNameColor = Color.red;
+
+        /// <summary>
+        /// the hightlight color of the object name
+        /// </summary>
+        public static Color ObjectNameColor = Color.green;
+
+        /// <summary>
+        /// the hightlight color of the place name
+        /// </summary>
+        public static Color PlaceNameColor = Color.blue;
+
+        #endregion
+
 
         #endregion
 
@@ -30,7 +49,7 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(DataLocation _location, DatalocationField _field)
+        public static async Task<string> TextData(DataLocation _location, DatalocationField _field, bool hightLigth = false)
         {
             string result = string.Empty;
             Localisationdata data = await CoreData.GetData<Localisationdata,LocalisationLibrary>(_location);
@@ -108,7 +127,41 @@ namespace PulseEngine.Modules.Localisator
                         {
                             var subData = await CoreData.GetData<Localisationdata, LocalisationLibrary>(subLocation);
                             if (subData != null)
-                                parts[i] = subData.Title.textField;
+                            {
+                                int fieldID = -1;
+                                if (subParts.Length > 3 && int.TryParse(subParts[3], out fieldID))
+                                {
+                                    //recursive
+                                    parts[i] = await TextData(subLocation, (DatalocationField)fieldID, hightLigth);
+                                    //One way
+                                    //parts[i] = subData.GetTradField((DatalocationField)fieldID).textField;
+                                    if (hightLigth && (DatalocationField)fieldID == DatalocationField.title)
+                                    {
+                                        switch ((TradDataTypes)subLocation.localLocation)
+                                        {
+                                            default:
+                                                parts[i] = parts[i];
+                                                break;
+                                            case TradDataTypes.Person:
+                                                parts[i] = parts[i].Hightlight(PersonNameColor);
+                                                break;
+                                            case TradDataTypes.Document:
+                                                parts[i] = parts[i].Hightlight(ObjectNameColor);
+                                                break;
+                                            case TradDataTypes.Place:
+                                                parts[i] = parts[i].Hightlight(PlaceNameColor);
+                                                break;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    //recursive
+                                    parts[i] = await TextData(subLocation, DatalocationField.title, hightLigth);
+                                    //One way
+                                    //parts[i] = subData.Title.textField;
+                                }
+                            }
                         }
                     }
                 }

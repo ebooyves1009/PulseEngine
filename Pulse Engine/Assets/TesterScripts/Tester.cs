@@ -10,7 +10,7 @@ using PulseEngine.Modules.Localisator;
 public class Tester : MonoBehaviour
 {
     public TestAsset asset;
-    string text = "";
+    string text = "it is the text <color=red>color1, and <color=blue>color2</color>...</color>";
 
     private void OnGUI()
     {
@@ -46,9 +46,9 @@ public class Tester : MonoBehaviour
 
     private async void LocData()
     {
-        string t = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.title);
-        string d = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.description);
-        text = t + " || " + d;
+        string t = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.title, true);
+        string d = await LocalisationManager.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.description, true);
+        text = t.Italic() + " \n " + d;
     }
 
     private static dynamic PlayGround()

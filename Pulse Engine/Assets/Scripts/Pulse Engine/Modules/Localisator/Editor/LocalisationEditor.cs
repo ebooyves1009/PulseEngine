@@ -66,21 +66,19 @@ namespace PulseEditor.Modules
                     }
                 }
             }
-            foreach(var entry in dictionnary)
+            for(int i = 0; i < dictionnary.Count; i++)
             {
-                if(entry.Value == null)
+                var entry = dictionnary.ElementAt(i);
+                var library = allAsset.Find(lib => { return lib.Langage == (Languages)entry.Key.globalLocation && lib.TradType == (TradDataTypes)entry.Key.localLocation; });
+                if (library != null)
                 {
-                    var library = allAsset.Find(lib => { return lib.Langage == (Languages)entry.Key.globalLocation && lib.TradType == (TradDataTypes)entry.Key.localLocation; });
-                    if (library != null)
+                    var data = library.DataList.Find(d =>
                     {
-                        var data = library.DataList.Find(d =>
-                        {
-                            return d.Location.id == entry.Key.id;
-                        }) as Localisationdata;
-                        if(data != null)
-                        {
-                            dictionnary[entry.Key] = data;
-                        }
+                        return d.Location.id == entry.Key.id;
+                    }) as Localisationdata;
+                    if (data != null)
+                    {
+                        dictionnary[entry.Key] = data;
                     }
                 }
             }
@@ -116,6 +114,11 @@ namespace PulseEditor.Modules
         /// le type data du hash tag selectionne.
         /// </summary>
         private int hashtag_id;
+
+        /// <summary>
+        /// le champs data du hash tag selectionne.
+        /// </summary>
+        private int hashtag_field;
 
         #endregion
 
@@ -176,12 +179,20 @@ namespace PulseEditor.Modules
                 OnCacheRefresh += RefreshCache;
                 registeredToRefresh = true;
             }
+            if (_location == default(DataLocation))
+                return;
             var window = GetWindow<LocalisationEditor>(true, "Localisator Modifier");
             window.currentEditorMode = EditorMode.DataEdition;
             window.editorDataType = DataTypes.Localisation;
             window.assetLocalFilter = _location.localLocation;
             window.assetMainFilter = _location.globalLocation;
             window.dataID = _location.id;
+            window.Initialise();
+            window.RefreshAssetChange();
+            if(window.asset != null && window.asset.DataList != null)
+            {
+                window.data = window.asset.DataList.Find(dt => { return dt.Location == _location; });
+            }
             window.ShowAuxWindow();
         }
 
@@ -201,6 +212,8 @@ namespace PulseEditor.Modules
         /// <returns></returns>
         private void Header()
         {
+            if (currentEditorMode == EditorMode.DataEdition)
+                return;
             GroupGUInoStyle(() =>
             {
                 MakeHeader(assetMainFilter, Enum.GetNames(typeof(Languages)), index => assetMainFilter = index);
@@ -356,11 +369,12 @@ namespace PulseEditor.Modules
                     int index = 0;
                     if (target != null)
                     {
+                        hashtag_field = EditorGUILayout.Popup(hashtag_field, Enum.GetNames(typeof(DatalocationField)));
                         index = target.DataList.FindIndex(item => { return ((Localisationdata)item).Location.id == hashtag_id; });
                         var ieListNames = from i in target.DataList
                                           let j = i as Localisationdata
                                           where j != null
-                                          select j.Location.id + "-" + j.Title.textField;
+                                          select j.Location.id + "-" + j.GetTradField((DatalocationField)hashtag_field).textField.Limit();
 
                         index = Mathf.Clamp(index, 0, index);
                         var listNames = ieListNames.ToArray();
@@ -369,7 +383,7 @@ namespace PulseEditor.Modules
                         {
                             hashtag_id = ((Localisationdata)target.DataList[index]).Location.id;
                             if (hashtag_id > 0)
-                                EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, (Languages)assetMainFilter, dataType));
+                                EditorGUILayout.DelayedTextField(MakeTag(hashtag_id, (Languages)assetMainFilter, dataType, (DatalocationField)hashtag_field));
                         }
                     }
                     GUILayout.EndVertical();
@@ -377,6 +391,7 @@ namespace PulseEditor.Modules
                 }, "HashTag Maker", 50);
             });
         }
+
 
         #endregion
 
@@ -547,7 +562,6 @@ namespace PulseEditor.Modules
 
         protected override void OnQuit()
         {
-
         }
 
         #endregion
@@ -565,9 +579,9 @@ namespace PulseEditor.Modules
         /// <param name="id"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static string MakeTag(int id, Languages L, TradDataTypes T)
+        public static string MakeTag(int id, Languages L, TradDataTypes T, DatalocationField F)
         {
-            string hashTag = "#" + id + "_" + (int)L + "_"+ (int)T + "#";
+            string hashTag = "#" + id + "_" + (int)L + "_"+ (int)T + "_"+ (int)F + "#";
             return hashTag;
         }
 

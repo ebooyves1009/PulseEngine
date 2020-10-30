@@ -323,6 +323,10 @@ namespace PulseEditor
                         {
                             var titleValue = ((Localisationdata)dataList[i]).Title.textField;
                             tradValue = titleValue != null ? titleValue : "Empty title";
+                        }else if(Ttype == typeof(AnimaData))
+                        {
+                            AnimaData dtValue = dataList[i] as AnimaData;
+                            tradValue = dtValue != null && dtValue.Motion != null ? dtValue.Motion.name : "No Motion";
                         }
                         names[i] = idValue + " -> " + (tradValue != string.Empty ? tradValue : "null trad name");
                     }
@@ -885,7 +889,7 @@ namespace PulseEditor
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="_stat"></param>
-        protected void StatEditor(MindStat _stat)
+        protected MindStat StatEditor(MindStat _stat)
         {
             MindStat mindStat = (MindStat)_stat;
             ScrollablePanel(() =>
@@ -909,7 +913,9 @@ namespace PulseEditor
                 }, "Minds");
                 GUILayout.EndHorizontal();
             });
-            StatEditor(mindStat.BodyStats);
+            GUILayout.Space(20);
+            mindStat.BodyStats = StatEditor(mindStat.BodyStats);
+            return mindStat;
         }
 
         /// <summary>
@@ -917,7 +923,7 @@ namespace PulseEditor
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="_stat"></param>
-        protected void StatEditor(BodyStats _stat)
+        protected BodyStats StatEditor(BodyStats _stat)
         {
             BodyStats bodyStat = (BodyStats)_stat;
             ScrollablePanel(() =>
@@ -940,7 +946,9 @@ namespace PulseEditor
                 }, "Body");
                 GUILayout.EndHorizontal();
             });
-            StatEditor(bodyStat.VitalStats);
+            GUILayout.Space(20);
+            bodyStat.VitalStats = StatEditor(bodyStat.VitalStats);
+            return bodyStat;
         }
 
         /// <summary>
@@ -948,7 +956,7 @@ namespace PulseEditor
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="_stat"></param>
-        protected void StatEditor(VitalStat _stat)
+        protected VitalStat StatEditor(VitalStat _stat)
         {
             VitalStat vitalStat = (VitalStat)_stat;
             ScrollablePanel(() =>
@@ -967,7 +975,9 @@ namespace PulseEditor
                 }, "Vitals");
                 GUILayout.EndHorizontal();
             });
-            StatEditor(vitalStat.PhycicsStats);
+            GUILayout.Space(20);
+            vitalStat.PhycicsStats = StatEditor(vitalStat.PhycicsStats);
+            return vitalStat;
         }
 
         /// <summary>
@@ -975,30 +985,32 @@ namespace PulseEditor
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="_stat"></param>
-        protected void StatEditor(PhycisStats _stat)
+        protected PhysicStats StatEditor(PhysicStats _stat)
         {
+            PhysicStats phStats = _stat;
             ScrollablePanel(() =>
             {
                 GUILayout.BeginHorizontal();
                 GroupGUI(() =>
                 {
-                    float Mass = EditorGUILayout.FloatField("Mass", _stat.Mass);
-                    _stat.Mass = Mathf.Clamp(Mass, 0, Mass);
-                    float density = EditorGUILayout.FloatField("Density", _stat.Density);
-                    _stat.Density = Mathf.Clamp(density, 1, density);
-                    float elasticity = EditorGUILayout.FloatField("Elasticity", _stat.Elasticity);
-                    _stat.Elasticity = Mathf.Clamp(elasticity, 0, 100);
-                    float Frozability = EditorGUILayout.FloatField("Frozability", _stat.Frozability);
-                    _stat.Frozability = Mathf.Clamp(Frozability, 0, 100);
-                    float Inflammability = EditorGUILayout.FloatField("Inflammability", _stat.Inflammability);
-                    _stat.Inflammability = Mathf.Clamp(Inflammability, 0, 100);
-                    float Resistance = EditorGUILayout.FloatField("Resistance", _stat.Resistance);
-                    _stat.Resistance = Mathf.Clamp(Resistance, density, 2 * density);
-                    float Roughness = EditorGUILayout.FloatField("Roughness", _stat.Roughness);
-                    _stat.Roughness = Mathf.Clamp(Roughness, 0, 100);
+                    float Mass = EditorGUILayout.FloatField("Mass", phStats.Mass);
+                    phStats.Mass = Mathf.Clamp(Mass, 0, Mass);
+                    float density = EditorGUILayout.FloatField("Density", phStats.Density);
+                    phStats.Density = Mathf.Clamp(density, 1, density);
+                    float elasticity = EditorGUILayout.FloatField("Elasticity", phStats.Elasticity);
+                    phStats.Elasticity = Mathf.Clamp(elasticity, 0, 100);
+                    float Frozability = EditorGUILayout.FloatField("Frozability", phStats.Frozability);
+                    phStats.Frozability = Mathf.Clamp(Frozability, 0, 100);
+                    float Inflammability = EditorGUILayout.FloatField("Inflammability", phStats.Inflammability);
+                    phStats.Inflammability = Mathf.Clamp(Inflammability, 0, 100);
+                    float Resistance = EditorGUILayout.FloatField("Resistance", phStats.Resistance);
+                    phStats.Resistance = Mathf.Clamp(Resistance, density, 2 * density);
+                    float Roughness = EditorGUILayout.FloatField("Roughness", phStats.Roughness);
+                    phStats.Roughness = Mathf.Clamp(Roughness, 0, 100);
                 }, "Physic Props");
                 GUILayout.EndHorizontal();
             });
+            return phStats;
         }
 
         #endregion
@@ -1028,6 +1040,11 @@ namespace PulseEditor
         private void OnDisable()
         {
             clipBoard = null;
+            if (currentEditorMode == EditorMode.DataEdition)
+            {
+                SaveAsset(asset, originalAsset);
+            }
+            RefreshCache(editorDataType);
             OnQuit();
             CloseWindow();
         }
@@ -1226,8 +1243,8 @@ namespace PulseEditor
                 //if the location exist in the datatype's dictionnary
                 if (StaticCache[_location.dType].ContainsKey(_location))
                 {
-                    if (StaticCache[_location.dType][_location] == null)
-                        Task.Factory.StartNew(()=> RefreshCache(_location.dType));
+                    if (StaticCache[_location.dType][_location] == default || StaticCache[_location.dType][_location] == null)
+                        RefreshCache(_location.dType);
                     return StaticCache[_location.dType][_location];
                 }
                 else
@@ -1238,7 +1255,7 @@ namespace PulseEditor
             }
             else
             {
-                Task.Factory.StartNew(() => RefreshCache(_location.dType));
+                RefreshCache(_location.dType);
                 return null;
             }
         }
@@ -1246,17 +1263,22 @@ namespace PulseEditor
         /// <summary>
         /// to refresh the static cache dictionnary
         /// </summary>
-        public static async Task RefreshCache(DataTypes _dtype)
+        public static void RefreshCache(DataTypes _dtype)
         {
             //if we're already refreshing cache, skip
             if (RefreshingCache)
                 return;
             RefreshingCache = true;
-            if(OnCacheRefresh != null)
-            OnCacheRefresh.Invoke(StaticCache[_dtype], _dtype);
+            if (OnCacheRefresh != null && StaticCache != null && StaticCache.ContainsKey(_dtype))
+            {
+                //PulseDebug.Log("trying to refresh " + _dtype.ToString() + " library");
+                OnCacheRefresh.Invoke(StaticCache[_dtype], _dtype);
+            }
             //we can only request cache refreshes every second
-            await Task.Delay(1000);
-            RefreshingCache = false;
+            Task.Factory.StartNew(async () => {
+                await Task.Delay(1000);
+                RefreshingCache = false;
+            });
         }
 
         /// <summary>
@@ -1272,7 +1294,10 @@ namespace PulseEditor
             if (method == null)
                 return;
             object selection = _onSelection as object;
-            method.Invoke(null, new[] { selection, arguments });
+            object[] parameters = new object[arguments.Length + 1];
+            parameters[0] = selection;
+            for(int i = 1; i < arguments.Length; i++) { parameters[i] = arguments[i - 1]; }
+            method.Invoke(null, parameters);
         }
 
         /// <summary>
@@ -1303,7 +1328,25 @@ namespace PulseEditor
             if (method == null)
                 return;
             object location = _dataLoc as object;
+            object[] parameters = new object[_arguments.Length + 1];
+            parameters[0] = location;
+            for (int i = 1; i < _arguments.Length; i++) { parameters[i] = _arguments[i - 1]; }
             method.Invoke(null, new[] { location, _arguments });
+        }
+
+        /// <summary>
+        /// to open a module special modifier.
+        /// </summary>
+        /// <param name="_dataLoc"></param>
+        public static void ModuleSpecial(ModulesEditors _module, string _modifierName, params object[] _arguments)
+        {
+            Type moduleClass = Type.GetType("PulseEditor.Modules." + _module.ToString());
+            if (moduleClass == null)
+                return;
+            MethodInfo method = moduleClass.GetMethod(_modifierName);
+            if (method == null)
+                return;
+            method.Invoke(null, _arguments);
         }
 
 #endif
@@ -2094,7 +2137,7 @@ namespace PulseEditor
         /// <summary>
         /// La data stat.
         /// </summary>
-        object statData;
+        dynamic statData;
 
 
         /// <summary>
@@ -2103,23 +2146,35 @@ namespace PulseEditor
         /// <param name="stat"></param>
         public static void OpenEditor(object _stat, Action<object> _onClose)
         {
-            var window = GetWindow<StatWinEditor>();
+            var window = GetWindow<StatWinEditor>(true);
             window.onClose = _onClose;
             window.statData = _stat;
-            window.ShowModal();
+            window.ShowAuxWindow();
         }
 
 
         protected override void OnRedraw()
         {
             if (statData.GetType() == typeof(MindStat))
-                StatEditor((MindStat)statData);
+            {
+                statData = StatEditor((MindStat)statData);
+                GUILayout.Space(20);
+            }
             else if (statData.GetType() == typeof(BodyStats))
-                StatEditor((BodyStats)statData);
+            {
+                statData = StatEditor((BodyStats)statData);
+                GUILayout.Space(20);
+            }
             else if (statData.GetType() == typeof(VitalStat))
-                StatEditor((VitalStat)statData);
-            else if (statData.GetType() == typeof(PhycisStats))
-                StatEditor((PhycisStats)statData);
+            {
+                statData = StatEditor((VitalStat)statData);
+                GUILayout.Space(20);
+            }
+            else if (statData.GetType() == typeof(PhysicStats))
+            {
+                statData = StatEditor((PhysicStats)statData);
+                GUILayout.Space(20);
+            }
             GUILayout.Space(20);
             if (GUILayout.Button("Done"))
             {

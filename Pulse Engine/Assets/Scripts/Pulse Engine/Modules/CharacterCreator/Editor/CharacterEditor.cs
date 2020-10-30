@@ -270,21 +270,13 @@ namespace PulseEditor.Modules
                 if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
                 {
                     var locEditorType = TypeInfo.GetType("LocalisationEditor");
-                    if (locEditorType != null)
+                    LocalisationEditor.OpenSelector((obj, arg) =>
                     {
-                        var locopenSelMethod = locEditorType.GetMethod("OpenSelector", BindingFlags.Public);
-                        if(locopenSelMethod != null)
-                        {
-                            Action<object,EventArgs> parameters = (obj, arg) =>
-                            {
-                                var a = arg as EditorEventArgs;
-                                if (a == null)
-                                    return;
-                                data.TradLocation = a.dataObjectLocation;
-                            };
-                            locopenSelMethod.Invoke(null, new object[] { parameters, TradDataTypes.Person });
-                        }
-                    }
+                        var a = arg as EditorEventArgs;
+                        if (a == null)
+                            return;
+                        data.TradLocation = a.dataObjectLocation;
+                    }, TradDataTypes.Person);
                 }
                 if (GUILayout.Button("E", new[] { GUILayout.Width(25) }))
                 {
@@ -306,7 +298,15 @@ namespace PulseEditor.Modules
                 EditorGUILayout.LabelField("Stats:", style_label);
                 if (GUILayout.Button("Edit " + name + " Stats"))
                 {
-                    StatEditor(data.Stats);
+                    StatWinEditor.OpenEditor(data.Stats, obj =>
+                   {
+                       try
+                       {
+                           MindStat rSt = (MindStat)obj;
+                           data.Stats = rSt;
+                       }
+                       catch (Exception e) { PulseDebug.Log(e.Message); }
+                   });
                 }
                 GUILayout.EndHorizontal();
 

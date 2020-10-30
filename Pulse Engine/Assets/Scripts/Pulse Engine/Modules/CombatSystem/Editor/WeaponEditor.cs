@@ -320,7 +320,7 @@ namespace PulseEditor.Modules
                     StatWinEditor.OpenEditor(data.PhysicProperties, obj =>
                     {
                         if (obj != null)
-                            data.PhysicProperties = (PhycisStats)obj;
+                            data.PhysicProperties = (PhysicStats)obj;
                     });
                 }
                 GUILayout.EndHorizontal();

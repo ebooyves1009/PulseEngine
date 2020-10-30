@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc7c582ebf8d0af44bec610c17eae655, type: 3}
+  m_Name: CharactersLibrary_0_0
+  m_EditorClassIdentifier: 
+  libraryMainLocation: 0
+  librarySecLocation: 0
+  dataList:
+  - tradLocation:
+      id: 1
+      globalLocation: 0
+      localLocation: 0
+      dType: 1
+    location:
+      id: 1
+      globalLocation: 0
+      localLocation: 0
+      dType: 4
+    stats:
+      intelligence: 1
+      experience: 0
+      dexterity: 25
+      sociability: 0
+      determination: 1
+      madness: 0
+      body_stat:
+        strenght: 0
+        endurance: 0
+        enduranceMax: 0
+        souffle: 0
+        souffleMax: 0
+        speed: 1
+        vital_stat:
+          health: 20
+          longevity: 45
+          age: 27
+          karma: 0
+          phycics_stats:
+            volume: 0
+            density: 1
+            mass: 45
+            inflammability: 0
+            frozability: 0
+            resistance: 1
+            elasticity: 0
+            roughness: 0
+    character: {fileID: 919132149155446097, guid: 80f9379b8647c0445a93a2d4e182e418,
+      type: 3}
+    animatorController: {fileID: 0}
+    animatorAvatar: {fileID: 9000000, guid: 05e90f6eb030efb41bd751945e8b53f6, type: 3}
+    armurie: []

@@ -41,7 +41,8 @@ MonoBehaviour:
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     description:
-      textField: le ptit de #2_0_0# , il a en sa possesion une #1_0_4#
+      textField: le ptit de #2_0_0_0# ,  qui est #2_0_0_5# . Il a en sa possesion
+        une #1_0_4_0# .
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     details:
@@ -114,7 +115,7 @@ MonoBehaviour:
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     description:
-      textField: le grand de #1_0_0#
+      textField: Le chef terre de la #1_0_9_0# .
       imageField: {fileID: 0}
       audioField: {fileID: 0}
     details:
