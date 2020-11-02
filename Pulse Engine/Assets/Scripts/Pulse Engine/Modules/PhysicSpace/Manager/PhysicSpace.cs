@@ -1,19 +1,22 @@
-﻿using PulseEngine.Datas;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 
-namespace PulseEngine.Modules.CharacterCreator
+
+
+namespace PulseEngine.Modules.PhysicSpace
 {
     /// <summary>
-    /// Le manager du mondule de creation de charactere.
+    /// Le Manager du monde physique.
     /// </summary>
-    public static class CharacterManager
+    public static class PhysicSpace
     {
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// Le chemin d'access des datas.
+        /// </summary>
+        public static string AssetsPath { get => "PhysicDatas"; }
 
         #endregion
 

@@ -1,22 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using PulseEngine.Modules;
+using System.Threading.Tasks;
+using PulseEngine.Datas;
+using UnityEngine.AddressableAssets;
 
-
-
-namespace PulseEngine.Modules.PhysicSpace
+namespace PulseEngine.Modules.CombatSystem
 {
-    /// <summary>
-    /// Le Manager du monde physique.
-    /// </summary>
-    public static class PhysicManager
+    public static class CombatSystem
     {
         #region Attributes ####################################################################
 
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "PhysicDatas"; }
 
         #endregion
 

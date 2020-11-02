@@ -1,0 +1,107 @@
+
+        /// <Summary>
+        /// Implement here
+        /// 3- Static void RefreshCache(object _dictionnary, DataTypes _dtype); to refresh the static cache dictionnary.
+        /// 4- Static bool registeredToRefresh; to Prevent from registering to OnCacheRefresh several times.
+        /// </Summary>
+        #region Static Accessors ################################################################################################################################################################################################
+#if UNITY_EDITOR //**********************************************************************
+
+        ///<summary>
+        /// Active when the editor is already registered to OnCacheRefresh event.
+        ///</summary>
+        public static bool registeredToRefresh;
+
+
+        /// <summary>
+        /// to refresh the static cache dictionnary
+        /// </summary>
+        public static void RefreshCache(object _dictionnary, DataTypes _dtype)
+        {
+            if (_dtype != DataTypes.)
+                return;
+            var dictionnary = _dictionnary as Dictionary<DataLocation, IData>;
+            if (dictionnary == null)
+                return;
+
+            var allAsset = new List<Library>();
+            foreach(var entry in dictionnary)
+            {
+                if(entry.Value == null)
+                {
+                    var library = allAsset.Find(lib => { return "filterLocation library" });
+                    if (library != null)
+                    {
+                        var data = library.DataList.Find(d =>
+                        {
+                            return d.Location.id == entry.Key.id;
+                        }) as Data from IData;
+                        if(data != null)
+                        {
+                            dictionnary[entry.Key] = data;
+                        }
+                    }
+                }
+            }
+
+        }
+
+#endif
+        #endregion
+#endif
+    #endregion
+	
+	/// <Summary>
+	/// Declare here every attribute used for visual behaviour of the editor window.
+	/// </Summary>
+    #region Visual Attributes ################################################################################################################################################################################################
+
+    #endregion
+
+	/// <Summary>
+	/// Declare here every attribute used for deep behaviour ot the editor window.
+	/// </Summary>
+    #region Fonctionnal Attributes ################################################################################################################################################################################################
+
+    #endregion
+
+	/// <Summary>
+	/// Implement here Methods To Open the window, and register to OnCacheRefresh
+	/// </Summary>
+    #region Door Methods ################################################################################################################################################################################################
+	
+            if (!registeredToRefresh)
+            {
+                OnCacheRefresh += RefreshCache;
+                registeredToRefresh = true;
+            }
+
+    #endregion
+
+	/// <Summary>
+	/// Implement here Methods related to GUI.
+	/// </Summary>
+    #region GUI Methods ################################################################################################################################################################################################
+
+    #endregion
+	
+	/// <Summary>
+	/// Implement here behaviours methods.
+	/// </Summary>
+    #region Fontionnal Methods ################################################################################################################################################################################################
+
+    #endregion
+	
+	/// <Summary>
+	/// Implement here overrides methods.
+	/// </Summary>
+    #region Program FLow Methods ################################################################################################################################################################################################
+
+    #endregion
+	
+	/// <Summary>
+	/// Implement here miscelaneous methods relative to the module in editor mode.
+	/// </Summary>
+    #region Helpers & Tools ################################################################################################################################################################################################
+
+    #endregion

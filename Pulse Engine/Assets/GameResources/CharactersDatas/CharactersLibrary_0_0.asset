@@ -55,6 +55,51 @@ MonoBehaviour:
             roughness: 0
     character: {fileID: 919132149155446097, guid: 80f9379b8647c0445a93a2d4e182e418,
       type: 3}
-    animatorController: {fileID: 0}
-    animatorAvatar: {fileID: 9000000, guid: 05e90f6eb030efb41bd751945e8b53f6, type: 3}
+    animatorController: {fileID: 9100000, guid: cf92df96ba82b2b4fb1599a2b7efe771,
+      type: 2}
+    animatorAvatar: {fileID: 9000000, guid: 80f9379b8647c0445a93a2d4e182e418, type: 3}
+    armurie: []
+  - tradLocation:
+      id: 2
+      globalLocation: 0
+      localLocation: 0
+      dType: 1
+    location:
+      id: 2
+      globalLocation: 0
+      localLocation: 0
+      dType: 4
+    stats:
+      intelligence: 1
+      experience: 0
+      dexterity: 0
+      sociability: 0
+      determination: 1
+      madness: 0
+      body_stat:
+        strenght: 0
+        endurance: 0
+        enduranceMax: 0
+        souffle: 0
+        souffleMax: 0
+        speed: 1
+        vital_stat:
+          health: 0
+          longevity: 0
+          age: 31
+          karma: 0
+          phycics_stats:
+            volume: 0
+            density: 1
+            mass: 0
+            inflammability: 0
+            frozability: 0
+            resistance: 1
+            elasticity: 0
+            roughness: 0
+    character: {fileID: 919132149155446097, guid: 5968e3bf8d836b940b4f8c9f726bea35,
+      type: 3}
+    animatorController: {fileID: 9100000, guid: de4998295623e5c42a64b8eb1fefd226,
+      type: 2}
+    animatorAvatar: {fileID: 9000000, guid: 5968e3bf8d836b940b4f8c9f726bea35, type: 3}
     armurie: []

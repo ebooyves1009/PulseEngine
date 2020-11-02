@@ -53,3 +53,12 @@ Notes: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		- override OnListChange() : for list change actions
 		- override OnFootRedraw() : for page foot redraw
 		- override OnListButton() : to implement custom buttons for list view.
+
+
+		
+4- Managers ####################################################################################################################
+
+	- Must have the same name as the namespace
+	- add enum ModulesManagers in PulseEngine >/Enum >/ Global of the same name as namespace
+	- must have public static void OnDomainReload() from [RuntimeInitializeOnLoadMethod] to reinit on domain reload.
+        

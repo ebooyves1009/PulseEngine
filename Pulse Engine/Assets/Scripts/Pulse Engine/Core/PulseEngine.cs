@@ -5,13 +5,15 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using UnityEngine;
-using PulseEngine.Modules.Commander;
+using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets;
 using UnityEngine.AddressableAssets;
-using System.Text;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using PulseEngine.Datas;
+using System.Reflection;
+using System.Threading;
 
 
 //TODO: Les Valeurs et fonctions globales seront ajoutees au fur et a mesure.
@@ -43,9 +45,51 @@ namespace PulseEngine
         public static Scopes currentScope;
 
         /// <summary>
+        /// The correspondance between module types and enum at runtime, used by refelction.
+        /// </summary>
+        public static Dictionary<ModulesManagers, Type> ManagersCache = new Dictionary<ModulesManagers, Type>();
+
+        /// <summary>
+        /// The unique resources loader.
+        /// </summary>
+        private static ResourcesAsyncLoader resLoader;
+
+        /// <summary>
+        /// The unique resources loader.
+        /// </summary>
+        public static ResourcesAsyncLoader ResourcesLoader {
+            get
+            {
+                if(resLoader == null)
+                {
+                    GameObject resGo = new GameObject("ResourcesLoader");
+                    resLoader = resGo.AddComponent<ResourcesAsyncLoader>();
+                    GameObject.DontDestroyOnLoad(resGo);
+                }
+                return resLoader;
+            }
+        }
+
+        /// <summary>
         /// switch debug on or off.
         /// </summary>
         public static bool DebugMode = true;
+
+        #endregion
+
+        #region Methods ###########################################################################
+
+        /// <summary>
+        /// To reinitailize on domain reload.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod]
+        public static void OnDomainReload()
+        {
+            if (resLoader == null)
+                return;
+            GameObject.Destroy(resLoader.gameObject);
+            resLoader = null;
+        }
 
         #endregion
 
@@ -240,6 +284,20 @@ namespace PulseEngine
 
     #region Globals >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
+
+    /// <summary>
+    /// The Modules Managers.
+    /// </summary>
+    public enum ModulesManagers
+    {
+        Localisator = 0,
+        CharacterCreator = 2,
+        MessageSystem,
+    }
+
+
+
     /// <summary>
     /// Les langues traductibles du jeu.
     /// </summary>
@@ -266,6 +324,7 @@ namespace PulseEngine
         Anima,
         Weapon,
         Character,
+        Message,
     }
 
     #endregion
@@ -281,6 +340,15 @@ namespace PulseEngine
         PrincipalActors,
         SecondaryActor,
         Pnj
+    }
+
+    /// <summary>
+    /// Le type de controller utilise par le character.
+    /// </summary>
+    public enum CharacterControllerType
+    {
+        player,
+        AI
     }
 
     #endregion
@@ -924,6 +992,10 @@ namespace PulseEngine.Datas
 
         #region Attributs >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+        /// <summary>
+        /// The event pool allowing to wait for asset load complete
+        /// </summary>
+        private static Dictionary<string, ManualResetEvent> LoaderPool = new Dictionary<string, ManualResetEvent>();
 
         #endregion
 
@@ -933,6 +1005,130 @@ namespace PulseEngine.Datas
         #endregion
 
         #region Methodes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        /// <summary>
+        /// Call on async load complete.
+        /// </summary>
+        /// <param name="loaderPoolIndex"></param>
+        private static void SetAssetLoadComplete(string assetPath)
+        {
+            if (!LoaderPool.ContainsKey(assetPath))
+                return;
+            LoaderPool[assetPath].Set();
+        }
+
+        /// <summary>
+        /// Await this method to wait for an asset to finnish loading.
+        /// </summary>
+        /// <param name="waitMillisec"></param>
+        /// <returns></returns>
+        private static async Task WaitAssetLoadUntil(string assetPath, int waitMillisec = 100)
+        {
+            if (LoaderPool.ContainsKey(assetPath))
+                return;
+            LoaderPool.Add(assetPath, new ManualResetEvent(false));
+            await Task.Factory.StartNew(() =>
+            {
+                LoaderPool[assetPath].WaitOne(waitMillisec);
+                LoaderPool[assetPath].Reset();
+                LoaderPool[assetPath].Dispose();
+                LoaderPool[assetPath] = null;
+                LoaderPool.Remove(assetPath);
+            });
+        }
+
+
+
+        /// <summary>
+        /// Execute a manager method async at runtime.
+        /// </summary>
+        /// <param name="mgrEnum"></param>
+        /// <param name="methodName"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static async Task<T> ManagerAsyncMethod<T>(ModulesManagers mgrEnum, string methodName, params object[] parameters)
+        {
+            if (Core.ManagersCache == null)
+                Core.ManagersCache = new Dictionary<ModulesManagers, Type>();
+            if (!Core.ManagersCache.ContainsKey(mgrEnum))
+            {
+                string classPath = mgrEnum.ToString() + "." + mgrEnum.ToString();
+                Type Mgrclass = Type.GetType("PulseEngine.Modules." + classPath);
+                if (Mgrclass == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("null Manager at "+ classPath);
+                    return default;
+                }
+                Core.ManagersCache.Add(mgrEnum, Mgrclass);
+            }
+            if (Core.ManagersCache[mgrEnum] != null)
+            {
+                var Method = MethodFromClass(Core.ManagersCache[mgrEnum], methodName);
+                if (Method == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("Null method");
+                    return default;
+                }
+                //TODO: Remove
+                PulseDebug.Log("Method infos summary\n" +
+                    "name: "+Method.Name+"\n" +
+                    "is static: "+Method.IsStatic+"\n"+
+                    "returning: "+Method.ReturnType);
+                try
+                {
+                    Task<T> task = (Task<T>)Method.Invoke(null, parameters);
+                    //TODO: Remove
+                    PulseDebug.Log("its task of type "+typeof(T));
+                    await task.ConfigureAwait(false);
+                    //TODO: Remove
+                    PulseDebug.Log("task result is "+task.Result);
+                    T result = task.Result;
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() == typeof(InvalidCastException))
+                    {
+                        try
+                        {
+                            T result = (T)Method.Invoke(null, parameters);
+                            //TODO: Remove
+                            PulseDebug.Log("its normal method");
+                            return result;
+                        }
+                        catch(Exception r)
+                        {
+                            //TODO: Remove
+                            PulseDebug.Log("second exception occured : "+r.Message);
+                            return default;
+                        }
+                    }
+                    //TODO: Remove
+                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || "+e.Message);
+                    return default;
+                }
+            }
+            //TODO: Remove
+            PulseDebug.Log("Null type in Core Manager cache");
+            return default;
+        }
+
+        /// <summary>
+        /// Get a method from a class by reflection.
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="methodName"></param>
+        /// <returns></returns>
+        public static MethodInfo MethodFromClass(Type t, string methodName)
+        {
+            if (t == null)
+                return null;
+            MethodInfo i = t.GetMethod(methodName);
+            return i;
+        }
+
 
         /// <summary>
         /// Get all module datas with specified parameters
@@ -947,26 +1143,61 @@ namespace PulseEngine.Datas
                 List<object> _keys = new List<object>(loc.Keys);
                 for (int i = 0; i < _keys.Count; i++)
                 {
-                    var k = _keys[i] as string;
-                    if (k == null)
+                    var ks = _keys[i] as string;
+                    if (ks == null)
                         continue;
-                    if (string.IsNullOrEmpty(k))
+                    if (string.IsNullOrEmpty(ks))
                         continue;
-                    if (k.Contains(keyNamePart))
-                        keys.Add(k);
+                    if (ks.Contains(keyNamePart))
+                        keys.Add(ks);
                 }
             }
             List<T> output = new List<T>();
+            Q library = null;
+            int k = 0;
             for (int i = 0; i < keys.Count; i++)
             {
-                var library = await Addressables.LoadAssetAsync<Q>(keys[i]).Task;
+                k = i;
+                try
+                {
+                    Addressables.LoadAssetAsync<Q>(keys[k]).Completed += hdl =>
+                    {
+                        if (hdl.Status == AsyncOperationStatus.Succeeded)
+                            library = hdl.Result;
+                        SetAssetLoadComplete(keys[k]);
+                    };
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() == typeof(UnityEngine.UnityException))
+                    {
+                        Addressables.InitializeAsync();
+                        try
+                        {
+                            Addressables.LoadAssetAsync<Q>(keys[k]).Completed += hdl =>
+                            {
+                                if (hdl.Status == AsyncOperationStatus.Succeeded)
+                                    library = hdl.Result;
+                                SetAssetLoadComplete(keys[k]);
+                            };
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+                    }
+                    return null;
+                }
+                await WaitAssetLoadUntil(keys[k], 1000);
                 if(library == null)
                     continue;
                 var datalist = Core.LibraryClone(library).DataList;
                 output.AddRange(datalist.ConvertAll(new Converter<object, T>(data => { return (T)data; })));
+                library = null;
             }
             return output.Count > 0 ? output.FindAll(item => { return item != null; }) : null;
         }
+               
 
         /// <summary>
         /// Get all module datas with specified parameters
@@ -975,15 +1206,54 @@ namespace PulseEngine.Datas
         public static async Task<List<T>> GetDatas<T,Q>(DataLocation _location) where Q: CoreLibrary where T: IData
         {
             string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
-            var location = await Addressables.LoadResourceLocationsAsync(path).Task;
+            IList<IResourceLocation> location = null;
+            try
+            {
+                Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
+                {
+                    if (hdl.Status == AsyncOperationStatus.Succeeded)
+                        location = hdl.Result;
+                    SetAssetLoadComplete(path);
+                };
+            }
+            catch (Exception e)
+            {
+                if (e.GetType() == typeof(UnityEngine.UnityException))
+                {
+                    await Addressables.InitializeAsync().Task;
+                    try
+                    {
+                        Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
+                        {
+                            if (hdl.Status == AsyncOperationStatus.Succeeded)
+                                location = hdl.Result;
+                            SetAssetLoadComplete(path);
+                        };
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+                return null;
+            }
+            await WaitAssetLoadUntil(path, 10000);
+
             if (location == null || location.Count <= 0)
                 return null;
             var key = location[0].PrimaryKey;
-            var library = await Addressables.LoadAssetAsync<Q>(key).Task;
+            Q library = null;
+            Addressables.LoadAssetAsync<Q>(key).Completed += hdl =>{
+                if (hdl.Status == AsyncOperationStatus.Succeeded)
+                    library = hdl.Result;
+                SetAssetLoadComplete(path);
+            };
+            await WaitAssetLoadUntil(path, 10000);
+
             if (library == null)
                 return null;
             var datalist = Core.LibraryClone(library).DataList;
-            return datalist.FindAll(d=> { return d != null; }).ConvertAll(new Converter<object, T>(data => { return (T)data; }));
+            return datalist.FindAll(d => { return d != null; }).ConvertAll(new Converter<object, T>(data => { return (T)data; }));
         }
 
         /// <summary>
@@ -1734,6 +2004,74 @@ namespace PulseEngine.Datas
         public BodyStats BodyStats { get => body_stat; set => body_stat = value; }
 
         #endregion
+    }
+
+    #endregion
+
+    #region MessageSystem >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    /// <summary>
+    /// La data des messages.
+    /// </summary>
+    [System.Serializable]
+    public class MessageData : LocalisableData, IData
+    {
+        #region Attributs ###############################################################################################
+
+        [SerializeField]
+        private DataLocation location;
+        [SerializeField]
+        private List<DataLocation> branches = new List<DataLocation>();
+
+        #endregion
+        #region Properties ###############################################################################################
+
+        #endregion
+
+        /// <summary>
+        /// The data location
+        /// </summary>
+        public DataLocation Location { get => location; set => location = value; }
+
+        /// <summary>
+        /// The branch indexer
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public DataLocation this[int index] { get => branches[index]; set => branches[index] = value; }
+
+        /// <summary>
+        /// To add a branch
+        /// </summary>
+        /// <param name="data"></param>
+        public void Add(DataLocation data)
+        {
+            branches.Add(data);
+        }
+
+        /// <summary>
+        /// to remove a branch at
+        /// </summary>
+        /// <param name="index"></param>
+        public void RemoveAt(int index)
+        {
+            if (index < 0 || index >= count)
+                return;
+            branches.RemoveAt(index);
+        }
+
+        /// <summary>
+        /// to clear branches
+        /// </summary>
+        public void Clear()
+        {
+            branches.Clear();
+        }
+
+        /// <summary>
+        /// to get the branches count.
+        /// </summary>
+        public int count => branches.Count;
     }
 
     #endregion

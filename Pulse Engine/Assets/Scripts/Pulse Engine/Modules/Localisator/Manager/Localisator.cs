@@ -13,7 +13,7 @@ namespace PulseEngine.Modules.Localisator
     /// <summary>
     /// Le Manager du Module Localisator.
     /// </summary>
-    public static class LocalisationManager
+    public static class Localisator
     {
 
         #region Static Attributes and properties #########################################

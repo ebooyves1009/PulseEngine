@@ -5,34 +5,3 @@
         #region Proprietes ##########################################################
 
         #endregion
-#if UNITY_EDITOR //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        #region Methodes #############################################################
-
-        /// <summary>
-        /// Cree l'asset.
-        /// </summary>
-        /// <returns></returns>
-        public static bool Create()
-        {
-        }
-
-        /// <summary>
-        /// Verifie si l'asset existe.
-        /// </summary>
-        /// <returns></returns>
-        public static bool Exist()
-        {
-        }
-
-        /// <summary>
-        /// Charge l'asset.
-        /// </summary>
-        /// <returns></returns>
-        public static T<> Load()
-        {
-        }
-
-        #endregion
-
-#endif
