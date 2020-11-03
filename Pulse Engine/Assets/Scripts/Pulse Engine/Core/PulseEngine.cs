@@ -50,27 +50,6 @@ namespace PulseEngine
         public static Dictionary<ModulesManagers, Type> ManagersCache = new Dictionary<ModulesManagers, Type>();
 
         /// <summary>
-        /// The unique resources loader.
-        /// </summary>
-        private static ResourcesAsyncLoader resLoader;
-
-        /// <summary>
-        /// The unique resources loader.
-        /// </summary>
-        public static ResourcesAsyncLoader ResourcesLoader {
-            get
-            {
-                if(resLoader == null)
-                {
-                    GameObject resGo = new GameObject("ResourcesLoader");
-                    resLoader = resGo.AddComponent<ResourcesAsyncLoader>();
-                    GameObject.DontDestroyOnLoad(resGo);
-                }
-                return resLoader;
-            }
-        }
-
-        /// <summary>
         /// switch debug on or off.
         /// </summary>
         public static bool DebugMode = true;
@@ -85,10 +64,7 @@ namespace PulseEngine
         [RuntimeInitializeOnLoadMethod]
         public static void OnDomainReload()
         {
-            if (resLoader == null)
-                return;
-            GameObject.Destroy(resLoader.gameObject);
-            resLoader = null;
+
         }
 
         #endregion
@@ -109,7 +85,7 @@ namespace PulseEngine
         /// Copie par valeur un objet
         /// </summary>
         /// <returns></returns>
-        public static T ObjectClone<T>(T original) where T: new()
+        public static T ObjectClone<T>(T original) where T : new()
         {
 
             if (!typeof(T).IsSerializable)
@@ -153,7 +129,7 @@ namespace PulseEngine
         #endregion
 
         #region Extensions ###########################################################################
-        
+
         /// <summary>
         /// Limit a string to a certain number of characters.
         /// </summary>
@@ -167,7 +143,7 @@ namespace PulseEngine
             int maximum = (maxCharacters > 3 ? maxCharacters - 3 : maxCharacters);
             char[] chain = new char[maxCharacters];
             for (int i = 0; i < maximum; i++) { chain[i] = str[i]; }
-            if(maximum < maxCharacters)
+            if (maximum < maxCharacters)
                 for (int i = maximum; i < maxCharacters; i++) { chain[i] = '.'; }
             return new string(chain);
         }
@@ -284,8 +260,6 @@ namespace PulseEngine
 
     #region Globals >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-
-
     /// <summary>
     /// The Modules Managers.
     /// </summary>
@@ -295,8 +269,6 @@ namespace PulseEngine
         CharacterCreator = 2,
         MessageSystem,
     }
-
-
 
     /// <summary>
     /// Les langues traductibles du jeu.
@@ -446,13 +418,74 @@ namespace PulseEngine
     #region Commander Enums >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     /// <summary>
+    /// The state of a command
+    /// </summary>
+    public enum CommandState
+    {
+        waiting,
+        playing,
+        done
+    }
+
+    /// <summary>
     /// Le type d'une commande.
     /// </summary>
     public enum CommandType
     {
-        none,
-        SheatheWeapon,
-        UnsheatheWeapon,
+        @comment, //Commande sans effet
+        @conditionnal, //Commande conditionnelle
+        @exit, //commade de fin de sequence d'instructions.
+        @jump, //commande de saut vers l'index d'une instruction
+        @out, //commande de sortie d'une sous liste d'instructions
+        @execute, //commande executable maintenant
+        @delay, //commande a executer apres la sortie, avec un delai
+    }
+
+    /// <summary>
+    /// Le type d'une commande executable.
+    /// </summary>
+    public enum CmdExecutableType
+    {
+        _event, //commande evenement
+        _action, //commande action
+        _global, //commande globale
+        _story //commande globale
+    }
+
+    /// <summary>
+    /// Le code d'une commande evenement.
+    /// </summary>
+    public enum CmdEventCode
+    {
+        Affectstat,
+    }
+
+    /// <summary>
+    /// Le code d'une commande action.
+    /// </summary>
+    public enum CmdActionCode
+    {
+        Idle,
+        MoveTo,
+        Jump,
+    }
+
+    /// <summary>
+    /// Le code d'une commande globale.
+    /// </summary>
+    public enum CmdGlobalCode
+    {
+        Weather,
+        Time,
+    }
+
+    /// <summary>
+    /// Le code d'une commande evenement.
+    /// </summary>
+    public enum CmdStoryCode
+    {
+        StoryLine,
+        Relationship,
     }
 
     #endregion
@@ -685,48 +718,180 @@ namespace PulseEngine
     /// Une commande action.
     /// </summary>
     [System.Serializable]
-    public struct CommandAction : IEquatable<CommandAction>
+    public struct Command : IEquatable<Command>
     {
-        public CommandType code;
-        public Vector4 primaryParameters;
-        public Vector4 secondaryParameters;
+        #region Attributs #######################################################################
 
-        public bool Equals(CommandAction other)
-        {
-            return code == other.code && primaryParameters == other.primaryParameters && secondaryParameters == other.secondaryParameters;
+        [SerializeField]
+        private CommandType type;
+        [SerializeField]
+        private CmdExecutableType childType;
+        [SerializeField]
+        private int code;
+        [SerializeField]
+        private Vector4 primaryParameters;
+        [SerializeField]
+        private Vector4 secondaryParameters;
+        [SerializeField]
+        private Vector2 editorNodePos;
+        [SerializeField]
+        private string parentJson;
+        [SerializeField]
+        private string childrenJson;
+
+        #endregion
+
+        #region Properties #######################################################################
+
+        /// <summary>
+        /// The command's current state.
+        /// </summary>
+        public CommandState STate { get; set; }
+
+        /// <summary>
+        /// The command's main type
+        /// </summary>
+        public CommandType Type { get => type; set => type = value; }
+
+        /// <summary>
+        /// The command's executable type
+        /// </summary>
+        public CmdExecutableType ChildType { get => childType; set => childType = value; }
+
+        /// <summary>
+        /// The command's code
+        /// </summary>
+        public CmdEventCode CodeEv { get => (CmdEventCode)code; set => code = (int)value; }
+
+        /// <summary>
+        /// The command's code
+        /// </summary>
+        public CmdActionCode CodeAc { get => (CmdActionCode)code; set => code = (int)value; }
+
+        /// <summary>
+        /// The command's code
+        /// </summary>
+        public CmdGlobalCode CodeGl { get => (CmdGlobalCode)code; set => code = (int)value; }
+
+        /// <summary>
+        /// The command's code
+        /// </summary>
+        public CmdStoryCode CodeSt { get => (CmdStoryCode)code; set => code = (int)value; }
+
+        /// <summary>
+        /// The command's primary parameters.
+        /// </summary>
+        public Vector4 PrimaryParameters { get => primaryParameters; set => primaryParameters = value; }
+
+        /// <summary>
+        /// The command's secondary parameters.
+        /// </summary>
+        public Vector4 SecondaryParameters { get => secondaryParameters; set => secondaryParameters = value; }
+
+        /// <summary>
+        /// The parent Command
+        /// </summary>
+        public Command Parent {
+            get {
+                Command c = default;
+                try
+                {
+                    c = (Command)JsonUtility.FromJson(parentJson, typeof(Command));
+                }
+                catch { return default; }
+                return c;
+            }
+            set
+            {
+                parentJson = JsonUtility.ToJson(value);
+            }
         }
+
+        /// <summary>
+        /// The children node array
+        /// </summary>
+        public CommandList Children
+        {
+            get
+            {
+                CommandList c = default;
+                try
+                {
+                    c = (CommandList)JsonUtility.FromJson(childrenJson, typeof(CommandList));
+                }
+                catch { return default; }
+                return c;
+            }
+            set
+            {
+                childrenJson = JsonUtility.ToJson(value);
+            }
+        }
+
+        #endregion
+
+        #region methods #######################################################################
+
+        public bool Equals(Command other)
+        {
+            return type == other.type && childType == other.childType && code == other.code && PrimaryParameters == other.primaryParameters && SecondaryParameters == other.secondaryParameters;
+        }
+
+        public static Command NullCmd { get => new Command { code = -1 }; }
+
+#if UNITY_EDITOR
+
+        public Vector2 NodePosition { get => editorNodePos; set => editorNodePos = value; }
+        //public int ParentNodeIndex { get => parentCmdIndex; set => parentCmdIndex = value; }
+
+        public void NodeDisplay()
+        {
+            Type = (CommandType)EditorGUILayout.EnumPopup("Node Type", Type);
+            switch (Type)
+            {
+                case CommandType.comment:
+                    break;
+                case CommandType.conditionnal:
+                    break;
+                case CommandType.exit:
+                    break;
+                case CommandType.jump:
+                    break;
+                case CommandType.@out:
+                    break;
+                case CommandType.execute:
+                    childType = (CmdExecutableType)EditorGUILayout.EnumPopup("Execute", ChildType);
+                    switch (ChildType)
+                    {
+                        case CmdExecutableType._event:
+                            CodeEv = (CmdEventCode)EditorGUILayout.EnumPopup("Code", CodeEv);
+                            break;
+                        case CmdExecutableType._action:
+                            CodeAc = (CmdActionCode)EditorGUILayout.EnumPopup("Code", CodeAc);
+                            break;
+                        case CmdExecutableType._global:
+                            CodeGl = (CmdGlobalCode)EditorGUILayout.EnumPopup("Code", CodeGl);
+                            break;
+                        case CmdExecutableType._story:
+                            CodeSt = (CmdStoryCode)EditorGUILayout.EnumPopup("Code", CodeSt);
+                            break;
+                    }
+                    break;
+                case CommandType.delay:
+                    break;
+            }
+        }
+
+#endif
+        #endregion
     }
 
     /// <summary>
-    /// Une commande qui declenche un evenement.
+    /// The transit struct to serialize command children.
     /// </summary>
-    [System.Serializable]
-    public struct CommandEvent : IEquatable<CommandEvent>
+    public struct CommandList
     {
-        public CommandType code;
-        public Vector4 primaryParameters;
-        public Vector4 secondaryParameters;
-
-        public bool Equals(CommandEvent other)
-        {
-            return code == other.code && primaryParameters == other.primaryParameters && secondaryParameters == other.secondaryParameters;
-        }
-    }
-
-    /// <summary>
-    /// Une commande qui modifie des proprietes du monde.
-    /// </summary>
-    [System.Serializable]
-    public struct CommandWorld : IEquatable<CommandWorld>
-    {
-        public CommandType code;
-        public Vector4 primaryParameters;
-        public Vector4 secondaryParameters;
-
-        public bool Equals(CommandWorld other)
-        {
-            return code == other.code && primaryParameters == other.primaryParameters && secondaryParameters == other.secondaryParameters;
-        }
+        public List<Command> targets;
     }
 
     #endregion
@@ -739,7 +904,7 @@ namespace PulseEngine
     [System.Serializable]
     public struct AnimeCommand : IEquatable<AnimeCommand>
     {
-        public CommandAction command;
+        public Command command;
         public TimeStamp timeStamp;
         public bool isOneTimeAction;
 
@@ -783,6 +948,7 @@ namespace PulseEngine
     }
 
     #endregion
+
 
     #endregion
 
@@ -1038,7 +1204,6 @@ namespace PulseEngine.Datas
         }
 
 
-
         /// <summary>
         /// Execute a manager method async at runtime.
         /// </summary>
@@ -1057,7 +1222,7 @@ namespace PulseEngine.Datas
                 if (Mgrclass == null)
                 {
                     //TODO: Remove
-                    PulseDebug.Log("null Manager at "+ classPath);
+                    PulseDebug.Log("null Manager at " + classPath);
                     return default;
                 }
                 Core.ManagersCache.Add(mgrEnum, Mgrclass);
@@ -1073,17 +1238,17 @@ namespace PulseEngine.Datas
                 }
                 //TODO: Remove
                 PulseDebug.Log("Method infos summary\n" +
-                    "name: "+Method.Name+"\n" +
-                    "is static: "+Method.IsStatic+"\n"+
-                    "returning: "+Method.ReturnType);
+                    "name: " + Method.Name + "\n" +
+                    "is static: " + Method.IsStatic + "\n" +
+                    "returning: " + Method.ReturnType);
                 try
                 {
                     Task<T> task = (Task<T>)Method.Invoke(null, parameters);
                     //TODO: Remove
-                    PulseDebug.Log("its task of type "+typeof(T));
+                    PulseDebug.Log("its task of type " + typeof(T));
                     await task.ConfigureAwait(false);
                     //TODO: Remove
-                    PulseDebug.Log("task result is "+task.Result);
+                    PulseDebug.Log("task result is " + task.Result);
                     T result = task.Result;
                     return result;
                 }
@@ -1098,15 +1263,15 @@ namespace PulseEngine.Datas
                             PulseDebug.Log("its normal method");
                             return result;
                         }
-                        catch(Exception r)
+                        catch (Exception r)
                         {
                             //TODO: Remove
-                            PulseDebug.Log("second exception occured : "+r.Message);
+                            PulseDebug.Log("second exception occured : " + r.Message);
                             return default;
                         }
                     }
                     //TODO: Remove
-                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || "+e.Message);
+                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || " + e.Message);
                     return default;
                 }
             }
@@ -1134,7 +1299,7 @@ namespace PulseEngine.Datas
         /// Get all module datas with specified parameters
         /// </summary>
         /// <returns></returns>
-        public static async Task<List<T>> GetAllDatas<T,Q>() where Q: CoreLibrary where T: IData
+        public static async Task<List<T>> GetAllDatas<T, Q>() where Q : CoreLibrary where T : IData
         {
             string keyNamePart = typeof(Q).Name;
             List<string> keys = new List<string>();
@@ -1189,7 +1354,7 @@ namespace PulseEngine.Datas
                     return null;
                 }
                 await WaitAssetLoadUntil(keys[k], 1000);
-                if(library == null)
+                if (library == null)
                     continue;
                 var datalist = Core.LibraryClone(library).DataList;
                 output.AddRange(datalist.ConvertAll(new Converter<object, T>(data => { return (T)data; })));
@@ -1197,13 +1362,13 @@ namespace PulseEngine.Datas
             }
             return output.Count > 0 ? output.FindAll(item => { return item != null; }) : null;
         }
-               
+
 
         /// <summary>
         /// Get all module datas with specified parameters
         /// </summary>
         /// <returns></returns>
-        public static async Task<List<T>> GetDatas<T,Q>(DataLocation _location) where Q: CoreLibrary where T: IData
+        public static async Task<List<T>> GetDatas<T, Q>(DataLocation _location) where Q : CoreLibrary where T : IData
         {
             string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
             IList<IResourceLocation> location = null;
@@ -1243,7 +1408,8 @@ namespace PulseEngine.Datas
                 return null;
             var key = location[0].PrimaryKey;
             Q library = null;
-            Addressables.LoadAssetAsync<Q>(key).Completed += hdl =>{
+            Addressables.LoadAssetAsync<Q>(key).Completed += hdl =>
+            {
                 if (hdl.Status == AsyncOperationStatus.Succeeded)
                     library = hdl.Result;
                 SetAssetLoadComplete(path);
@@ -1262,7 +1428,7 @@ namespace PulseEngine.Datas
         /// <returns></returns>
         public static async Task<T> GetData<T, Q>(DataLocation _location) where Q : CoreLibrary where T : class, IData
         {
-            var list = await GetDatas<T,Q>(_location);
+            var list = await GetDatas<T, Q>(_location);
             return list != null ? list.Find(data => { return data.Location.id == _location.id; }) : null;
         }
 
@@ -1342,7 +1508,11 @@ namespace PulseEngine.Datas
         /// <summary>
         /// L'id de traduction.
         /// </summary>
-        public  DataLocation Location { get { return location; } set {
+        public DataLocation Location
+        {
+            get { return location; }
+            set
+            {
                 var tmp = value;
                 tmp.dType = DataTypes.Localisation;
                 location = tmp;
@@ -2010,69 +2180,55 @@ namespace PulseEngine.Datas
 
     #region MessageSystem >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    /// <summary>
-    /// La data des messages.
-    /// </summary>
-    [System.Serializable]
-    public class MessageData : LocalisableData, IData
+    public class MessageData : IData
     {
-        #region Attributs ###############################################################################################
+        #region Attributs #########################################################
 
         [SerializeField]
-        private DataLocation location;
+        private DataLocation text;
         [SerializeField]
-        private List<DataLocation> branches = new List<DataLocation>();
+        private List<DataLocation> choices = new List<DataLocation>();
+        [SerializeField]
+        private float selectionDelay;
+        [SerializeField]
+        private int defaultChoiceIndex;
 
         #endregion
-        #region Properties ###############################################################################################
+
+        #region Propriete #########################################################
+
+        /// <summary>
+        /// The Message location in the message database
+        /// </summary>
+        public DataLocation Location { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        /// <summary>
+        /// The message's text trad data location.
+        /// </summary>
+        public DataLocation Text { get => text; set => text = value; }
+
+        /// <summary>
+        /// the message's choices trad datas locations.
+        /// </summary>
+        public List<DataLocation> Choices { get => choices; set => choices = value; }
+
+        /// <summary>
+        /// The message selection delay
+        /// </summary>
+        public float SelectionDelay { get => selectionDelay; set => selectionDelay = value; }
+
+        /// <summary>
+        /// The default choice index
+        /// </summary>
+        public int DefaultChoiceIndex { get => defaultChoiceIndex; set => defaultChoiceIndex = Mathf.Clamp(value, 0, choices.Count); }
 
         #endregion
 
-        /// <summary>
-        /// The data location
-        /// </summary>
-        public DataLocation Location { get => location; set => location = value; }
+        #region Methods #########################################################
 
-        /// <summary>
-        /// The branch indexer
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public DataLocation this[int index] { get => branches[index]; set => branches[index] = value; }
-
-        /// <summary>
-        /// To add a branch
-        /// </summary>
-        /// <param name="data"></param>
-        public void Add(DataLocation data)
-        {
-            branches.Add(data);
-        }
-
-        /// <summary>
-        /// to remove a branch at
-        /// </summary>
-        /// <param name="index"></param>
-        public void RemoveAt(int index)
-        {
-            if (index < 0 || index >= count)
-                return;
-            branches.RemoveAt(index);
-        }
-
-        /// <summary>
-        /// to clear branches
-        /// </summary>
-        public void Clear()
-        {
-            branches.Clear();
-        }
-
-        /// <summary>
-        /// to get the branches count.
-        /// </summary>
-        public int count => branches.Count;
+        #endregion
     }
+
 
     #endregion
 

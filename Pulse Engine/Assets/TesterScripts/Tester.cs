@@ -23,24 +23,60 @@ public class Tester : MonoBehaviour
             Spawn();
         }
         if (asset != null) {
-            if (GUILayout.Button("Test serialisation"))
+            if (GUILayout.Button("Test inDepht creation"))
             {
-                var s = asset.item;
-                Serial holder = default;
-                var tchindren = s.childrens;
-                tchindren.Add(JsonUtility.ToJson(new Serial()));
-                s.childrens = tchindren;
-                holder = JsonUtility.FromJson<Serial>(tchindren[0]);
+                Command t = asset.cmd;
+                Queue<Command> historic = new Queue<Command>();
+
+                for(int i = 0; i < 3; i++)
+                {
+                    var tmp = new CommandList();
+                    tmp.targets = new List<Command>();
+                    tmp.targets.Add(new Command());
+                    t.Children = tmp;
+                    Command ancestor = Command.NullCmd;
+                    if (i > 0)
+                    {
+                        ancestor = t;
+                    }
+                    t = t.Children.targets[0];
+                    t.PrimaryParameters = Vector4.one * i;
+                    t.Parent = ancestor;
+                    if (!ancestor.Equals(Command.NullCmd))
+                    {
+                        Command f = t.Parent;
+                        var v = f.Children;
+                        v.targets = new List<Command>();
+                        v.targets.Add(t);
+                        f.Children = v;
+                        t.Parent = f;
+                        historic.Enqueue(t.Parent);
+                    }
+                }
+
+                //while(!t.Parent.Equals(Command.NullCmd))
+                //{
+                //    var f = t.Parent;
+                //}
+
+                t = historic.Dequeue();
+                asset.cmd = t;
+                historic.Clear();
+            }
+            if (GUILayout.Button("Test inDepht march"))
+            {
+                Command t = asset.cmd;
+                Debug.Log("asset of cmd parameter x " + t.PrimaryParameters.x);
                 for (int i = 0; i < 10; i++)
                 {
-                    var stChildern = holder.childrens;
-                    stChildern.Add(JsonUtility.ToJson(new Serial()));
-                    holder.childrens = stChildern;
-                    var t = JsonUtility.FromJson<Serial>(stChildern[0]);
-                    holder = t;
-                    Debug.Log("Serial N+" + (i + 1));
+                    try
+                    {
+                        Command f = t.Children.targets[0];
+                        Debug.Log("found child at " + i + " of parameter x " + f.PrimaryParameters.x);
+                        t = f;
+                    }
+                    catch { break; }
                 }
-                asset.item = s;
             }
         }
         if (GUILayout.Button("Count: "+spawnCount))
@@ -89,13 +125,6 @@ public struct Serial
     }
 }
 
-
-[Serializable]
-[CreateAssetMenu(fileName = "ScriptableTest", menuName = "Asset/SR test", order = 1)]
-public class TestAsset: ScriptableObject
-{
-    public Serial item;
-}
 
 
 

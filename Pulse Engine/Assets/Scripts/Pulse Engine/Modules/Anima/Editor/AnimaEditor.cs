@@ -136,7 +136,7 @@ namespace PulseEditor.Modules
         /// <summary>
         /// L'event d'animation en cours.
         /// </summary>
-        private CommandAction currentAnimCommand;
+        private Command currentAnimCommand;
 
         #endregion
 
@@ -437,7 +437,7 @@ namespace PulseEditor.Modules
                     var tmpEvents = data.EventList;
                     tmpEvents.Add(new AnimeCommand
                     {
-                        command = new CommandAction(),
+                        command = new Command { Type = CommandType.execute, ChildType = CmdExecutableType._action},
                         timeStamp = new TimeStamp { time = timeInCurrentAnimation, duration = data.Motion ? (1 / data.Motion.frameRate) : 0 },
                         isOneTimeAction = true
                     });
@@ -493,7 +493,7 @@ namespace PulseEditor.Modules
                         var timeStamp = evEnt.timeStamp;
 
                         GUILayout.BeginVertical("HELPBOX");
-                        EditorGUILayout.LabelField("Event No: " + (k + 1) + (k < data.EventList.Count && k >= 0 ? " : " + data.EventList[k].command.code : " at " + timeInCurrentAnimation), EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField("Event No: " + (k + 1) + (k < data.EventList.Count && k >= 0 ? " : " + data.EventList[k].command.CodeAc : " at " + timeInCurrentAnimation), EditorStyles.boldLabel);
                         GUILayout.Space(10);
                         GUILayout.BeginHorizontal();
                         try

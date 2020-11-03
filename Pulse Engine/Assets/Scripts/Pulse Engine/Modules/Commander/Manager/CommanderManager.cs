@@ -22,30 +22,28 @@ namespace PulseEngine.Modules.Commander
         #region Methods ####################################################################
 
         /// <summary>
-        /// Execute une commande action.
+        /// Execute une commande.
         /// </summary>
         /// <param name="_actionCmd"></param>
-        public static void ExecuteCommand(GameObject emitter, CommandAction _actionCmd)
+        public static void ExecuteCommand(GameObject emitter, Command _Cmd)
         {
-            PulseDebug.Log("CommandAction " + _actionCmd.code + ", triggered by " + emitter.name);
-        }
-
-        /// <summary>
-        /// Execute une commande evenement.
-        /// </summary>
-        /// <param name="_eventCmd"></param>
-        public static void ExecuteCommand(GameObject emitter, CommandEvent _eventCmd)
-        {
-            PulseDebug.Log("CommandEvent " + _eventCmd.code + ", triggered by " + emitter.name);
-        }
-
-        /// <summary>
-        /// Execute une commande globale.
-        /// </summary>
-        /// <param name="_worldCmd"></param>
-        public static void ExecuteCommand(GameObject emitter, CommandWorld _worldCmd)
-        {
-            PulseDebug.Log("CommandWorld " + _worldCmd.code + ", triggered by " + emitter.name);
+            Func<Command, dynamic> getCodeType = c =>
+             {
+                 switch (c.ChildType)
+                 {
+                     case CmdExecutableType._event:
+                         return c.CodeEv;
+                     case CmdExecutableType._action:
+                         return c.CodeAc;
+                     case CmdExecutableType._global:
+                         return c.CodeGl;
+                     case CmdExecutableType._story:
+                         return c.CodeSt;
+                     default:
+                         return (int)c.CodeAc;
+                 }
+             };
+            PulseDebug.Log("Command " + _Cmd.Type + (_Cmd.Type == CommandType.execute? (_Cmd.ChildType+" "+getCodeType(_Cmd)) : "") + ", triggered by " + emitter.name);
         }
 
         #endregion
