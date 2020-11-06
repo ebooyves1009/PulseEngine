@@ -779,6 +779,19 @@ namespace PulseEngine
         public CmdStoryCode CodeSt { get => (CmdStoryCode)code; set => code = (int)value; }
 
         /// <summary>
+        /// The command's children count.
+        /// </summary>
+        public int ChildrenCount
+        {
+            get
+            {
+                if (Children.targets == null)
+                    return 0;
+                return Children.targets.Count;
+            }
+        }
+
+        /// <summary>
         /// The command's primary parameters.
         /// </summary>
         public Vector4 PrimaryParameters { get => primaryParameters; set => primaryParameters = value; }
@@ -793,6 +806,8 @@ namespace PulseEngine
         /// </summary>
         public Command Parent {
             get {
+                if (string.IsNullOrEmpty(parentJson))
+                    return Command.NullCmd;
                 Command c = default;
                 try
                 {
@@ -814,6 +829,8 @@ namespace PulseEngine
         {
             get
             {
+                if (string.IsNullOrEmpty(childrenJson))
+                    return CommandList.NullCmdList;
                 CommandList c = default;
                 try
                 {
@@ -835,6 +852,128 @@ namespace PulseEngine
         public bool Equals(Command other)
         {
             return type == other.type && childType == other.childType && code == other.code && PrimaryParameters == other.primaryParameters && SecondaryParameters == other.secondaryParameters;
+        }
+        public static bool operator==(Command a, Command b) {
+            return a.Equals(b);
+        }
+        public static bool operator!=(Command a, Command b) {
+            return !a.Equals(b);
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = -1644972737;
+            hashCode = hashCode * -1521134295 + code.GetHashCode();
+            hashCode = hashCode * -1521134295 + Type.GetHashCode();
+            hashCode = hashCode * -1521134295 + ChildType.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<Vector4>.Default.GetHashCode(PrimaryParameters);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Vector4>.Default.GetHashCode(SecondaryParameters);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Command>.Default.GetHashCode(Parent);
+            hashCode = hashCode * -1521134295 + EqualityComparer<CommandList>.Default.GetHashCode(Children);
+            return hashCode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+
+        /// <summary>
+        /// Return the master parent command.
+        /// </summary>
+        /// <returns></returns>
+        public Command MasterCommand()
+        {
+            Command t = this;
+            while (!t.Parent.Equals(Command.NullCmd))
+            {
+                var f = t.Parent;
+                var tmp = f.Children;
+                if (tmp.targets == null)
+                    tmp.targets = new List<Command>();
+                tmp.targets.Add(t);
+                f.Children = tmp;
+                t = f;
+            }
+            return t;
+        }
+
+        /// <summary>
+        /// Add a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        public void AddChild(Command c)
+        {
+            var t = Children;
+            if (t.targets == null)
+                t.targets = new List<Command>();
+            t.targets.Add(c);
+            Children = t;
+            int l = t.targets.Count;
+            for(int i = 0; i < l; i++)
+            {
+                var ch = t.targets[i];
+                ch.Parent = this;
+                t.targets[i] = ch;
+            }
+            Children = t;
+        }
+
+        /// <summary>
+        /// Remove a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        public void RemoveChild(Command c)
+        {
+            var t = Children;
+            if (t.targets == null)
+                return;
+            if (t.targets.Contains(c))
+                t.targets.Remove(c);
+            Children = t;
+        }
+
+        /// <summary>
+        /// Remove a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        public void RemoveChildAt(int index)
+        {
+            var t = Children;
+            if (t.targets == null)
+                return;
+            if (t.targets.Count > index && index >= 0)
+                t.targets.RemoveAt(index);
+            Children = t;
+        }
+
+        /// <summary>
+        /// Remove a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        public void InsertChildAt(Command c, int index)
+        {
+            var t = Children;
+            if (t.targets == null)
+                return;
+            if (t.targets.Count > index && index >= 0)
+                t.targets.Insert(index, c);
+            Children = t;
+        }
+
+        /// <summary>
+        /// Return child at index.
+        /// </summary>
+        /// <param name="depth"></param>
+        /// <returns></returns>
+        public Command GetChild(int index = 0)
+        {
+            if (Children.targets == null)
+                return Command.NullCmd;
+            if (index < 0 || Children.targets.Count <= index)
+                return Command.NullCmd;
+            return Children.targets[index];
         }
 
         public static Command NullCmd { get => new Command { code = -1 }; }
@@ -889,9 +1028,47 @@ namespace PulseEngine
     /// <summary>
     /// The transit struct to serialize command children.
     /// </summary>
-    public struct CommandList
+    public struct CommandList: IEquatable<CommandList>
     {
         public List<Command> targets;
+        public static CommandList NullCmdList { get => new CommandList { targets = null }; }
+
+        public bool Equals(CommandList other)
+        {
+            if (targets == null && other.targets == null)
+                return true;
+            if (targets == null ^ other.targets == null)
+                return false;
+            if (targets.Count != other.targets.Count)
+                return false;
+            int commonlenght = targets.Count;
+            for(int i = 0; i < commonlenght; i++)
+            {
+                if (targets[i] != other.targets[i])
+                    return false;
+            }
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return -1745064695 + EqualityComparer<List<Command>>.Default.GetHashCode(targets);
+        }
+
+        public static bool operator ==(CommandList a, CommandList b)
+        {
+            return a.Equals(b);
+        }
+
+        public static bool operator !=(CommandList a, CommandList b)
+        {
+            return !a.Equals(b);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
     }
 
     #endregion
