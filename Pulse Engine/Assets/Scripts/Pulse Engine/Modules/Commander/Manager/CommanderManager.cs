@@ -12,10 +12,6 @@ namespace PulseEngine.Modules.Commander
     {
         #region Attributes ####################################################################
 
-        /// <summary>
-        /// Le chemin d'access des datas.
-        /// </summary>
-        public static string AssetsPath { get => "CommanderDatas"; }
 
         #endregion
 

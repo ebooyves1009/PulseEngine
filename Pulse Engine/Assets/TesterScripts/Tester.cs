@@ -26,67 +26,58 @@ public class Tester : MonoBehaviour
         if (asset != null) {
             if (GUILayout.Button("Test inDepht creation"))
             {
-                Command t = asset.cmd;
-                //t.Parent = Command.NullCmd;
-
-                for(int i = 0; i < 3; i++)
+                Command t = new Command();
+                t.Path = new CommandPath
                 {
-                    var tmp = new CommandList();
-                    tmp.targets = new List<Command>();
-                    //
-                    Command n = new Command();
-                    n.PrimaryParameters = Vector4.one * (i + 1);
-                    //
-                    //tmp.targets.Add(n);
-                    //t.Children = tmp;
-                    for(int j = 0; j < 2; j++)
+                    label = "Master Command",
+                };
+                t.Parent = CommandPath.EmptyPath;
+                CommandSequence sequence = asset.SQ;
+                var sq = sequence.Sequence;
+                if (sq == null)
+                    sq = new List<Command>();
+                sq.Add(t);
+                sequence.Sequence = sq;
+
+                for(int i = 0; i < 5; i++)
+                {
+                    for(int j = 0; j < 3; j++)
                     {
+                        Command n = new Command();
+                        n.PrimaryParameters = Vector4.one * (i + 1);
                         n.NodePosition = new Vector2((i + 1), j);
-                        t.AddChild(n);
+                        n.Path = new CommandPath
+                        {
+                            depth = i + 1,
+                            id = j,
+                            label = "Command at depth= " + (i + 1) + ", and id= " + j,
+                        };
+                        t.AddChild(sequence, n);
                     }
                     Debug.Log("Created command: " + t.PrimaryParameters.x);
                     for(int j = 0; j < t.ChildrenCount; j++)
                     {
                         //Debug.Log("\tchild command #" + (j + 1) + ": " + t.GetChild(j).NodePosition + " parented to " + t.GetChild(j).Parent.NodePosition);
                     }
-                    t = t.GetChild();
-                    //Command ancestor = Command.NullCmd;
-                    //if (i > 0)
-                    //{
-                    //    ancestor = t;
-                    //}
-                    //t.PrimaryParameters = Vector4.one * i;
-                    //t.Parent = ancestor;
-                    //if (!ancestor.Equals(Command.NullCmd))
-                    //{
-                    //    Command f = t.Parent;
-                    //    var v = f.Children;
-                    //    v.targets = new List<Command>();
-                    //    v.targets.Add(t);
-                    //    f.Children = v;
-                    //    t.Parent = f;
-                    //    historic.Enqueue(t.Parent);
-                    //}
+                    t = t.GetChild(sequence);
                 }
 
-                //while (!t.Parent.Equals(Command.NullCmd))
-                //{
-                //    var f = t.Parent;
-                //    var tmp = new CommandList();
-                //    tmp.targets = new List<Command>();
-                //    tmp.targets.Add(t);
-                //    f.Children = tmp;
-                //    t = f;
-                //}
-
-                asset.cmd = t.MasterCommand();
+                asset.SQ = sequence;
             }
             if (GUILayout.Button("Test inDepht march"))
             {
                 representation.Clear();
-                Command t = asset.cmd;
-                Debug.Log("asset of cmd parameter x " + t.PrimaryParameters.x);
-                FindRecursive(t);
+                CommandSequence sequence = asset.SQ;
+                int len = sequence.Sequence.Count;
+                for(int i = 0; i < len; i++)
+                {
+                    Debug.Log("Command Label : " + sequence.Sequence[i].Path.label);
+                    representation.Add(((Vector3)(sequence.Sequence[i].NodePosition), (Vector3)sequence.Sequence[i].GetParent(sequence).NodePosition));
+                }
+
+                //Command t = asset.cmd;
+                //Debug.Log("asset of cmd parameter x " + t.PrimaryParameters.x);
+                //FindRecursive(t);
                 //for (int i = 0; i < 10; i++)
                 //{
                 //    if (t.Children == CommandList.NullCmdList)
@@ -102,14 +93,25 @@ public class Tester : MonoBehaviour
         }
     }
 
+    Color[] palette = new Color[]
+    {
+        Color.green,
+        Color.red,
+        Color.yellow,
+        Color.blue,
+        Color.cyan,
+        Color.black,
+    };
+
     private void OnDrawGizmos()
     {
-        Gizmos.DrawCube(Vector3.zero, Vector3.one * 0.25f);
-        for (int i = 0; i < representation.Count; i++)
+        Gizmos.DrawCube(representation[0].position, Vector3.one * 0.5f);
+        for (int i = 1; i < representation.Count; i++)
         {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawCube(representation[i].position, Vector3.one * 0.25f);
-            Gizmos.color = Color.yellow;
+            var color = palette[i % palette.Length];
+            Gizmos.color = color;
+            Gizmos.DrawCube(representation[i].position, Vector3.one * 0.5f);
+            Gizmos.color = color;
             Gizmos.DrawLine(representation[i].position, representation[i].parentPos);
         }
     }
@@ -118,13 +120,13 @@ public class Tester : MonoBehaviour
     private void FindRecursive(Command c)
     {
         int lenght = c.ChildrenCount;
-        for(int i = 0; i < lenght; i++)
-        {
-            var ch = c.GetChild(i);
-            Debug.Log("found child at: " + ch.NodePosition + " parented to: " + ch.Parent.NodePosition);
-            representation.Add((ch.NodePosition, ch.Parent.NodePosition));
-            FindRecursive(ch);
-        }
+        //for(int i = 0; i < lenght; i++)
+        //{
+        //    var ch = c.GetChild(i);
+        //    Debug.Log("found child at: " + ch.NodePosition + " parented to: " + ch.Parent.NodePosition);
+        //    representation.Add((ch.NodePosition, ch.Parent.NodePosition));
+        //    FindRecursive(ch);
+        //}
     }
 
 

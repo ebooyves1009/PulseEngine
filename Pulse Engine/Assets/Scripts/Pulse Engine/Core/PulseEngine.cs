@@ -287,6 +287,14 @@ namespace PulseEngine
     }
 
     /// <summary>
+    /// Les Zones.
+    /// </summary>
+    public enum Zones
+    {
+        tous,
+    }
+
+    /// <summary>
     /// The datatype of a data. Useful for static retrival of datas in Editor mode.
     /// </summary>
     public enum DataTypes
@@ -297,6 +305,7 @@ namespace PulseEngine
         Weapon,
         Character,
         Message,
+        CommandSequence,
     }
 
     #endregion
@@ -723,6 +732,8 @@ namespace PulseEngine
         #region Attributs #######################################################################
 
         [SerializeField]
+        private CommandPath path;
+        [SerializeField]
         private CommandType type;
         [SerializeField]
         private CmdExecutableType childType;
@@ -735,13 +746,26 @@ namespace PulseEngine
         [SerializeField]
         private Vector2 editorNodePos;
         [SerializeField]
-        private string parentJson;
+        private CommandPath parent;
         [SerializeField]
-        private string childrenJson;
+        private List<CommandPath> children;
 
         #endregion
 
         #region Properties #######################################################################
+        
+        /// <summary>
+        /// The COmmand location in the Sequence.
+        /// </summary>
+        public CommandPath Path {
+            get
+            {
+                if (path.label == null)
+                    return CommandPath.EmptyPath;
+                return path;
+            }
+            set => path = value;
+        }
 
         /// <summary>
         /// The command's current state.
@@ -779,15 +803,20 @@ namespace PulseEngine
         public CmdStoryCode CodeSt { get => (CmdStoryCode)code; set => code = (int)value; }
 
         /// <summary>
+        /// The parent's command path in the sequence.
+        /// </summary>
+        public CommandPath Parent { set => parent = value; }
+
+        /// <summary>
         /// The command's children count.
         /// </summary>
         public int ChildrenCount
         {
             get
             {
-                if (Children.targets == null)
+                if (children == null)
                     return 0;
-                return Children.targets.Count;
+                return children.Count;
             }
         }
 
@@ -801,49 +830,6 @@ namespace PulseEngine
         /// </summary>
         public Vector4 SecondaryParameters { get => secondaryParameters; set => secondaryParameters = value; }
 
-        /// <summary>
-        /// The parent Command
-        /// </summary>
-        public Command Parent {
-            get {
-                if (string.IsNullOrEmpty(parentJson))
-                    return Command.NullCmd;
-                Command c = default;
-                try
-                {
-                    c = (Command)JsonUtility.FromJson(parentJson, typeof(Command));
-                }
-                catch { return default; }
-                return c;
-            }
-            set
-            {
-                parentJson = JsonUtility.ToJson(value);
-            }
-        }
-
-        /// <summary>
-        /// The children node array
-        /// </summary>
-        public CommandList Children
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(childrenJson))
-                    return CommandList.NullCmdList;
-                CommandList c = default;
-                try
-                {
-                    c = (CommandList)JsonUtility.FromJson(childrenJson, typeof(CommandList));
-                }
-                catch { return default; }
-                return c;
-            }
-            set
-            {
-                childrenJson = JsonUtility.ToJson(value);
-            }
-        }
 
         #endregion
 
@@ -868,8 +854,6 @@ namespace PulseEngine
             hashCode = hashCode * -1521134295 + ChildType.GetHashCode();
             hashCode = hashCode * -1521134295 + EqualityComparer<Vector4>.Default.GetHashCode(PrimaryParameters);
             hashCode = hashCode * -1521134295 + EqualityComparer<Vector4>.Default.GetHashCode(SecondaryParameters);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Command>.Default.GetHashCode(Parent);
-            hashCode = hashCode * -1521134295 + EqualityComparer<CommandList>.Default.GetHashCode(Children);
             return hashCode;
         }
 
@@ -880,44 +864,36 @@ namespace PulseEngine
 
 
         /// <summary>
-        /// Return the master parent command.
+        /// Propagate the modifications recusively to parents.
         /// </summary>
-        /// <returns></returns>
-        public Command MasterCommand()
+        private void PropagateToParents()
         {
-            Command t = this;
-            while (!t.Parent.Equals(Command.NullCmd))
-            {
-                var f = t.Parent;
-                var tmp = f.Children;
-                if (tmp.targets == null)
-                    tmp.targets = new List<Command>();
-                tmp.targets.Add(t);
-                f.Children = tmp;
-                t = f;
-            }
-            return t;
+
+        }
+
+        /// <summary>
+        /// Propagate the modifications recusively to childrens.
+        /// </summary>
+        private void PropagateToChildrens()
+        {
+
         }
 
         /// <summary>
         /// Add a child to this command
         /// </summary>
         /// <param name="c"></param>
-        public void AddChild(Command c)
+        public void AddChild(CommandSequence sq, Command c)
         {
-            var t = Children;
-            if (t.targets == null)
-                t.targets = new List<Command>();
-            t.targets.Add(c);
-            Children = t;
-            int l = t.targets.Count;
-            for(int i = 0; i < l; i++)
-            {
-                var ch = t.targets[i];
-                ch.Parent = this;
-                t.targets[i] = ch;
-            }
-            Children = t;
+            if (children == null)
+                children = new List<CommandPath>();
+            if (sq.Sequence == null)
+                sq.Sequence = new List<Command>();
+            c.Parent = Path;
+            var csq = sq.Sequence;
+            csq.Add(c);
+            sq.Sequence = csq;
+            children.Add(c.Path);
         }
 
         /// <summary>
@@ -926,12 +902,7 @@ namespace PulseEngine
         /// <param name="c"></param>
         public void RemoveChild(Command c)
         {
-            var t = Children;
-            if (t.targets == null)
-                return;
-            if (t.targets.Contains(c))
-                t.targets.Remove(c);
-            Children = t;
+
         }
 
         /// <summary>
@@ -940,12 +911,7 @@ namespace PulseEngine
         /// <param name="c"></param>
         public void RemoveChildAt(int index)
         {
-            var t = Children;
-            if (t.targets == null)
-                return;
-            if (t.targets.Count > index && index >= 0)
-                t.targets.RemoveAt(index);
-            Children = t;
+
         }
 
         /// <summary>
@@ -954,26 +920,39 @@ namespace PulseEngine
         /// <param name="c"></param>
         public void InsertChildAt(Command c, int index)
         {
-            var t = Children;
-            if (t.targets == null)
-                return;
-            if (t.targets.Count > index && index >= 0)
-                t.targets.Insert(index, c);
-            Children = t;
+
         }
 
+        /// <summary>
+        /// Return Parent command.
+        /// </summary>
+        /// <param name="depth"></param>
+        /// <returns></returns>
+        public Command GetParent(CommandSequence sq)
+        {
+            if (sq.Sequence.Count == 0)
+                return Command.NullCmd;
+            var thisCommand = this;
+            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == thisCommand.parent; });
+            if (foundIndex >= 0)
+                return sq.Sequence[foundIndex];
+            return Command.NullCmd;
+        }
+        
         /// <summary>
         /// Return child at index.
         /// </summary>
         /// <param name="depth"></param>
         /// <returns></returns>
-        public Command GetChild(int index = 0)
+        public Command GetChild(CommandSequence sq, int index = 0)
         {
-            if (Children.targets == null)
+            if (sq.Sequence.Count == 0 || children == null || children.Count == 0)
                 return Command.NullCmd;
-            if (index < 0 || Children.targets.Count <= index)
-                return Command.NullCmd;
-            return Children.targets[index];
+            var thisCommand = this;
+            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == thisCommand.children[index]; });
+            if (foundIndex >= 0)
+                return sq.Sequence[foundIndex];
+            return Command.NullCmd;
         }
 
         public static Command NullCmd { get => new Command { code = -1 }; }
@@ -981,6 +960,7 @@ namespace PulseEngine
 #if UNITY_EDITOR
 
         public Vector2 NodePosition { get => editorNodePos; set => editorNodePos = value; }
+
         //public int ParentNodeIndex { get => parentCmdIndex; set => parentCmdIndex = value; }
 
         public void NodeDisplay()
@@ -1025,49 +1005,63 @@ namespace PulseEngine
         #endregion
     }
 
-    /// <summary>
-    /// The transit struct to serialize command children.
-    /// </summary>
-    public struct CommandList: IEquatable<CommandList>
-    {
-        public List<Command> targets;
-        public static CommandList NullCmdList { get => new CommandList { targets = null }; }
 
-        public bool Equals(CommandList other)
+    /// <summary>
+    /// The Command path in the command sequence.
+    /// </summary>
+    [System.Serializable]
+    public struct CommandPath : IEquatable<CommandPath>
+    {
+        /// <summary>
+        /// The Command id in the sequence.
+        /// </summary>
+        public int id;
+
+        /// <summary>
+        /// The command depth in the hierarchie.
+        /// </summary>
+        public int depth;
+
+        /// <summary>
+        /// The command label
+        /// </summary>
+        public string label;
+
+
+        public bool Equals(CommandPath other)
         {
-            if (targets == null && other.targets == null)
-                return true;
-            if (targets == null ^ other.targets == null)
+            return id == other.id && depth == other.depth;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (o.GetType() != typeof(CommandPath))
                 return false;
-            if (targets.Count != other.targets.Count)
-                return false;
-            int commonlenght = targets.Count;
-            for(int i = 0; i < commonlenght; i++)
-            {
-                if (targets[i] != other.targets[i])
-                    return false;
-            }
-            return true;
+            CommandPath other = (CommandPath)o;
+            return id == other.id && depth == other.depth;
         }
 
         public override int GetHashCode()
         {
-            return -1745064695 + EqualityComparer<List<Command>>.Default.GetHashCode(targets);
+            var hashCode = -1529887145;
+            hashCode = hashCode * -1521134295 + id.GetHashCode();
+            hashCode = hashCode * -1521134295 + depth.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(label);
+            return hashCode;
         }
 
-        public static bool operator ==(CommandList a, CommandList b)
+        public static bool operator ==(CommandPath a, CommandPath b)
         {
             return a.Equals(b);
         }
-
-        public static bool operator !=(CommandList a, CommandList b)
+        public static bool operator !=(CommandPath a, CommandPath b)
         {
             return !a.Equals(b);
         }
 
-        public override bool Equals(object obj)
+        public static CommandPath EmptyPath
         {
-            return base.Equals(obj);
+            get => new CommandPath { depth = -1, id = -1, label = null };
         }
     }
 
@@ -2409,7 +2403,60 @@ namespace PulseEngine.Datas
 
     #endregion
 
-    #region ....... >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    #region Commander >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+    /// <summary>
+    /// The command sequence executed.
+    /// </summary>
+    [System.Serializable]
+    public class CommandSequence : IEquatable<CommandSequence>, IData
+    {
+        #region Attributes #####################################################################################
+
+        [SerializeField]
+        private List<Command> sequence;
+        [SerializeField]
+        private DataLocation location;
+
+        #endregion
+
+        #region Properties #####################################################################################
+
+        /// <summary>
+        /// The sequence location in the datalist
+        /// </summary>
+        public DataLocation Location { get => location; set => location = value; }
+
+        /// <summary>
+        /// The command sequence list.
+        /// </summary>
+        public List<Command> Sequence
+        {
+            get
+            {
+                if (sequence == null)
+                    sequence = new List<Command>();
+                return sequence;
+            }
+            set => sequence = value;
+        }
+
+        #endregion
+
+        #region Methods #####################################################################################
+
+        public bool Equals(CommandSequence other)
+        {
+            return Location.Equals(other.Location);
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region ... >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #endregion
 }
