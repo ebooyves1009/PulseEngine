@@ -6,7 +6,7 @@ using PulseEngine.Datas;
 
 
 
-namespace PulseEngine.Modules.Anima
+namespace PulseEngine.Modules.Components
 {
 
     /// <summary>
@@ -87,7 +87,7 @@ namespace PulseEngine.Modules.Anima
         /// </summary>
         public void TriggerEvent(GameObject _eventEmitter, AnimeCommand _event)
         {
-            Commander.CommanderManager.ExecuteCommand(_eventEmitter, _event.command);
+            var executeTask = Core.ManagerAsyncMethod(ModulesManagers.Commander, "ExecuteCommand", _eventEmitter, _event.command);
         }
 
         /// <summary>

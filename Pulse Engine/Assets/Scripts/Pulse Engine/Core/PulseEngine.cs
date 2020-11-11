@@ -126,6 +126,173 @@ namespace PulseEngine
             return nouvo;
         }
 
+
+        /// <summary>
+        /// Execute a manager method async at runtime.
+        /// </summary>
+        /// <param name="mgrEnum"></param>
+        /// <param name="methodName"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static async Task<T> ManagerAsyncMethod<T>(ModulesManagers mgrEnum, string methodName, params object[] parameters)
+        {
+            if (ManagersCache == null)
+                ManagersCache = new Dictionary<ModulesManagers, Type>();
+            if (!ManagersCache.ContainsKey(mgrEnum))
+            {
+                string classPath = mgrEnum.ToString() + "." + mgrEnum.ToString();
+                Type Mgrclass = Type.GetType("PulseEngine.Modules." + classPath);
+                if (Mgrclass == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("null Manager at " + classPath);
+                    return default;
+                }
+                ManagersCache.Add(mgrEnum, Mgrclass);
+            }
+            if (ManagersCache[mgrEnum] != null)
+            {
+                var Method = MethodFromClass(ManagersCache[mgrEnum], methodName);
+                if (Method == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("Null method");
+                    return default;
+                }
+                //TODO: Remove
+                PulseDebug.Log("Method infos summary\n" +
+                    "name: " + Method.Name + "\n" +
+                    "is static: " + Method.IsStatic + "\n" +
+                    "returning: " + Method.ReturnType);
+                try
+                {
+                    Task<T> task = (Task<T>)Method.Invoke(null, parameters);
+                    //TODO: Remove
+                    PulseDebug.Log("its task of type " + typeof(T));
+                    await task.ConfigureAwait(false);
+                    //TODO: Remove
+                    PulseDebug.Log("task result is " + task.Result);
+                    T result = task.Result;
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() == typeof(InvalidCastException))
+                    {
+                        try
+                        {
+                            T result = (T)Method.Invoke(null, parameters);
+                            //TODO: Remove
+                            PulseDebug.Log("its normal method");
+                            return result;
+                        }
+                        catch (Exception r)
+                        {
+                            //TODO: Remove
+                            PulseDebug.Log("second exception occured : " + r.Message);
+                            return default;
+                        }
+                    }
+                    //TODO: Remove
+                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || " + e.Message);
+                    return default;
+                }
+            }
+            //TODO: Remove
+            PulseDebug.Log("Null type in Core Manager cache");
+            return default;
+        }
+
+
+        /// <summary>
+        /// Execute a manager void method async at runtime.
+        /// </summary>
+        /// <param name="mgrEnum"></param>
+        /// <param name="methodName"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static async Task ManagerAsyncMethod(ModulesManagers mgrEnum, string methodName, params object[] parameters)
+        {
+            if (ManagersCache == null)
+                ManagersCache = new Dictionary<ModulesManagers, Type>();
+            if (!ManagersCache.ContainsKey(mgrEnum))
+            {
+                string classPath = mgrEnum.ToString() + "." + mgrEnum.ToString();
+                Type Mgrclass = Type.GetType("PulseEngine.Modules." + classPath);
+                if (Mgrclass == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("null Manager at " + classPath);
+                    return;
+                }
+                ManagersCache.Add(mgrEnum, Mgrclass);
+            }
+            if (ManagersCache[mgrEnum] != null)
+            {
+                var Method = MethodFromClass(ManagersCache[mgrEnum], methodName);
+                if (Method == null)
+                {
+                    //TODO: Remove
+                    PulseDebug.Log("Null method");
+                    return;
+                }
+                //TODO: Remove
+                PulseDebug.Log("Method infos summary\n" +
+                    "name: " + Method.Name + "\n" +
+                    "is static: " + Method.IsStatic + "\n" +
+                    "returning: " + Method.ReturnType);
+                try
+                {
+                    Task task = (Task)Method.Invoke(null, parameters);
+                    //TODO: Remove
+                    PulseDebug.Log("its task");
+                    await task.ConfigureAwait(false);
+                    return;
+                }
+                catch (Exception e)
+                {
+                    if (e.GetType() == typeof(InvalidCastException))
+                    {
+                        try
+                        {
+                            Method.Invoke(null, parameters);
+                            //TODO: Remove
+                            PulseDebug.Log("its normal method");
+                            return;
+                        }
+                        catch (Exception r)
+                        {
+                            //TODO: Remove
+                            PulseDebug.Log("second exception occured : " + r.Message);
+                            return;
+                        }
+                    }
+                    //TODO: Remove
+                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || " + e.Message);
+                    return;
+                }
+            }
+            //TODO: Remove
+            PulseDebug.Log("Null type in Core Manager cache");
+            return;
+        }
+
+
+        /// <summary>
+        /// Get a method from a class by reflection.
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="methodName"></param>
+        /// <returns></returns>
+        public static MethodInfo MethodFromClass(Type t, string methodName)
+        {
+            if (t == null)
+                return null;
+            MethodInfo i = t.GetMethod(methodName);
+            return i;
+        }
+
+
         #endregion
 
         #region Extensions ###########################################################################
@@ -265,9 +432,10 @@ namespace PulseEngine
     /// </summary>
     public enum ModulesManagers
     {
-        Localisator = 0,
-        CharacterCreator = 2,
+        Localisator,
+        CharacterCreator,
         MessageSystem,
+        Commander,
     }
 
     /// <summary>
@@ -1374,98 +1542,6 @@ namespace PulseEngine.Datas
             });
         }
 
-
-        /// <summary>
-        /// Execute a manager method async at runtime.
-        /// </summary>
-        /// <param name="mgrEnum"></param>
-        /// <param name="methodName"></param>
-        /// <param name="parameters"></param>
-        /// <returns></returns>
-        public static async Task<T> ManagerAsyncMethod<T>(ModulesManagers mgrEnum, string methodName, params object[] parameters)
-        {
-            if (Core.ManagersCache == null)
-                Core.ManagersCache = new Dictionary<ModulesManagers, Type>();
-            if (!Core.ManagersCache.ContainsKey(mgrEnum))
-            {
-                string classPath = mgrEnum.ToString() + "." + mgrEnum.ToString();
-                Type Mgrclass = Type.GetType("PulseEngine.Modules." + classPath);
-                if (Mgrclass == null)
-                {
-                    //TODO: Remove
-                    PulseDebug.Log("null Manager at " + classPath);
-                    return default;
-                }
-                Core.ManagersCache.Add(mgrEnum, Mgrclass);
-            }
-            if (Core.ManagersCache[mgrEnum] != null)
-            {
-                var Method = MethodFromClass(Core.ManagersCache[mgrEnum], methodName);
-                if (Method == null)
-                {
-                    //TODO: Remove
-                    PulseDebug.Log("Null method");
-                    return default;
-                }
-                //TODO: Remove
-                PulseDebug.Log("Method infos summary\n" +
-                    "name: " + Method.Name + "\n" +
-                    "is static: " + Method.IsStatic + "\n" +
-                    "returning: " + Method.ReturnType);
-                try
-                {
-                    Task<T> task = (Task<T>)Method.Invoke(null, parameters);
-                    //TODO: Remove
-                    PulseDebug.Log("its task of type " + typeof(T));
-                    await task.ConfigureAwait(false);
-                    //TODO: Remove
-                    PulseDebug.Log("task result is " + task.Result);
-                    T result = task.Result;
-                    return result;
-                }
-                catch (Exception e)
-                {
-                    if (e.GetType() == typeof(InvalidCastException))
-                    {
-                        try
-                        {
-                            T result = (T)Method.Invoke(null, parameters);
-                            //TODO: Remove
-                            PulseDebug.Log("its normal method");
-                            return result;
-                        }
-                        catch (Exception r)
-                        {
-                            //TODO: Remove
-                            PulseDebug.Log("second exception occured : " + r.Message);
-                            return default;
-                        }
-                    }
-                    //TODO: Remove
-                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || " + e.Message);
-                    return default;
-                }
-            }
-            //TODO: Remove
-            PulseDebug.Log("Null type in Core Manager cache");
-            return default;
-        }
-
-        /// <summary>
-        /// Get a method from a class by reflection.
-        /// </summary>
-        /// <param name="t"></param>
-        /// <param name="methodName"></param>
-        /// <returns></returns>
-        public static MethodInfo MethodFromClass(Type t, string methodName)
-        {
-            if (t == null)
-                return null;
-            MethodInfo i = t.GetMethod(methodName);
-            return i;
-        }
-
-
         /// <summary>
         /// Get all module datas with specified parameters
         /// </summary>
@@ -2418,6 +2494,8 @@ namespace PulseEngine.Datas
         private List<Command> sequence;
         [SerializeField]
         private DataLocation location;
+        [SerializeField]
+        private string label;
 
         #endregion
 
@@ -2442,6 +2520,11 @@ namespace PulseEngine.Datas
             set => sequence = value;
         }
 
+        /// <summary>
+        /// The sequence label.
+        /// </summary>
+        public string Label { get => label; set => label = value; }
+
         #endregion
 
         #region Methods #####################################################################################
@@ -2449,6 +2532,26 @@ namespace PulseEngine.Datas
         public bool Equals(CommandSequence other)
         {
             return Location.Equals(other.Location);
+        }
+
+        /// <summary>
+        /// Link a parent and a child
+        /// </summary>
+        /// <param name="childIndex"></param>
+        /// <param name="parentIndex"></param>
+        public void Link(int childIndex, int parentIndex)
+        {
+
+        }
+
+        /// <summary>
+        /// Unlink a parent and a child.
+        /// </summary>
+        /// <param name="childIndex"></param>
+        /// <param name="parentIndex"></param>
+        public void UnLink(int childIndex, int parentIndex)
+        {
+
         }
 
         #endregion

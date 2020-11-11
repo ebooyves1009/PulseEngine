@@ -8,7 +8,7 @@ namespace PulseEngine.Modules.Commander
     /// <summary>
     /// Le manager de commandes.
     /// </summary>
-    public static class CommanderManager
+    public static class Commander
     {
         #region Attributes ####################################################################
 
@@ -16,6 +16,12 @@ namespace PulseEngine.Modules.Commander
         #endregion
 
         #region Methods ####################################################################
+
+        [RuntimeInitializeOnLoadMethod]
+        public static void OnDomainReload()
+        {
+
+        }
 
         /// <summary>
         /// Execute une commande.

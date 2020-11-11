@@ -7,6 +7,7 @@ using UnityEditor.Animations;
 using System.Linq;
 using PulseEngine;
 using PulseEngine.Datas;
+using PulseEngine.Modules.Components;
 
 namespace PulseEditor.Modules
 {

@@ -34,14 +34,6 @@ namespace PulseEditor
     }
 
     /// <summary>
-    /// The differents sides of a node.
-    /// </summary>
-    public enum NodeEdgeSide
-    {
-        upper, lower, lefty, righty
-    }
-
-    /// <summary>
     /// The Modules editors.
     /// </summary>
     public enum ModulesEditors
@@ -49,7 +41,8 @@ namespace PulseEditor
         LocalisationEditor,
         WeaponEditor,
         AnimaEditor,
-        CharacterEditor
+        CharacterEditor,
+        CommanderEditor,
     }
 
     #endregion
@@ -228,6 +221,16 @@ namespace PulseEditor
         protected GUIStyle style_group;
 
         /// <summary>
+        /// le style des grilles de nodes.
+        /// </summary>
+        protected GUIStyle style_grid;
+
+        /// <summary>
+        /// le style des Nodes.
+        /// </summary>
+        protected GUIStyle style_node;
+
+        /// <summary>
         /// le style des labels.
         /// </summary>
         protected GUIStyle style_label;
@@ -323,10 +326,23 @@ namespace PulseEditor
                         {
                             var titleValue = ((Localisationdata)dataList[i]).Title.textField;
                             tradValue = titleValue != null ? titleValue : "Empty title";
-                        }else if(Ttype == typeof(AnimaData))
+                        }else
                         {
-                            AnimaData dtValue = dataList[i] as AnimaData;
-                            tradValue = dtValue != null && dtValue.Motion != null ? dtValue.Motion.name : "No Motion";
+                            switch (Ttype.Name)
+                            {
+                                case "AnimaData":
+                                    {
+                                        AnimaData dtValue = dataList[i] as AnimaData;
+                                        tradValue = dtValue != null && dtValue.Motion != null ? dtValue.Motion.name : "No Motion";
+                                    }
+                                    break;
+                                case "CommandSequence":
+                                    {
+                                        CommandSequence dtValue = dataList[i] as CommandSequence;
+                                        tradValue = dtValue != null ? (string.IsNullOrEmpty(dtValue.Label)? "-****-" : dtValue.Label) +(dtValue.Sequence.Count > 0? string.Empty : " @Empty...") : "Null Sequence";
+                                    }
+                                    break;
+                            }
                         }
                         names[i] = idValue + " -> " + (tradValue != string.Empty ? tradValue : "null trad name");
                     }
@@ -453,6 +469,12 @@ namespace PulseEditor
             style_label.fontStyle = FontStyle.Bold;
             //obj select
             style_objSelect = new[] { GUILayout.Width(150), GUILayout.Height(150) };
+            //Nodes
+            style_node = new GUIStyle();
+            style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+            style_node.border = new RectOffset(12, 12, 12, 12);
+            //Nodes
+            style_grid = new GUIStyle(GUI.skin.window);
 
             multipleStyleSetLock = true;
         }
@@ -781,6 +803,17 @@ namespace PulseEditor
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
             PanelsScrools[scrollPanCount] = scroolPos;
+        }
+
+        /// <summary>
+        /// Le panel de selection de Zone.
+        /// </summary>
+        protected void ZonesSelector()
+        {
+            GroupGUInoStyle(() =>
+            {
+                assetLocalFilter = MakeHeader(assetLocalFilter, Enum.GetNames(typeof(Zones)), index => { assetLocalFilter = index; });
+            }, "Zone Select", 35);
         }
 
         /// <summary>
@@ -1139,49 +1172,6 @@ namespace PulseEditor
         }
 
         /// <summary>
-        /// Return the corresponding egde's mid-point of a rect.
-        /// </summary>
-        /// <param name="_side">The specicied node edge</param>
-        /// <returns></returns>
-        public static Vector2 GetNodeEdge(Rect _rect, NodeEdgeSide _side)
-        {
-            Vector2 point = _rect.position;
-            switch (_side)
-            {
-                case NodeEdgeSide.upper:
-                    point = _rect.position + Vector2.right * (_rect.width * 0.5f);
-                    break;
-                case NodeEdgeSide.lower:
-                    point = _rect.position + Vector2.right * (_rect.width * 0.5f) - Vector2.up * _rect.height;
-                    break;
-                case NodeEdgeSide.lefty:
-                    point = _rect.position - Vector2.up * (_rect.height * 0.5f);
-                    break;
-                case NodeEdgeSide.righty:
-                    point = _rect.position + Vector2.right * (_rect.width * 0.5f) - Vector2.up * _rect.height;
-                    break;
-            }
-            return point;
-        }
-
-        /// <summary>
-        /// Get the closest node's Edge
-        /// </summary>
-        /// <param name="_point">the point from wich calculation begins</param>
-        /// <param name="_nodeRect">the node's rect where to find edge</param>
-        /// <returns></returns>
-        public static Vector2 GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
-        {
-            List<Vector2> sides = new List<Vector2>();
-            sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.lefty));
-            sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.righty));
-            sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.upper));
-            sides.Add(GetNodeEdge(_nodeRect, NodeEdgeSide.lower));
-            sides.Sort((side1, side2) => { return ((side2 - _point).sqrMagnitude.CompareTo((side1 - _point).sqrMagnitude)); });
-            return sides[0];
-        }
-
-        /// <summary>
         /// Return the corresponding Type from dataTypes
         /// </summary>
         /// <param name="dType"></param>
@@ -1200,6 +1190,8 @@ namespace PulseEditor
                     return typeof(WeaponData);
                 case DataTypes.Character:
                     return typeof(CharacterData);
+                case DataTypes.CommandSequence:
+                    return typeof(CommandSequence);
             }
         }
 
@@ -2120,6 +2112,219 @@ namespace PulseEditor
 
         #endregion
 
+    }
+
+
+    /// <summary>
+    /// The editor node class
+    /// </summary>
+    public class EditorNode
+    {
+        #region Enums ###########################################################
+
+
+        /// <summary>
+        /// The differents sides of a node.
+        /// </summary>
+        public enum NodeEdgeSide
+        {
+            upper, lower, lefty, righty
+        }
+
+        #endregion
+
+        #region Attributes ###########################################################
+
+        public List<(string, Action<Vector2>)> ContextActions = new List<(string, Action<Vector2>)>();
+        private Action displayFunc;
+        private Action<Vector2> moveFunction;
+        private Action connectAction;
+        private Vector2 nodePosition;
+        private List<Vector2> nodeInputs;
+        private List<Vector2> nodeOutputs;
+        private string nodeTitle;
+        private Rect shape;
+        private GUIStyle style;
+        private bool isDragged;
+        private int nodeIndex;
+
+        #endregion
+
+        #region Properties ###########################################################
+
+        public EditorNode(Vector2 _position, Vector2 _size, GUIStyle _style)
+        {
+            Shape = new Rect(_position, _size);
+            style = _style;
+        }
+
+        public Action DisplayFunc { get => displayFunc; set => displayFunc = value; }
+        public Vector2 NodePosition { get => nodePosition; set => nodePosition = value; }
+        public List<Vector2> NodeInputs { get => nodeInputs; set => nodeInputs = value; }
+        public List<Vector2> NodeOutputs { get => nodeOutputs; set => nodeOutputs = value; }
+        public string NodeTitle { get => nodeTitle; set => nodeTitle = value; }
+        public Action<Vector2> MoveFunction { get => moveFunction; set => moveFunction = value; }
+        public Rect Shape { get => shape; set => shape = value; }
+        public bool IsDragged { get => isDragged; set => isDragged = value; }
+        public Action ConnectAction { get => connectAction; set => connectAction = value; }
+        public int NodeIndex { get => nodeIndex; set => nodeIndex = value; }
+
+        #endregion
+
+        #region Methods ###########################################################
+
+        /// <summary>
+        /// Return the corresponding egde's mid-point of a rect.
+        /// </summary>
+        /// <param name="_side">The specicied node edge</param>
+        /// <returns></returns>
+        public Vector2 GetNodeEdge(NodeEdgeSide _side)
+        {
+            Vector2 point = Shape.position;
+            switch (_side)
+            {
+                case NodeEdgeSide.upper:
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f);
+                    break;
+                case NodeEdgeSide.lower:
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) - Vector2.up * Shape.height;
+                    break;
+                case NodeEdgeSide.lefty:
+                    point = Shape.position - Vector2.up * (Shape.height * 0.5f);
+                    break;
+                case NodeEdgeSide.righty:
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) - Vector2.up * Shape.height;
+                    break;
+            }
+            return point;
+        }
+
+        /// <summary>
+        /// Get the closest node's Edge
+        /// </summary>
+        /// <param name="_point">the point from wich calculation begins</param>
+        /// <param name="_nodeRect">the node's rect where to find edge</param>
+        /// <returns></returns>
+        public Vector2 GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
+        {
+            List<Vector2> sides = new List<Vector2>();
+            sides.Add(GetNodeEdge(NodeEdgeSide.lefty));
+            sides.Add(GetNodeEdge(NodeEdgeSide.righty));
+            sides.Add(GetNodeEdge(NodeEdgeSide.upper));
+            sides.Add(GetNodeEdge(NodeEdgeSide.lower));
+            sides.Sort((side1, side2) => { return ((side2 - _point).sqrMagnitude.CompareTo((side1 - _point).sqrMagnitude)); });
+            return sides[0];
+        }
+
+        public void Drag(Vector2 delta)
+        {
+            shape.position += delta;
+            if (moveFunction != null)
+                moveFunction.Invoke(Shape.position);
+        }
+
+        public void Draw()
+        {
+            //GUIContent content = new GUIContent();
+            //content.text = NodeTitle;
+            float verticalSpace = 0;
+            float spacing = 0.2f * shape.size.y;
+            Func<float, Rect> GetRectPortion = v =>
+             {
+                 float ypos = verticalSpace + spacing;
+                 verticalSpace += v * shape.size.y;
+                 verticalSpace = Mathf.Clamp(verticalSpace, 0, shape.size.y);
+                 float xpos = spacing;
+                 float xScale = shape.size.x - 2 * spacing;
+                 return new Rect(xpos, ypos, xScale, v * shape.size.y);
+             };
+
+            GUI.BeginGroup(shape, style);
+            GUI.Label(GetRectPortion(.3f), NodeTitle);
+            GUI.Button(GetRectPortion(.3f), "Button");
+            GUI.EndGroup();
+
+            //GUI.Box(shape, NodeTitle, style);
+
+            //GUILayout.BeginVertical();
+            //GUILayout.Label(NodeTitle);
+            //GUILayout.Button("Button");
+            //GUILayout.EndVertical();
+        }
+
+        public bool ProcessEvents(Event e)
+        {
+            switch (e.type)
+            {
+                case EventType.MouseDown:
+                    if (e.button == 0)
+                    {
+                        if (shape.Contains(e.mousePosition))
+                        {
+                            if (connectAction != null)
+                                connectAction.Invoke();
+                            IsDragged = true;
+                            GUI.changed = true;
+                        }
+                        else
+                        {
+                            GUI.changed = true;
+                        }
+                    }
+                    if (e.button == 1 && shape.Contains(e.mousePosition))
+                    {
+                        ProcessContextMenu(e.mousePosition);
+                        e.Use();
+                    }
+                    break;
+
+                case EventType.MouseUp:
+                    IsDragged = false;
+                    break;
+
+                case EventType.MouseDrag:
+                    if (e.button == 0 && IsDragged)
+                    {
+                        Drag(e.delta);
+                        e.Use();
+                        return true;
+                    }
+                    break;
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// Show the context menu.
+        /// </summary>
+        /// <param name="mousePosition"></param>
+        private void ProcessContextMenu(Vector2 mousePosition)
+        {
+            GenericMenu genericMenu = new GenericMenu();
+            int k = 0;
+            for (int i = 0; i < ContextActions.Count; i++)
+            {
+                k = i;
+                genericMenu.AddItem(new GUIContent(ContextActions[k].Item1), false, () => {
+                    if (ContextActions[k].Item2 != null)
+                        ContextActions[k].Item2.Invoke(mousePosition);
+                });
+            }
+            genericMenu.ShowAsContext();
+        }
+
+        /// <summary>
+        /// Connect Two Nodes with bezier.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        public static void Connect(EditorNode a, EditorNode b)
+        {
+            Handles.DrawBezier(a.GetClosestNodeEdge(b.NodePosition, a.Shape), b.GetClosestNodeEdge(a.NodePosition, b.Shape), Vector3.zero, Vector3.zero, Color.blue, null, 1);
+        }
+
+        #endregion
     }
 
 

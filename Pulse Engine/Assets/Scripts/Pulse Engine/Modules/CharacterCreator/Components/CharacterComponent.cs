@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace PulseEngine.Modules.CharacterCreator
+namespace PulseEngine.Modules.Components
 {
 
     /// <summary>
@@ -23,7 +23,7 @@ namespace PulseEngine.Modules.CharacterCreator
             data = _data;
             Task namingTask = new Task(async () =>
             {
-                characterName = await CoreData.ManagerAsyncMethod<string>(ModulesManagers.Localisator, "TextData", new object[] { (object)data.TradLocation, (object)DatalocationField.title, (object)false });
+                characterName = await Core.ManagerAsyncMethod<string>(ModulesManagers.Localisator, "TextData", new object[] { (object)data.TradLocation, (object)DatalocationField.title, (object)false });
                 if (!string.IsNullOrEmpty(characterName))
                 {
                     gameObject.name = characterName;

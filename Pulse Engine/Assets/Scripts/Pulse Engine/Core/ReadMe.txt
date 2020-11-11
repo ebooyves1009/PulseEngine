@@ -17,6 +17,7 @@ Notes: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	- privates serialisables fields
 	- avoid at most as possible manages types
 	- public properties for field
+	- update GetTypefromdata in PulseEditor
 
 
 2- Libraries ##############################################################################################################
@@ -32,6 +33,7 @@ Notes: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 3- Editors ##############################################################################################################
 
 	- Derive from PulseEditorMgr
+	- Add enum with editor class name in PulseEditor >/ enums >/ ModuleEditors
 	- 2) in >/Statics Accesors
 		- static bool RegisteredToRefresh --> to avoid the editor to register multiple times to OnRefresh event.
 		- static void Refresh(object Dico, DataType _dtype) 
@@ -61,4 +63,9 @@ Notes: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	- Must have the same name as the namespace
 	- add enum ModulesManagers in PulseEngine >/Enum >/ Global of the same name as namespace
 	- must have public static void OnDomainReload() from [RuntimeInitializeOnLoadMethod] to reinit on domain reload.
+
+		
+5- Components ####################################################################################################################
+
+	- Must be created in the PulseEngine/Modules/Components namespace
         
