@@ -292,6 +292,36 @@ namespace PulseEngine
             return i;
         }
 
+        /// <summary>
+        /// Make a cubic interpolation between two positions.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="c"></param>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static Vector2 CubicLerp(Vector2 a, Vector2 b, Vector2 c, float t)
+        {
+            Vector2 p1 = Vector2.Lerp(a, b, t);
+            Vector2 p2 = Vector2.Lerp(b, c, t);
+            return Vector2.Lerp(p1, p2, t);
+        }
+
+        /// <summary>
+        /// Make a Quadratic interpolation between two positions.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="c"></param>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static Vector2 Quadratic(Vector2 a, Vector2 b, Vector2 c, Vector2 d, float t)
+        {
+            Vector2 p1 = CubicLerp(a, b, c, t);
+            Vector2 p2 = CubicLerp(b, c, d, t);
+            return Vector2.Lerp(p1, p2, t);
+        }
+
 
         #endregion
 
@@ -1032,19 +1062,85 @@ namespace PulseEngine
 
 
         /// <summary>
-        /// Propagate the modifications recusively to parents.
+        /// Set children's paths depth and ID to master
         /// </summary>
-        private void PropagateToParents()
+        /// <param name="c"></param>
+        public void FreeChildren(CommandSequence sq)
         {
-
+            if (children == null)
+                return;
+            if (sq.Sequence == null)
+                return;
+            var csq = sq.Sequence;
+            for (int i = 0; i < ChildrenCount; i++)
+            {
+                var childPath = children[i];
+                int index = csq.FindIndex(cmd => { return cmd.Path.Equals(childPath); });
+                if(index >= 0)
+                {
+                    childPath.depth = 0;
+                    childPath.id = 0;
+                    var com = csq[index];
+                    com.Path = childPath;
+                    csq[index] = com;
+                }
+                children[i] = childPath;
+            }
+            sq.Sequence = csq;
         }
 
         /// <summary>
-        /// Propagate the modifications recusively to childrens.
+        /// Update children's paths
         /// </summary>
-        private void PropagateToChildrens()
+        /// <param name="c"></param>
+        public void UpdatePaths(CommandSequence sq)
         {
+            if (children == null)
+                return;
+            if (sq.Sequence == null)
+                return;
+            var csq = sq.Sequence;
+            for (int i = 0; i < ChildrenCount; i++)
+            {
+                var childPath = children[i];
+                int index = csq.FindIndex(cmd => { return cmd.Path.Equals(childPath); });
+                if(index >= 0)
+                {
+                    childPath.depth = Path.depth + 1;
+                    childPath.id = i;
+                    var com = csq[index];
+                    com.Path = childPath;
+                    csq[index] = com;
+                }
+                children[i] = childPath;
+            }
+            sq.Sequence = csq;
+        }
 
+        /// <summary>
+        /// Set a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        public void SetChild(CommandSequence sq, int index)
+        {
+            if (children == null)
+                children = new List<CommandPath>();
+            if (sq.Sequence == null)
+                sq.Sequence = new List<Command>();
+            if (index >= sq.Sequence.Count || index < 0)
+                return;
+            var csq = sq.Sequence;
+            var c = csq[index];
+            if (IsChild(c))
+                return;
+            c.Parent = Path;
+            var path = c.Path;
+            path.depth = Path.depth + 1;
+            path.id = children.Count;
+            c.Path = path;
+            csq[index] = c;
+            sq.Sequence = csq;
+            children.Add(c.Path);
         }
 
         /// <summary>
@@ -1057,7 +1153,13 @@ namespace PulseEngine
                 children = new List<CommandPath>();
             if (sq.Sequence == null)
                 sq.Sequence = new List<Command>();
+            if (c == Command.NullCmd || IsChild(c))
+                return;
             c.Parent = Path;
+            var path = c.Path;
+            path.depth = Path.depth + 1;
+            path.id = children.Count;
+            c.Path = path;
             var csq = sq.Sequence;
             csq.Add(c);
             sq.Sequence = csq;
@@ -1065,30 +1167,48 @@ namespace PulseEngine
         }
 
         /// <summary>
-        /// Remove a child to this command
+        /// Remove a child from this command
         /// </summary>
         /// <param name="c"></param>
-        public void RemoveChild(Command c)
+        public void RemoveChild(ref Command c)
         {
-
+            if (children == null)
+                return;
+            if (children.Contains(c.Path))
+            {
+                children.Remove(c.Path);
+                c.Parent = CommandPath.EmptyPath;
+                var path = c.Path;
+                path.depth = 0;
+                path.id = 0;
+                c.Path = path;
+            }
         }
 
         /// <summary>
         /// Remove a child to this command
         /// </summary>
         /// <param name="c"></param>
-        public void RemoveChildAt(int index)
+        public void RemoveChildAt(CommandSequence sq, int index)
         {
-
-        }
-
-        /// <summary>
-        /// Remove a child to this command
-        /// </summary>
-        /// <param name="c"></param>
-        public void InsertChildAt(Command c, int index)
-        {
-
+            if (children == null || sq == null || sq.Sequence == null)
+                return;
+            if (children.Count > index && index >= 0)
+            {
+                var c = children[index];
+                int sqIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path.Equals(c); });
+                if(sqIndex >= 0)
+                {
+                    var trueCmd = sq.Sequence[sqIndex];
+                    trueCmd.Parent = CommandPath.EmptyPath;
+                    var path = trueCmd.Path;
+                    path.depth = 0;
+                    path.id = 0;
+                    trueCmd.Path = path;
+                    sq.Sequence[sqIndex] = trueCmd;
+                }
+                children.RemoveAt(index);
+            }
         }
 
         /// <summary>
@@ -1123,6 +1243,20 @@ namespace PulseEngine
             return Command.NullCmd;
         }
 
+        /// <summary>
+        /// check if a command is already a child of another command
+        /// </summary>
+        /// <param name="child"></param>
+        /// <returns></returns>
+        public bool IsChild(Command child)
+        {
+            if (child == Command.NullCmd)
+                return false;
+            if (children.Contains(child.Path))
+                return true;
+            return false;
+        }
+
         public static Command NullCmd { get => new Command { code = -1 }; }
 
 #if UNITY_EDITOR
@@ -1131,43 +1265,6 @@ namespace PulseEngine
 
         //public int ParentNodeIndex { get => parentCmdIndex; set => parentCmdIndex = value; }
 
-        public void NodeDisplay()
-        {
-            Type = (CommandType)EditorGUILayout.EnumPopup("Node Type", Type);
-            switch (Type)
-            {
-                case CommandType.comment:
-                    break;
-                case CommandType.conditionnal:
-                    break;
-                case CommandType.exit:
-                    break;
-                case CommandType.jump:
-                    break;
-                case CommandType.@out:
-                    break;
-                case CommandType.execute:
-                    childType = (CmdExecutableType)EditorGUILayout.EnumPopup("Execute", ChildType);
-                    switch (ChildType)
-                    {
-                        case CmdExecutableType._event:
-                            CodeEv = (CmdEventCode)EditorGUILayout.EnumPopup("Code", CodeEv);
-                            break;
-                        case CmdExecutableType._action:
-                            CodeAc = (CmdActionCode)EditorGUILayout.EnumPopup("Code", CodeAc);
-                            break;
-                        case CmdExecutableType._global:
-                            CodeGl = (CmdGlobalCode)EditorGUILayout.EnumPopup("Code", CodeGl);
-                            break;
-                        case CmdExecutableType._story:
-                            CodeSt = (CmdStoryCode)EditorGUILayout.EnumPopup("Code", CodeSt);
-                            break;
-                    }
-                    break;
-                case CommandType.delay:
-                    break;
-            }
-        }
 
 #endif
         #endregion
@@ -2541,7 +2638,20 @@ namespace PulseEngine.Datas
         /// <param name="parentIndex"></param>
         public void Link(int childIndex, int parentIndex)
         {
-
+            if (childIndex < 0 || parentIndex < 0)
+                return;
+            if (childIndex >= sequence.Count)
+                return;
+            if(parentIndex >= sequence.Count)
+            {
+                UnLink(childIndex, -1);
+                return;
+            }
+            var t2 = sequence[parentIndex];
+            t2.SetChild(this, childIndex);
+            sequence[childIndex].UpdatePaths(this);
+            sequence[parentIndex] = t2;
+            RefreshPaths();
         }
 
         /// <summary>
@@ -2551,7 +2661,39 @@ namespace PulseEngine.Datas
         /// <param name="parentIndex"></param>
         public void UnLink(int childIndex, int parentIndex)
         {
+            if (childIndex < 0)
+                return;
+            if (childIndex >= sequence.Count)
+                return;
+            var t = sequence[childIndex];
+            var par = t.GetParent(this);
+            int pIndex = sequence.FindIndex(cmd => { return cmd.Path.Equals(par.Path); });
+            if (pIndex >= 0)
+                parentIndex = pIndex;
+            t.Parent = CommandPath.EmptyPath;
+            if (parentIndex >= 0 && parentIndex < sequence.Count)
+            {
+                var t2 = sequence[parentIndex];
+                if (t2.IsChild(t))
+                {
+                    t2.RemoveChild(ref t);
+                }
+                sequence[parentIndex] = t2;
+            }
+            t.UpdatePaths(this);
+            sequence[childIndex] = t;
+            RefreshPaths();
+        }
 
+        /// <summary>
+        /// refresh paths in sequence.
+        /// </summary>
+        public void RefreshPaths()
+        {
+            for(int i = 0; i < sequence.Count; i++)
+            {
+                sequence[i].UpdatePaths(this);
+            }
         }
 
         #endregion

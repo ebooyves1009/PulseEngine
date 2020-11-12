@@ -15,67 +15,7 @@ MonoBehaviour:
   libraryMainLocation: 0
   librarySecLocation: 0
   dataList:
-  - sequence:
-    - path:
-        id: 0
-        depth: 0
-        label: Command 0
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 91, y: 182}
-      parent:
-        id: -1
-        depth: -1
-        label: 
-      children: []
-    - path:
-        id: 0
-        depth: 0
-        label: Command 1
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 23, y: 32}
-      parent:
-        id: -1
-        depth: -1
-        label: 
-      children: []
-    - path:
-        id: 0
-        depth: 0
-        label: Command 2
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 423, y: 87}
-      parent:
-        id: -1
-        depth: -1
-        label: 
-      children: []
-    - path:
-        id: 0
-        depth: 0
-        label: Command 3
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 344, y: 250}
-      parent:
-        id: -1
-        depth: -1
-        label: 
-      children: []
+  - sequence: []
     location:
       id: 1
       globalLocation: 0

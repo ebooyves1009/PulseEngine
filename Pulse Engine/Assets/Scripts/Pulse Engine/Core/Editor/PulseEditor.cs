@@ -470,7 +470,7 @@ namespace PulseEditor
             //obj select
             style_objSelect = new[] { GUILayout.Width(150), GUILayout.Height(150) };
             //Nodes
-            style_node = new GUIStyle();
+            style_node = new GUIStyle("Button");
             style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
             style_node.border = new RectOffset(12, 12, 12, 12);
             //Nodes
@@ -523,6 +523,28 @@ namespace PulseEditor
             GUILayout.BeginVertical("", style_group, new[] { GUILayout.Width(width) });
             if (guiFunctions != null)
                 guiFunctions.Invoke();
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Faire un group d'items
+        /// </summary>
+        /// <param name="guiFunctions"></param>
+        /// <param name="groupTitle"></param>
+        protected void GroupGUI(Action guiFunctions, string groupTitle , Vector2 size)
+        {
+            List<GUILayoutOption> options = new List<GUILayoutOption>();
+            if (size.y > 0)
+                options.Add(GUILayout.Height(size.y));
+            if (size.x > 0)
+                options.Add(GUILayout.Width(size.x));
+            GUILayout.BeginVertical(groupTitle, style_group, options.ToArray());
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical("GroupBox");
+            if (guiFunctions != null)
+                guiFunctions.Invoke();
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
 
@@ -2136,7 +2158,6 @@ namespace PulseEditor
         #region Attributes ###########################################################
 
         public List<(string, Action<Vector2>)> ContextActions = new List<(string, Action<Vector2>)>();
-        private Action displayFunc;
         private Action<Vector2> moveFunction;
         private Action connectAction;
         private Vector2 nodePosition;
@@ -2147,18 +2168,18 @@ namespace PulseEditor
         private GUIStyle style;
         private bool isDragged;
         private int nodeIndex;
+        private float timer;
+        private static float TimerDelay = 1000;
 
         #endregion
 
         #region Properties ###########################################################
 
-        public EditorNode(Vector2 _position, Vector2 _size, GUIStyle _style)
+        public EditorNode(Vector2 _position, Vector2 _size)
         {
             Shape = new Rect(_position, _size);
-            style = _style;
         }
 
-        public Action DisplayFunc { get => displayFunc; set => displayFunc = value; }
         public Vector2 NodePosition { get => nodePosition; set => nodePosition = value; }
         public List<Vector2> NodeInputs { get => nodeInputs; set => nodeInputs = value; }
         public List<Vector2> NodeOutputs { get => nodeOutputs; set => nodeOutputs = value; }
@@ -2168,6 +2189,7 @@ namespace PulseEditor
         public bool IsDragged { get => isDragged; set => isDragged = value; }
         public Action ConnectAction { get => connectAction; set => connectAction = value; }
         public int NodeIndex { get => nodeIndex; set => nodeIndex = value; }
+        public GUIStyle Style { get => style; set => style = value; }
 
         #endregion
 
@@ -2178,25 +2200,34 @@ namespace PulseEditor
         /// </summary>
         /// <param name="_side">The specicied node edge</param>
         /// <returns></returns>
-        public Vector2 GetNodeEdge(NodeEdgeSide _side)
+        public Vector2[] GetNodeEdge(NodeEdgeSide _side, float normalLenght = 100)
         {
+            Vector2[] output = new Vector2[2];
+            float normalValue = normalLenght;
             Vector2 point = Shape.position;
+            Vector2 normal = Shape.position;
             switch (_side)
             {
                 case NodeEdgeSide.upper:
                     point = Shape.position + Vector2.right * (Shape.width * 0.5f);
+                    normal = point - Vector2.up * normalValue;
                     break;
                 case NodeEdgeSide.lower:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) - Vector2.up * Shape.height;
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) + Vector2.up * Shape.height;
+                    normal = point + Vector2.up * normalValue;
                     break;
                 case NodeEdgeSide.lefty:
-                    point = Shape.position - Vector2.up * (Shape.height * 0.5f);
+                    point = Shape.position + Vector2.up * (Shape.height * 0.5f);
+                    normal = point + Vector2.left * normalValue;
                     break;
                 case NodeEdgeSide.righty:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) - Vector2.up * Shape.height;
+                    point = Shape.position + Vector2.right * Shape.width + Vector2.up * (Shape.height * 0.5f);
+                    normal = point - Vector2.left * normalValue;
                     break;
             }
-            return point;
+            output[0] = point;
+            output[1] = normal;
+            return output;
         }
 
         /// <summary>
@@ -2205,17 +2236,23 @@ namespace PulseEditor
         /// <param name="_point">the point from wich calculation begins</param>
         /// <param name="_nodeRect">the node's rect where to find edge</param>
         /// <returns></returns>
-        public Vector2 GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
+        public Vector2[] GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
         {
-            List<Vector2> sides = new List<Vector2>();
-            sides.Add(GetNodeEdge(NodeEdgeSide.lefty));
-            sides.Add(GetNodeEdge(NodeEdgeSide.righty));
-            sides.Add(GetNodeEdge(NodeEdgeSide.upper));
-            sides.Add(GetNodeEdge(NodeEdgeSide.lower));
-            sides.Sort((side1, side2) => { return ((side2 - _point).sqrMagnitude.CompareTo((side1 - _point).sqrMagnitude)); });
+            List<Vector2[]> sides = new List<Vector2[]>();
+            float normal = Vector2.Distance(shape.position, _point) * 0.2f;
+            Vector2 center = _point;
+            sides.Add(GetNodeEdge(NodeEdgeSide.lefty, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.righty, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.upper, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.lower, normal));
+            sides.Sort((side1, side2) => { return ((side1[0] - center).sqrMagnitude.CompareTo((side2[0] - center).sqrMagnitude)); });
             return sides[0];
         }
 
+        /// <summary>
+        /// Drad the node to move it
+        /// </summary>
+        /// <param name="delta"></param>
         public void Drag(Vector2 delta)
         {
             shape.position += delta;
@@ -2223,33 +2260,16 @@ namespace PulseEditor
                 moveFunction.Invoke(Shape.position);
         }
 
+        /// <summary>
+        /// Draw the node shape and content
+        /// </summary>
         public void Draw()
         {
-            //GUIContent content = new GUIContent();
-            //content.text = NodeTitle;
-            float verticalSpace = 0;
-            float spacing = 0.2f * shape.size.y;
-            Func<float, Rect> GetRectPortion = v =>
-             {
-                 float ypos = verticalSpace + spacing;
-                 verticalSpace += v * shape.size.y;
-                 verticalSpace = Mathf.Clamp(verticalSpace, 0, shape.size.y);
-                 float xpos = spacing;
-                 float xScale = shape.size.x - 2 * spacing;
-                 return new Rect(xpos, ypos, xScale, v * shape.size.y);
-             };
-
-            GUI.BeginGroup(shape, style);
-            GUI.Label(GetRectPortion(.3f), NodeTitle);
-            GUI.Button(GetRectPortion(.3f), "Button");
-            GUI.EndGroup();
-
-            //GUI.Box(shape, NodeTitle, style);
-
-            //GUILayout.BeginVertical();
-            //GUILayout.Label(NodeTitle);
-            //GUILayout.Button("Button");
-            //GUILayout.EndVertical();
+            GUIContent content = new GUIContent();
+            content.text = NodeTitle;
+            if(ContextActions != null && ContextActions.Count > 0)
+                content.tooltip = "Right Click for Options";
+            GUI.Box(shape, content, Style);
         }
 
         public bool ProcessEvents(Event e)
@@ -2273,6 +2293,7 @@ namespace PulseEditor
                     }
                     if (e.button == 1 && shape.Contains(e.mousePosition))
                     {
+                        GUI.FocusControl(null);
                         ProcessContextMenu(e.mousePosition);
                         e.Use();
                     }
@@ -2294,7 +2315,6 @@ namespace PulseEditor
             return false;
         }
 
-
         /// <summary>
         /// Show the context menu.
         /// </summary>
@@ -2302,16 +2322,27 @@ namespace PulseEditor
         private void ProcessContextMenu(Vector2 mousePosition)
         {
             GenericMenu genericMenu = new GenericMenu();
-            int k = 0;
             for (int i = 0; i < ContextActions.Count; i++)
             {
-                k = i;
-                genericMenu.AddItem(new GUIContent(ContextActions[k].Item1), false, () => {
+                int k = i;
+                GenericMenu.MenuFunction menuF = new GenericMenu.MenuFunction(() =>
+                {
                     if (ContextActions[k].Item2 != null)
                         ContextActions[k].Item2.Invoke(mousePosition);
                 });
+                genericMenu.AddItem(new GUIContent(ContextActions[i].Item1), false, menuF);
             }
             genericMenu.ShowAsContext();
+        }
+
+        /// <summary>
+        /// Try Connect Nodes with bezier.
+        /// </summary>
+        /// <param name="a"></param>
+        public static void TryConnect(EditorNode a, Vector2 b)
+        {
+            Vector2[] trFromStart = a.GetClosestNodeEdge(b, a.Shape);
+            Handles.DrawBezier(trFromStart[0], b, trFromStart[1], b, Color.green, null, 1);
         }
 
         /// <summary>
@@ -2321,7 +2352,21 @@ namespace PulseEditor
         /// <param name="b"></param>
         public static void Connect(EditorNode a, EditorNode b)
         {
-            Handles.DrawBezier(a.GetClosestNodeEdge(b.NodePosition, a.Shape), b.GetClosestNodeEdge(a.NodePosition, b.Shape), Vector3.zero, Vector3.zero, Color.blue, null, 1);
+            Vector2 dir = (b.shape.position - a.shape.position);
+            Vector2 joint = a.shape.position + (dir.normalized * 0.5f * dir.magnitude);
+            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.Shape);
+            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.Shape);
+            var path = Handles.MakeBezierPoints(trFromStart[0], trToEnd[0], trFromStart[1], trToEnd[1], 50);
+            int texLenght = 5;
+            Texture2D tex = new Texture2D(texLenght, texLenght);
+            for(int i = 0; i <= texLenght; i++)
+            {
+                float t = Mathf.InverseLerp(0, texLenght, i);
+                Color segmentCol = Color.Lerp(Color.white, Color.blue, t);
+                tex.SetPixel(i, i, segmentCol);
+            }
+            tex.Apply();
+            Handles.DrawAAPolyLine(tex, 3, path);
         }
 
         #endregion
