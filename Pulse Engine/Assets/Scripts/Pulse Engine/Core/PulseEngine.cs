@@ -1,19 +1,23 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceLocations;
-using UnityEditor;
-using UnityEditor.AddressableAssets.Settings;
-using UnityEditor.AddressableAssets;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using PulseEngine.Datas;
 using System.Reflection;
 using System.Threading;
+
+#if UNITY_EDITOR
+
+using UnityEditor;
+using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets;
+using PulseEditor;
+#endif
 
 
 //TODO: Les Valeurs et fonctions globales seront ajoutees au fur et a mesure.
@@ -641,6 +645,7 @@ namespace PulseEngine
     {
         @comment, //Commande sans effet
         @conditionnal, //Commande conditionnelle
+        @start, //Commande conditionnelle
         @exit, //commade de fin de sequence d'instructions.
         @jump, //commande de saut vers l'index d'une instruction
         @out, //commande de sortie d'une sous liste d'instructions
@@ -944,22 +949,20 @@ namespace PulseEngine
         [SerializeField]
         private Vector2 editorNodePos;
         [SerializeField]
-        private CommandPath parent;
+        private List<CommandPath> inputs;
         [SerializeField]
-        private List<CommandPath> children;
+        private List<CommandPath> outputs;
 
         #endregion
 
         #region Properties #######################################################################
-        
+                
         /// <summary>
         /// The COmmand location in the Sequence.
         /// </summary>
         public CommandPath Path {
             get
             {
-                if (path.label == null)
-                    return CommandPath.EmptyPath;
                 return path;
             }
             set => path = value;
@@ -968,7 +971,7 @@ namespace PulseEngine
         /// <summary>
         /// The command's current state.
         /// </summary>
-        public CommandState STate { get; set; }
+        public CommandState State { get; set; }
 
         /// <summary>
         /// The command's main type
@@ -1001,21 +1004,23 @@ namespace PulseEngine
         public CmdStoryCode CodeSt { get => (CmdStoryCode)code; set => code = (int)value; }
 
         /// <summary>
-        /// The parent's command path in the sequence.
+        /// The parents paths in the sequence.
         /// </summary>
-        public CommandPath Parent { set => parent = value; }
+        public List<CommandPath> Inputs { get {
+                if (inputs == null)
+                    inputs = new List<CommandPath>();
+                return inputs; }
+            set => inputs = value;
+        }
 
         /// <summary>
-        /// The command's children count.
+        /// The command childrens in the sequence.
         /// </summary>
-        public int ChildrenCount
-        {
-            get
-            {
-                if (children == null)
-                    return 0;
-                return children.Count;
-            }
+        public List<CommandPath> Outputs { get {
+                if (outputs == null)
+                    outputs = new List<CommandPath>();
+                return outputs; }
+            set => outputs = value;
         }
 
         /// <summary>
@@ -1060,154 +1065,110 @@ namespace PulseEngine
             return base.Equals(obj);
         }
 
+        /////////////////////////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Set children's paths depth and ID to master
+        /// Link two commands.
+        /// </summary>
+        /// <param name="sq"></param>
+        /// <param name="parent"></param>
+        /// <param name="child"></param>
+        public static bool Link(CommandSequence sq, CommandPath parent, CommandPath child)
+        {
+            if (sq == null || sq.Sequence == null)
+                return false;
+            var sequence = sq.Sequence;
+            int parentIndex = sequence.FindIndex(p => { return p.path == parent; });
+            int childIndex = sequence.FindIndex(p => { return p.path == child; });
+            if ((parentIndex < 0 || parentIndex >= sequence.Count) && parent != CommandPath.EntryPath)
+                return false;
+            if ((childIndex < 0 || childIndex >= sequence.Count) && (child != CommandPath.BreakPath || child != CommandPath.ExitPath))
+                return false;
+            if (parentIndex == childIndex)
+                return false;
+            if (parent != CommandPath.EntryPath)
+                sequence[parentIndex].AddOutput(sq, child);
+            if ((child != CommandPath.BreakPath || child != CommandPath.ExitPath))
+                sequence[childIndex].AddInput(sq, parent);
+            sq.Sequence = sequence;
+            return true;
+        }
+
+        /// <summary>
+        /// Action made on Command before it's been deleted.
         /// </summary>
         /// <param name="c"></param>
-        public void FreeChildren(CommandSequence sq)
+        public void UnLinkAll(CommandSequence sq)
         {
-            if (children == null)
+            if (sq == null || sq.Sequence == null)
                 return;
-            if (sq.Sequence == null)
+            BreakInputs(sq);
+            BreakOutputs(sq);
+        }
+
+        /// <summary>
+        /// Break connctions with this command.
+        /// </summary>
+        /// <param name="sq"></param>
+        /// <param name="target"></param>
+        public void BreakConnection(CommandSequence sq, CommandPath target, bool forceParent = false)
+        {
+            if (sq == null || sq.Sequence == null)
                 return;
-            var csq = sq.Sequence;
-            for (int i = 0; i < ChildrenCount; i++)
+            var sequence = sq.Sequence;
+            int index = sequence.FindIndex(cmd => { return cmd.path == target; });
+            if (IsChild(target) && !forceParent)
             {
-                var childPath = children[i];
-                int index = csq.FindIndex(cmd => { return cmd.Path.Equals(childPath); });
-                if(index >= 0)
+                outputs.Remove(target);
+                if (index >= 0)
                 {
-                    childPath.depth = 0;
-                    childPath.id = 0;
-                    var com = csq[index];
-                    com.Path = childPath;
-                    csq[index] = com;
+                    if (sequence[index].IsParent(path))
+                    {
+                        sequence[index].inputs.Remove(path);
+                    }
                 }
-                children[i] = childPath;
             }
-            sq.Sequence = csq;
-        }
-
-        /// <summary>
-        /// Update children's paths
-        /// </summary>
-        /// <param name="c"></param>
-        public void UpdatePaths(CommandSequence sq)
-        {
-            if (children == null)
-                return;
-            if (sq.Sequence == null)
-                return;
-            var csq = sq.Sequence;
-            for (int i = 0; i < ChildrenCount; i++)
+            else if (IsParent(target))
             {
-                var childPath = children[i];
-                int index = csq.FindIndex(cmd => { return cmd.Path.Equals(childPath); });
-                if(index >= 0)
+                inputs.Remove(target);
+                if (index >= 0)
                 {
-                    childPath.depth = Path.depth + 1;
-                    childPath.id = i;
-                    var com = csq[index];
-                    com.Path = childPath;
-                    csq[index] = com;
+                    if (sequence[index].IsChild(path))
+                    {
+                        sequence[index].outputs.Remove(path);
+                    }
                 }
-                children[i] = childPath;
             }
-            sq.Sequence = csq;
+            sq.Sequence = sequence;
         }
 
         /// <summary>
-        /// Set a child to this command
+        /// Break all parent connections.
         /// </summary>
-        /// <param name="c"></param>
-        public void SetChild(CommandSequence sq, int index)
+        /// <param name="sq"></param>
+        /// <param name="target"></param>
+        public void BreakInputs(CommandSequence sq)
         {
-            if (children == null)
-                children = new List<CommandPath>();
-            if (sq.Sequence == null)
-                sq.Sequence = new List<Command>();
-            if (index >= sq.Sequence.Count || index < 0)
+            if (sq == null || sq.Sequence == null)
                 return;
-            var csq = sq.Sequence;
-            var c = csq[index];
-            if (IsChild(c))
-                return;
-            c.Parent = Path;
-            var path = c.Path;
-            path.depth = Path.depth + 1;
-            path.id = children.Count;
-            c.Path = path;
-            csq[index] = c;
-            sq.Sequence = csq;
-            children.Add(c.Path);
-        }
-
-        /// <summary>
-        /// Add a child to this command
-        /// </summary>
-        /// <param name="c"></param>
-        public void AddChild(CommandSequence sq, Command c)
-        {
-            if (children == null)
-                children = new List<CommandPath>();
-            if (sq.Sequence == null)
-                sq.Sequence = new List<Command>();
-            if (c == Command.NullCmd || IsChild(c))
-                return;
-            c.Parent = Path;
-            var path = c.Path;
-            path.depth = Path.depth + 1;
-            path.id = children.Count;
-            c.Path = path;
-            var csq = sq.Sequence;
-            csq.Add(c);
-            sq.Sequence = csq;
-            children.Add(c.Path);
-        }
-
-        /// <summary>
-        /// Remove a child from this command
-        /// </summary>
-        /// <param name="c"></param>
-        public void RemoveChild(ref Command c)
-        {
-            if (children == null)
-                return;
-            if (children.Contains(c.Path))
+            for (int i = 0; i < Inputs.Count; i++)
             {
-                children.Remove(c.Path);
-                c.Parent = CommandPath.EmptyPath;
-                var path = c.Path;
-                path.depth = 0;
-                path.id = 0;
-                c.Path = path;
+                BreakConnection(sq, Inputs[i], true);
             }
         }
 
         /// <summary>
-        /// Remove a child to this command
+        /// Break all childdren connections.
         /// </summary>
-        /// <param name="c"></param>
-        public void RemoveChildAt(CommandSequence sq, int index)
+        /// <param name="sq"></param>
+        /// <param name="target"></param>
+        public void BreakOutputs(CommandSequence sq)
         {
-            if (children == null || sq == null || sq.Sequence == null)
+            if (sq == null || sq.Sequence == null)
                 return;
-            if (children.Count > index && index >= 0)
+            for (int i = 0; i < Outputs.Count; i++)
             {
-                var c = children[index];
-                int sqIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path.Equals(c); });
-                if(sqIndex >= 0)
-                {
-                    var trueCmd = sq.Sequence[sqIndex];
-                    trueCmd.Parent = CommandPath.EmptyPath;
-                    var path = trueCmd.Path;
-                    path.depth = 0;
-                    path.id = 0;
-                    trueCmd.Path = path;
-                    sq.Sequence[sqIndex] = trueCmd;
-                }
-                children.RemoveAt(index);
+                BreakConnection(sq, outputs[i]);
             }
         }
 
@@ -1216,55 +1177,204 @@ namespace PulseEngine
         /// </summary>
         /// <param name="depth"></param>
         /// <returns></returns>
-        public Command GetParent(CommandSequence sq)
+        public Command GetParent(CommandSequence sq, CommandPath path)
         {
-            if (sq.Sequence.Count == 0)
+            if (sq == null || sq.Sequence == null || !IsParent(path))
                 return Command.NullCmd;
             var thisCommand = this;
-            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == thisCommand.parent; });
-            if (foundIndex >= 0)
-                return sq.Sequence[foundIndex];
-            return Command.NullCmd;
-        }
-        
-        /// <summary>
-        /// Return child at index.
-        /// </summary>
-        /// <param name="depth"></param>
-        /// <returns></returns>
-        public Command GetChild(CommandSequence sq, int index = 0)
-        {
-            if (sq.Sequence.Count == 0 || children == null || children.Count == 0)
-                return Command.NullCmd;
-            var thisCommand = this;
-            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == thisCommand.children[index]; });
+            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == path; });
             if (foundIndex >= 0)
                 return sq.Sequence[foundIndex];
             return Command.NullCmd;
         }
 
         /// <summary>
-        /// check if a command is already a child of another command
+        /// Return child.
         /// </summary>
-        /// <param name="child"></param>
+        /// <param name="depth"></param>
         /// <returns></returns>
-        public bool IsChild(Command child)
+        public Command GetChild(CommandSequence sq, CommandPath path)
         {
-            if (child == Command.NullCmd)
-                return false;
-            if (children.Contains(child.Path))
+            if (sq == null || sq.Sequence == null || !IsChild(path))
+                return Command.NullCmd;
+            var thisCommand = this;
+            int foundIndex = sq.Sequence.FindIndex(cmd => { return cmd.Path == path; });
+            if (foundIndex >= 0)
+                return sq.Sequence[foundIndex];
+            return Command.NullCmd;
+        }
+
+        /// <summary>
+        /// check if the command already has this input.
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <returns></returns>
+        public bool IsParent(CommandPath parent)
+        {
+            if (parent == CommandPath.NullPath)
+                return true;
+            if (inputs == null)
+                inputs = new List<CommandPath>();
+            if (inputs.Contains(parent))
                 return true;
             return false;
         }
 
-        public static Command NullCmd { get => new Command { code = -1 }; }
+        /// <summary>
+        /// check if the command already has this output.
+        /// </summary>
+        /// <param name="child"></param>
+        /// <returns></returns>
+        public bool IsChild(CommandPath child)
+        {
+            if (child == CommandPath.NullPath)
+                return false;
+            if (outputs == null)
+                outputs = new List<CommandPath>();
+            if (outputs.Contains(child))
+                return true;
+            return false;
+        }
+
+
+        ///////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// Add a Parent to this command
+        /// </summary>
+        /// <param name="c"></param>
+        private void AddInput(CommandSequence sq, CommandPath cmdPath)
+        {
+            if (inputs == null)
+                inputs = new List<CommandPath>();
+            if (sq == null || sq.Sequence == null)
+                return;
+            if (cmdPath == CommandPath.NullPath || IsParent(cmdPath))
+                return;
+            inputs.Add(cmdPath);
+        }
+
+        /// <summary>
+        /// Add a child to this command
+        /// </summary>
+        /// <param name="c"></param>
+        private void AddOutput(CommandSequence sq, CommandPath cmdPath)
+        {
+            if (outputs == null)
+                outputs = new List<CommandPath>();
+            if (sq == null || sq.Sequence == null)
+                return;
+            if (cmdPath == CommandPath.NullPath || IsChild(cmdPath))
+                return;
+            outputs.Add(cmdPath);
+        }
+
+        
+        /////////////////////////////////////////////////////////////////////////////////////////////////
+
+        public static Command NullCmd { get => new Command { path = CommandPath.NullPath, code = -1 }; }
 
 #if UNITY_EDITOR
 
+        private Node cmdnode;
         public Vector2 NodePosition { get => editorNodePos; set => editorNodePos = value; }
+        public Node CmdNode { get {
+                return cmdnode;
+            } set => cmdnode = value;
+        }
 
-        //public int ParentNodeIndex { get => parentCmdIndex; set => parentCmdIndex = value; }
+        public Action OnNodeSelect;
 
+        public Command CommandSettings()
+        {
+            var name = EditorGUILayout.TextField("Label", Path.Label);
+            EditorGUILayout.LabelField("Links:", "Parents = " + Inputs.Count + "; Childrens= " + Outputs.Count);
+            EditorGUILayout.Space();
+            if (name != Path.Label)
+            {
+                var path = Path;
+                path.Label = name;
+                Path = path;
+            }
+            var tp = (CommandType)EditorGUILayout.EnumPopup("Node Type", Type);
+            if (tp != Type)
+            {
+                Type = tp;
+            }
+            switch (Type)
+            {
+                case CommandType.comment:
+                    break;
+                case CommandType.conditionnal:
+                    break;
+                case CommandType.exit:
+                    break;
+                case CommandType.jump:
+                    break;
+                case CommandType.@out:
+                    break;
+                case CommandType.execute:
+                    var ct = (CmdExecutableType)EditorGUILayout.EnumPopup("Execute", ChildType);
+                    if (ct != ChildType)
+                    {
+                        ChildType = ct;
+                    }
+                    switch (ChildType)
+                    {
+                        case CmdExecutableType._event:
+                            {
+                                var t = (CmdEventCode)EditorGUILayout.EnumPopup("Code", CodeEv);
+                                if (t != CodeEv)
+                                {
+                                    CodeEv = t;
+                                }
+                            }
+                            break;
+                        case CmdExecutableType._action:
+                            {
+                                var t = (CmdActionCode)EditorGUILayout.EnumPopup("Code", CodeAc);
+                                if (t != CodeAc)
+                                {
+                                    CodeAc = t;
+                                }
+                            }
+                            break;
+                        case CmdExecutableType._global:
+                            {
+                                var t = (CmdGlobalCode)EditorGUILayout.EnumPopup("Code", CodeGl);
+                                if (t != CodeGl)
+                                {
+                                    CodeGl = t;
+                                }
+                            }
+                            break;
+                        case CmdExecutableType._story:
+                            {
+                                var t = (CmdStoryCode)EditorGUILayout.EnumPopup("Code", CodeSt);
+                                if (t != CodeSt)
+                                {
+                                    CodeSt = t;
+                                }
+                            }
+                            break;
+                    }
+                    break;
+                case CommandType.delay:
+                    break;
+            }
+            return this;
+        }
+
+        public void CreateNode(Vector2 size)
+        {
+            CmdNode = new Node(NodePosition, size);
+            cmdnode.NodeMove += MoveNode;
+        }
+
+        private void MoveNode(Vector2 v)
+        {
+            NodePosition = v;
+        }
 
 #endif
         #endregion
@@ -1277,25 +1387,42 @@ namespace PulseEngine
     [System.Serializable]
     public struct CommandPath : IEquatable<CommandPath>
     {
-        /// <summary>
-        /// The Command id in the sequence.
-        /// </summary>
-        public int id;
+        #region Attributes #########################################################################
+
+        [SerializeField]
+        private long timeHash;
+        [SerializeField]
+        private string label;
+
+        #endregion
+
+        #region Properties #########################################################################
 
         /// <summary>
-        /// The command depth in the hierarchie.
+        /// The Command Unique id in the sequence.
         /// </summary>
-        public int depth;
+        public DateTime TimeHash { get => DateTime.FromBinary(timeHash); set => timeHash = value.ToBinary(); }
 
         /// <summary>
         /// The command label
         /// </summary>
-        public string label;
+        public string Label { get => label; set => label = value; }
 
+        #endregion
+
+        #region Methods #########################################################################
+
+        public CommandPath(DateTime _timeHash)
+        {
+            timeHash = _timeHash.ToBinary();
+            label = "";
+        }
 
         public bool Equals(CommandPath other)
         {
-            return id == other.id && depth == other.depth;
+            bool tCompare = TimeHash == other.TimeHash;
+            bool lCompare = label == other.label;
+            return tCompare && lCompare;
         }
 
         public override bool Equals(object o)
@@ -1303,15 +1430,13 @@ namespace PulseEngine
             if (o.GetType() != typeof(CommandPath))
                 return false;
             CommandPath other = (CommandPath)o;
-            return id == other.id && depth == other.depth;
+            return Equals(other);
         }
 
         public override int GetHashCode()
         {
             var hashCode = -1529887145;
-            hashCode = hashCode * -1521134295 + id.GetHashCode();
-            hashCode = hashCode * -1521134295 + depth.GetHashCode();
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(label);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Label);
             return hashCode;
         }
 
@@ -1324,10 +1449,27 @@ namespace PulseEngine
             return !a.Equals(b);
         }
 
-        public static CommandPath EmptyPath
+        public static CommandPath NullPath
         {
-            get => new CommandPath { depth = -1, id = -1, label = null };
+            get => new CommandPath { TimeHash = default(DateTime), Label = null };
         }
+
+        public static CommandPath EntryPath
+        {
+            get => new CommandPath { TimeHash = default(DateTime), Label = "Entry" };
+        }
+
+        public static CommandPath ExitPath
+        {
+            get => new CommandPath { TimeHash = default(DateTime), Label = "Exit" };
+        }
+
+        public static CommandPath BreakPath
+        {
+            get => new CommandPath { TimeHash = default(DateTime), Label = "Break" };
+        }
+
+        #endregion
     }
 
     #endregion
@@ -2587,6 +2729,11 @@ namespace PulseEngine.Datas
     {
         #region Attributes #####################################################################################
 
+        /// <summary>
+        /// The list of special commands.
+        /// </summary>
+        [SerializeField]
+        public List<Command> specialCmds = new List<Command>();
         [SerializeField]
         private List<Command> sequence;
         [SerializeField]
@@ -2631,70 +2778,42 @@ namespace PulseEngine.Datas
             return Location.Equals(other.Location);
         }
 
+
+#if UNITY_EDITOR
+
+
         /// <summary>
-        /// Link a parent and a child
+        /// Initialise the special Nodes array.
         /// </summary>
-        /// <param name="childIndex"></param>
-        /// <param name="parentIndex"></param>
-        public void Link(int childIndex, int parentIndex)
+        public void SetSpecialNodes()
         {
-            if (childIndex < 0 || parentIndex < 0)
-                return;
-            if (childIndex >= sequence.Count)
-                return;
-            if(parentIndex >= sequence.Count)
-            {
-                UnLink(childIndex, -1);
-                return;
-            }
-            var t2 = sequence[parentIndex];
-            t2.SetChild(this, childIndex);
-            sequence[childIndex].UpdatePaths(this);
-            sequence[parentIndex] = t2;
-            RefreshPaths();
+            if (specialCmds == null)
+                specialCmds = new List<Command>();
+            else
+                specialCmds.Clear();
+            Command entryCmd = new Command { Path = CommandPath.EntryPath, NodePosition = Vector2.one * (specialCmds.Count + 1) };
+            entryCmd.Type = CommandType.start;
+            entryCmd.CreateNode(new Vector2(150, 30));
+            specialCmds.Add(entryCmd);
         }
 
         /// <summary>
-        /// Unlink a parent and a child.
+        /// To deselect all nodes in the sequence.
         /// </summary>
-        /// <param name="childIndex"></param>
-        /// <param name="parentIndex"></param>
-        public void UnLink(int childIndex, int parentIndex)
-        {
-            if (childIndex < 0)
-                return;
-            if (childIndex >= sequence.Count)
-                return;
-            var t = sequence[childIndex];
-            var par = t.GetParent(this);
-            int pIndex = sequence.FindIndex(cmd => { return cmd.Path.Equals(par.Path); });
-            if (pIndex >= 0)
-                parentIndex = pIndex;
-            t.Parent = CommandPath.EmptyPath;
-            if (parentIndex >= 0 && parentIndex < sequence.Count)
-            {
-                var t2 = sequence[parentIndex];
-                if (t2.IsChild(t))
-                {
-                    t2.RemoveChild(ref t);
-                }
-                sequence[parentIndex] = t2;
-            }
-            t.UpdatePaths(this);
-            sequence[childIndex] = t;
-            RefreshPaths();
-        }
-
-        /// <summary>
-        /// refresh paths in sequence.
-        /// </summary>
-        public void RefreshPaths()
+        public void DeselectAllNodes()
         {
             for(int i = 0; i < sequence.Count; i++)
             {
-                sequence[i].UpdatePaths(this);
+                if(sequence[i].CmdNode != null)
+                {
+                    var cmd = sequence[i];
+                    cmd.CmdNode.Selected = false;
+                    sequence[i] = cmd;
+                }
             }
         }
+
+#endif
 
         #endregion
     }
@@ -2704,4 +2823,291 @@ namespace PulseEngine.Datas
     #region ... >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     #endregion
+}
+
+
+#if UNITY_EDITOR
+
+namespace PulseEditor
+{
+
+    /// <summary>
+    /// The editor node class
+    /// </summary>
+    public class Node
+    {
+        #region Delegates ###########################################################
+
+        public delegate void MoveEvent(Vector2 v);
+
+        #endregion
+
+        #region Enums ###########################################################
+
+
+        /// <summary>
+        /// The differents sides of a node.
+        /// </summary>
+        public enum NodeEdgeSide
+        {
+            upper, lower, lefty, righty
+        }
+
+        #endregion
+
+        #region Attributes ###########################################################
+
+        public List<(string, Action)> ContextActions = new List<(string, Action)>();
+        private Func<bool> connectAction;
+        private Action selectAction;
+        private Vector2 nodePosition;
+        private string nodeTitle;
+        private Rect shape;
+        private GUIStyle style;
+        private bool isDragged;
+        private bool selected;
+
+        #endregion
+
+        #region Properties ###########################################################
+
+        public Node(Vector2 _position, Vector2 _size)
+        {
+            Shape = new Rect(_position, _size);
+        }
+
+        ~Node()
+        {
+            UnlinkEvents();
+        }
+
+        public Vector2 NodePosition { get => nodePosition; set => nodePosition = value; }
+        public string NodeTitle { get => nodeTitle; set => nodeTitle = value; }
+        public Rect Shape { get => shape; set => shape = value; }
+        public bool IsDragged { get => isDragged; set => isDragged = value; }
+        public Func<bool> ConnectAction { get => connectAction; set => connectAction = value; }
+        public GUIStyle Style { get => style; set => style = value; }
+        public bool Selected { get => selected; set => selected = value; }
+        public Action SelectAction { get => selectAction; set => selectAction = value; }
+
+        public event MoveEvent NodeMove;
+
+        #endregion
+
+        #region Methods ###########################################################
+
+        /// <summary>
+        /// Return the corresponding egde's mid-point of a rect.
+        /// </summary>
+        /// <param name="_side">The specicied node edge</param>
+        /// <returns></returns>
+        public Vector2[] GetNodeEdge(NodeEdgeSide _side, float normalLenght = 100)
+        {
+            Vector2[] output = new Vector2[2];
+            float normalValue = normalLenght;
+            Vector2 point = Shape.position;
+            Vector2 normal = Shape.position;
+            switch (_side)
+            {
+                case NodeEdgeSide.upper:
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f);
+                    normal = point - Vector2.up * normalValue;
+                    break;
+                case NodeEdgeSide.lower:
+                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) + Vector2.up * Shape.height;
+                    normal = point + Vector2.up * normalValue;
+                    break;
+                case NodeEdgeSide.lefty:
+                    point = Shape.position + Vector2.up * (Shape.height * 0.5f);
+                    normal = point + Vector2.left * normalValue;
+                    break;
+                case NodeEdgeSide.righty:
+                    point = Shape.position + Vector2.right * Shape.width + Vector2.up * (Shape.height * 0.5f);
+                    normal = point - Vector2.left * normalValue;
+                    break;
+            }
+            output[0] = point;
+            output[1] = normal;
+            return output;
+        }
+
+        /// <summary>
+        /// Get the closest node's Edge
+        /// </summary>
+        /// <param name="_point">the point from wich calculation begins</param>
+        /// <param name="_nodeRect">the node's rect where to find edge</param>
+        /// <returns></returns>
+        public Vector2[] GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
+        {
+            List<Vector2[]> sides = new List<Vector2[]>();
+            float normal = Vector2.Distance(shape.position, _point) * 0.2f;
+            Vector2 center = _point;
+            sides.Add(GetNodeEdge(NodeEdgeSide.lefty, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.righty, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.upper, normal));
+            sides.Add(GetNodeEdge(NodeEdgeSide.lower, normal));
+            sides.Sort((side1, side2) => { return ((side1[0] - center).sqrMagnitude.CompareTo((side2[0] - center).sqrMagnitude)); });
+            return sides[0];
+        }
+
+        /// <summary>
+        /// Drad the node to move it
+        /// </summary>
+        /// <param name="delta"></param>
+        public void Drag(Vector2 delta)
+        {
+            shape.position += delta;
+            if (NodeMove != null)
+                NodeMove.Invoke(Shape.position);
+        }
+
+        /// <summary>
+        /// Draw the node shape and content
+        /// </summary>
+        public void Draw()
+        {
+            GUIContent content = new GUIContent();
+            content.text = NodeTitle;
+            content.tooltip = "Middle Click to edit";
+            GUI.Box(shape, content, Style);
+        }
+
+        /// <summary>
+        /// Listen to User interactions.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns></returns>
+        public bool ProcessEvents(Event e)
+        {
+            switch (e.type)
+            {
+                case EventType.MouseDown:
+                    if (e.button == 0)
+                    {
+                        if (shape.Contains(e.mousePosition))
+                        {
+                            selected = false;
+                            if (connectAction != null)
+                                if (connectAction.Invoke())
+                                {
+                                    e.Use();
+                                    return true;
+                                }
+                            IsDragged = true;
+                            GUI.changed = true;
+                        }
+                        else
+                        {
+                            GUI.changed = true;
+                        }
+                    }
+                    if (e.button == 1 && shape.Contains(e.mousePosition))
+                    {
+                        GUI.FocusControl(null);
+                        ProcessContextMenu(e.mousePosition);
+                        e.Use();
+                    }
+                    if (e.button == 2 && shape.Contains(e.mousePosition))
+                    {
+                        if (selectAction != null)
+                            selectAction.Invoke();
+                        selected = true;
+                        e.Use();
+                    }
+                    break;
+
+                case EventType.MouseUp:
+                    IsDragged = false;
+                    break;
+
+                case EventType.MouseDrag:
+                    if (e.button == 0 && IsDragged)
+                    {
+                        Drag(e.delta);
+                        e.Use();
+                        return true;
+                    }
+                    break;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Show the context menu.
+        /// </summary>
+        /// <param name="mousePosition"></param>
+        private void ProcessContextMenu(Vector2 mousePosition)
+        {
+            GenericMenu genericMenu = new GenericMenu();
+            for (int i = 0; i < ContextActions.Count; i++)
+            {
+                int k = i;
+                GenericMenu.MenuFunction menuF = new GenericMenu.MenuFunction(() =>
+                {
+                    if (ContextActions[k].Item2 != null)
+                        ContextActions[k].Item2.Invoke();
+                });
+                genericMenu.AddItem(new GUIContent(ContextActions[i].Item1), false, menuF);
+            }
+            genericMenu.ShowAsContext();
+        }
+
+        /// <summary>
+        /// Try Connect Nodes with bezier.
+        /// </summary>
+        /// <param name="a"></param>
+        public static void TryConnect(Node a, Vector2 b)
+        {
+            Vector2[] trFromStart = a.GetClosestNodeEdge(b, a.Shape);
+            Handles.DrawBezier(trFromStart[0], b, trFromStart[1], b, Color.green, null, 1);
+        }
+
+        /// <summary>
+        /// Connect Two Nodes with bezier.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        public static void Connect(Node a, Node b)
+        {
+            Vector2 dir = (b.shape.position - a.shape.position);
+            Vector2 joint = a.shape.position + (dir.normalized * 0.5f * dir.magnitude);
+            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.Shape);
+            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.Shape);
+            float arrowSize = 8;
+            Vector2 staticEnd = (trToEnd[1] - trToEnd[0]).normalized * arrowSize;
+            Vector2 perpendicularVector = Vector2.Perpendicular(trToEnd[0] - trToEnd[1]).normalized;
+            Vector3[] arrowPoints = new Vector3[3];
+            arrowPoints[0] = trToEnd[0] + (staticEnd + perpendicularVector * arrowSize);
+            arrowPoints[1] = trToEnd[0] + (staticEnd - perpendicularVector * arrowSize);
+            arrowPoints[2] = trToEnd[0];
+            Vector2 middleArrowPt = (Vector2)arrowPoints[2] + staticEnd;
+            Vector2 newNormal = middleArrowPt + staticEnd * 0.25f *(arrowPoints[0] - arrowPoints[1]).magnitude;
+            //var path = Handles.MakeBezierPoints(trFromStart[0], trToEnd[0], trFromStart[1], trToEnd[1], 50);
+            Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, Color.white, null, 4);
+            //int texLenght = 5;
+            //Texture2D tex = new Texture2D(texLenght, texLenght);
+            //for(int i = 0; i <= texLenght; i++)
+            //{
+            //    float t = Mathf.InverseLerp(0, texLenght, i);
+            //    Color segmentCol = Color.Lerp(Color.white, Color.blue, t);
+            //    tex.SetPixel(i, i, segmentCol);
+            //}
+            //tex.Apply();
+            //Handles.DrawAAPolyLine(tex, 3, path);
+            Handles.DrawAAConvexPolygon(arrowPoints);
+        }
+
+        /// <summary>
+        /// Detach attached events.
+        /// </summary>
+        public void UnlinkEvents()
+        {
+            NodeMove = delegate { };
+        }
+
+        #endregion
+    }
+
+
+#endif
 }

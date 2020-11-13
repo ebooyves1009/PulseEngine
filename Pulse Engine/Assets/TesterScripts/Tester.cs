@@ -27,11 +27,10 @@ public class Tester : MonoBehaviour
             if (GUILayout.Button("Test inDepht creation"))
             {
                 Command t = new Command();
-                t.Path = new CommandPath
-                {
-                    label = "Master Command",
-                };
-                t.Parent = CommandPath.EmptyPath;
+                t.Path = new CommandPath(DateTime.Now);
+                var pa = t.Path;
+                pa.Label = "Master Command";
+                t.Path = pa;
                 CommandSequence sequence = asset.SQ;
                 var sq = sequence.Sequence;
                 if (sq == null)
@@ -46,20 +45,15 @@ public class Tester : MonoBehaviour
                         Command n = new Command();
                         n.PrimaryParameters = Vector4.one * (i + 1);
                         n.NodePosition = new Vector2((i + 1), j);
-                        n.Path = new CommandPath
-                        {
-                            depth = i + 1,
-                            id = j,
-                            label = "Command at depth= " + (i + 1) + ", and id= " + j,
-                        };
-                        t.AddChild(sequence, n);
+                        n.Path = new CommandPath(DateTime.Now);
+                        var p = n.Path;
+                        p.Label = "Command at depth= " + (i + 1) + ", and id= " + j;
+                        n.Path = p;
+                        sq.Add(n);
+                        Command.Link(sequence, t.Path, n.Path);
                     }
                     Debug.Log("Created command: " + t.PrimaryParameters.x);
-                    for(int j = 0; j < t.ChildrenCount; j++)
-                    {
-                        //Debug.Log("\tchild command #" + (j + 1) + ": " + t.GetChild(j).NodePosition + " parented to " + t.GetChild(j).Parent.NodePosition);
-                    }
-                    t = t.GetChild(sequence);
+                    t = t.GetChild(sequence, t.Outputs[0]);
                 }
 
                 asset.SQ = sequence;
@@ -71,8 +65,8 @@ public class Tester : MonoBehaviour
                 int len = sequence.Sequence.Count;
                 for(int i = 0; i < len; i++)
                 {
-                    Debug.Log("Command Label : " + sequence.Sequence[i].Path.label);
-                    representation.Add(((Vector3)(sequence.Sequence[i].NodePosition), (Vector3)sequence.Sequence[i].GetParent(sequence).NodePosition));
+                    Debug.Log("Command Label : " + sequence.Sequence[i].Path.Label);
+                    representation.Add(((Vector3)(sequence.Sequence[i].NodePosition), (Vector3)sequence.Sequence[i].GetParent(sequence, sequence.Sequence[i].Inputs[0]).NodePosition));
                 }
 
                 //Command t = asset.cmd;
@@ -119,7 +113,6 @@ public class Tester : MonoBehaviour
 
     private void FindRecursive(Command c)
     {
-        int lenght = c.ChildrenCount;
         //for(int i = 0; i < lenght; i++)
         //{
         //    var ch = c.GetChild(i);

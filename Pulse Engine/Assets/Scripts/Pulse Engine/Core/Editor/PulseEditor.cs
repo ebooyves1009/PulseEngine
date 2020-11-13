@@ -1,16 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
 using PulseEngine;
-using UILayout = UnityEngine.GUILayout;
-using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using System.Linq;
 using System.Reflection;
-using UnityEditor.AddressableAssets;
-using UnityEditor.AddressableAssets.Settings;
 using System.Threading.Tasks;
 using PulseEngine.Datas;
 
@@ -18,9 +13,9 @@ using PulseEngine.Datas;
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
 
 
-    ///<Notes>
-    /// 1- 
-    ///</Notes>
+///<Notes>
+/// 1- 
+///</Notes>
 namespace PulseEditor
 {
     #region Enums #################################################################################
@@ -472,7 +467,7 @@ namespace PulseEditor
             //Nodes
             style_node = new GUIStyle("Button");
             style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
-            style_node.border = new RectOffset(12, 12, 12, 12);
+            style_node.border = new RectOffset(20, 20, 20, 20);
             //Nodes
             style_grid = new GUIStyle(GUI.skin.window);
 
@@ -2135,244 +2130,6 @@ namespace PulseEditor
         #endregion
 
     }
-
-
-    /// <summary>
-    /// The editor node class
-    /// </summary>
-    public class EditorNode
-    {
-        #region Enums ###########################################################
-
-
-        /// <summary>
-        /// The differents sides of a node.
-        /// </summary>
-        public enum NodeEdgeSide
-        {
-            upper, lower, lefty, righty
-        }
-
-        #endregion
-
-        #region Attributes ###########################################################
-
-        public List<(string, Action<Vector2>)> ContextActions = new List<(string, Action<Vector2>)>();
-        private Action<Vector2> moveFunction;
-        private Action connectAction;
-        private Vector2 nodePosition;
-        private List<Vector2> nodeInputs;
-        private List<Vector2> nodeOutputs;
-        private string nodeTitle;
-        private Rect shape;
-        private GUIStyle style;
-        private bool isDragged;
-        private int nodeIndex;
-        private float timer;
-        private static float TimerDelay = 1000;
-
-        #endregion
-
-        #region Properties ###########################################################
-
-        public EditorNode(Vector2 _position, Vector2 _size)
-        {
-            Shape = new Rect(_position, _size);
-        }
-
-        public Vector2 NodePosition { get => nodePosition; set => nodePosition = value; }
-        public List<Vector2> NodeInputs { get => nodeInputs; set => nodeInputs = value; }
-        public List<Vector2> NodeOutputs { get => nodeOutputs; set => nodeOutputs = value; }
-        public string NodeTitle { get => nodeTitle; set => nodeTitle = value; }
-        public Action<Vector2> MoveFunction { get => moveFunction; set => moveFunction = value; }
-        public Rect Shape { get => shape; set => shape = value; }
-        public bool IsDragged { get => isDragged; set => isDragged = value; }
-        public Action ConnectAction { get => connectAction; set => connectAction = value; }
-        public int NodeIndex { get => nodeIndex; set => nodeIndex = value; }
-        public GUIStyle Style { get => style; set => style = value; }
-
-        #endregion
-
-        #region Methods ###########################################################
-
-        /// <summary>
-        /// Return the corresponding egde's mid-point of a rect.
-        /// </summary>
-        /// <param name="_side">The specicied node edge</param>
-        /// <returns></returns>
-        public Vector2[] GetNodeEdge(NodeEdgeSide _side, float normalLenght = 100)
-        {
-            Vector2[] output = new Vector2[2];
-            float normalValue = normalLenght;
-            Vector2 point = Shape.position;
-            Vector2 normal = Shape.position;
-            switch (_side)
-            {
-                case NodeEdgeSide.upper:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f);
-                    normal = point - Vector2.up * normalValue;
-                    break;
-                case NodeEdgeSide.lower:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) + Vector2.up * Shape.height;
-                    normal = point + Vector2.up * normalValue;
-                    break;
-                case NodeEdgeSide.lefty:
-                    point = Shape.position + Vector2.up * (Shape.height * 0.5f);
-                    normal = point + Vector2.left * normalValue;
-                    break;
-                case NodeEdgeSide.righty:
-                    point = Shape.position + Vector2.right * Shape.width + Vector2.up * (Shape.height * 0.5f);
-                    normal = point - Vector2.left * normalValue;
-                    break;
-            }
-            output[0] = point;
-            output[1] = normal;
-            return output;
-        }
-
-        /// <summary>
-        /// Get the closest node's Edge
-        /// </summary>
-        /// <param name="_point">the point from wich calculation begins</param>
-        /// <param name="_nodeRect">the node's rect where to find edge</param>
-        /// <returns></returns>
-        public Vector2[] GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
-        {
-            List<Vector2[]> sides = new List<Vector2[]>();
-            float normal = Vector2.Distance(shape.position, _point) * 0.2f;
-            Vector2 center = _point;
-            sides.Add(GetNodeEdge(NodeEdgeSide.lefty, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.righty, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.upper, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.lower, normal));
-            sides.Sort((side1, side2) => { return ((side1[0] - center).sqrMagnitude.CompareTo((side2[0] - center).sqrMagnitude)); });
-            return sides[0];
-        }
-
-        /// <summary>
-        /// Drad the node to move it
-        /// </summary>
-        /// <param name="delta"></param>
-        public void Drag(Vector2 delta)
-        {
-            shape.position += delta;
-            if (moveFunction != null)
-                moveFunction.Invoke(Shape.position);
-        }
-
-        /// <summary>
-        /// Draw the node shape and content
-        /// </summary>
-        public void Draw()
-        {
-            GUIContent content = new GUIContent();
-            content.text = NodeTitle;
-            if(ContextActions != null && ContextActions.Count > 0)
-                content.tooltip = "Right Click for Options";
-            GUI.Box(shape, content, Style);
-        }
-
-        public bool ProcessEvents(Event e)
-        {
-            switch (e.type)
-            {
-                case EventType.MouseDown:
-                    if (e.button == 0)
-                    {
-                        if (shape.Contains(e.mousePosition))
-                        {
-                            if (connectAction != null)
-                                connectAction.Invoke();
-                            IsDragged = true;
-                            GUI.changed = true;
-                        }
-                        else
-                        {
-                            GUI.changed = true;
-                        }
-                    }
-                    if (e.button == 1 && shape.Contains(e.mousePosition))
-                    {
-                        GUI.FocusControl(null);
-                        ProcessContextMenu(e.mousePosition);
-                        e.Use();
-                    }
-                    break;
-
-                case EventType.MouseUp:
-                    IsDragged = false;
-                    break;
-
-                case EventType.MouseDrag:
-                    if (e.button == 0 && IsDragged)
-                    {
-                        Drag(e.delta);
-                        e.Use();
-                        return true;
-                    }
-                    break;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Show the context menu.
-        /// </summary>
-        /// <param name="mousePosition"></param>
-        private void ProcessContextMenu(Vector2 mousePosition)
-        {
-            GenericMenu genericMenu = new GenericMenu();
-            for (int i = 0; i < ContextActions.Count; i++)
-            {
-                int k = i;
-                GenericMenu.MenuFunction menuF = new GenericMenu.MenuFunction(() =>
-                {
-                    if (ContextActions[k].Item2 != null)
-                        ContextActions[k].Item2.Invoke(mousePosition);
-                });
-                genericMenu.AddItem(new GUIContent(ContextActions[i].Item1), false, menuF);
-            }
-            genericMenu.ShowAsContext();
-        }
-
-        /// <summary>
-        /// Try Connect Nodes with bezier.
-        /// </summary>
-        /// <param name="a"></param>
-        public static void TryConnect(EditorNode a, Vector2 b)
-        {
-            Vector2[] trFromStart = a.GetClosestNodeEdge(b, a.Shape);
-            Handles.DrawBezier(trFromStart[0], b, trFromStart[1], b, Color.green, null, 1);
-        }
-
-        /// <summary>
-        /// Connect Two Nodes with bezier.
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        public static void Connect(EditorNode a, EditorNode b)
-        {
-            Vector2 dir = (b.shape.position - a.shape.position);
-            Vector2 joint = a.shape.position + (dir.normalized * 0.5f * dir.magnitude);
-            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.Shape);
-            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.Shape);
-            var path = Handles.MakeBezierPoints(trFromStart[0], trToEnd[0], trFromStart[1], trToEnd[1], 50);
-            int texLenght = 5;
-            Texture2D tex = new Texture2D(texLenght, texLenght);
-            for(int i = 0; i <= texLenght; i++)
-            {
-                float t = Mathf.InverseLerp(0, texLenght, i);
-                Color segmentCol = Color.Lerp(Color.white, Color.blue, t);
-                tex.SetPixel(i, i, segmentCol);
-            }
-            tex.Apply();
-            Handles.DrawAAPolyLine(tex, 3, path);
-        }
-
-        #endregion
-    }
-
-
 
     /// <summary>
     /// Open the stat editor
