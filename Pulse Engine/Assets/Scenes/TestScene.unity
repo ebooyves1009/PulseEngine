@@ -335,7 +335,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17d729b011d44234d815cda2196104fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  asset: {fileID: 11400000, guid: cef136d6923268344aa8ffd61d85bd7f, type: 2}
+  source: {fileID: 11400000, guid: 8e8ddaaf9478ddb438bc01d85c6a7efe, type: 2}
+  playingCmd: 0
+  possiblesPaths: 0
 --- !u!1 &1285273582
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using PulseEngine.Datas;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PulseEngine.Modules.Commander
 {
@@ -12,6 +15,22 @@ namespace PulseEngine.Modules.Commander
     {
         #region Attributes ####################################################################
 
+        /// <summary>
+        /// The current sequence executed.
+        /// </summary>
+        private static CommandSequence currentSequence;
+
+        /// <summary>
+        /// The current command executed.
+        /// </summary>
+        private  static Command currentCmd = Command.NullCmd;
+
+        /// <summary>
+        /// The list of Unfinnished commands.
+        /// </summary>
+        private static Dictionary<DataLocation, CommandPath> ResumablesSequences = new Dictionary<DataLocation, CommandPath>();
+
+        private static CancellationTokenSource taskCancellationSource;
 
         #endregion
 
@@ -20,7 +39,9 @@ namespace PulseEngine.Modules.Commander
         [RuntimeInitializeOnLoadMethod]
         public static void OnDomainReload()
         {
-
+            currentCmd = Command.NullCmd;
+            currentSequence = null;
+            ResumablesSequences = new Dictionary<DataLocation, CommandPath>();
         }
 
         /// <summary>

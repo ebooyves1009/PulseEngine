@@ -326,6 +326,33 @@ namespace PulseEngine
             return Vector2.Lerp(p1, p2, t);
         }
 
+        /// <summary>
+        /// Check if the index is in the list.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public static bool IndexInCollection<T>(this List<T> collection, int index)
+        {
+            if (index >= 0 && index < collection.Count)
+                return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Check if index is in the array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public static bool IndexInCollection<T>(this T[] collection, int index)
+        {
+            if (index >= 0 && index < collection.Length)
+                return true;
+            return false;
+        }
 
         #endregion
 
@@ -644,13 +671,10 @@ namespace PulseEngine
     public enum CommandType
     {
         @comment, //Commande sans effet
-        @conditionnal, //Commande conditionnelle
-        @start, //Commande conditionnelle
-        @exit, //commade de fin de sequence d'instructions.
-        @jump, //commande de saut vers l'index d'une instruction
-        @out, //commande de sortie d'une sous liste d'instructions
         @execute, //commande executable maintenant
-        @delay, //commande a executer apres la sortie, avec un delai
+        @start, //Commande d'entree
+        @exit, //commade de fin de sequence d'instructions.
+        @break, //commande de sortie resumable
     }
 
     /// <summary>
@@ -1040,7 +1064,9 @@ namespace PulseEngine
 
         public bool Equals(Command other)
         {
-            return type == other.type && childType == other.childType && code == other.code && PrimaryParameters == other.primaryParameters && SecondaryParameters == other.secondaryParameters;
+            return type == other.type && childType == other.childType 
+                && code == other.code && PrimaryParameters == other.primaryParameters 
+                && SecondaryParameters == other.secondaryParameters && Path == other.Path;
         }
         public static bool operator==(Command a, Command b) {
             return a.Equals(b);
@@ -1082,14 +1108,14 @@ namespace PulseEngine
             int childIndex = sequence.FindIndex(p => { return p.path == child; });
             if ((parentIndex < 0 || parentIndex >= sequence.Count) && parent != CommandPath.EntryPath)
                 return false;
-            if ((childIndex < 0 || childIndex >= sequence.Count) && (child != CommandPath.BreakPath || child != CommandPath.ExitPath))
+            if ((childIndex < 0 || childIndex >= sequence.Count) && !(child == CommandPath.BreakPath || child == CommandPath.ExitPath))
                 return false;
             if (parentIndex == childIndex)
                 return false;
             if (parent != CommandPath.EntryPath)
-                sequence[parentIndex].AddOutput(sq, child);
-            if ((child != CommandPath.BreakPath || child != CommandPath.ExitPath))
-                sequence[childIndex].AddInput(sq, parent);
+                sequence[parentIndex] = sequence[parentIndex].AddOutput(sq, child);
+            if (!(child == CommandPath.BreakPath || child == CommandPath.ExitPath))
+                sequence[childIndex] = sequence[childIndex].AddInput(sq, parent);
             sq.Sequence = sequence;
             return true;
         }
@@ -1243,30 +1269,32 @@ namespace PulseEngine
         /// Add a Parent to this command
         /// </summary>
         /// <param name="c"></param>
-        private void AddInput(CommandSequence sq, CommandPath cmdPath)
+        private Command AddInput(CommandSequence sq, CommandPath cmdPath)
         {
             if (inputs == null)
                 inputs = new List<CommandPath>();
             if (sq == null || sq.Sequence == null)
-                return;
+                return this;
             if (cmdPath == CommandPath.NullPath || IsParent(cmdPath))
-                return;
+                return this;
             inputs.Add(cmdPath);
+            return this;
         }
 
         /// <summary>
         /// Add a child to this command
         /// </summary>
         /// <param name="c"></param>
-        private void AddOutput(CommandSequence sq, CommandPath cmdPath)
+        private Command AddOutput(CommandSequence sq, CommandPath cmdPath)
         {
             if (outputs == null)
                 outputs = new List<CommandPath>();
             if (sq == null || sq.Sequence == null)
-                return;
+                return this;
             if (cmdPath == CommandPath.NullPath || IsChild(cmdPath))
-                return;
+                return this;
             outputs.Add(cmdPath);
+            return this;
         }
 
         
@@ -1305,13 +1333,7 @@ namespace PulseEngine
             {
                 case CommandType.comment:
                     break;
-                case CommandType.conditionnal:
-                    break;
                 case CommandType.exit:
-                    break;
-                case CommandType.jump:
-                    break;
-                case CommandType.@out:
                     break;
                 case CommandType.execute:
                     var ct = (CmdExecutableType)EditorGUILayout.EnumPopup("Execute", ChildType);
@@ -1359,8 +1381,6 @@ namespace PulseEngine
                             break;
                     }
                     break;
-                case CommandType.delay:
-                    break;
             }
             return this;
         }
@@ -1368,12 +1388,6 @@ namespace PulseEngine
         public void CreateNode(Vector2 size)
         {
             CmdNode = new Node(NodePosition, size);
-            cmdnode.NodeMove += MoveNode;
-        }
-
-        private void MoveNode(Vector2 v)
-        {
-            NodePosition = v;
         }
 
 #endif
@@ -1421,8 +1435,8 @@ namespace PulseEngine
         public bool Equals(CommandPath other)
         {
             bool tCompare = TimeHash == other.TimeHash;
-            bool lCompare = label == other.label;
-            return tCompare && lCompare;
+            if(tCompare) return label == other.label;
+            return tCompare;
         }
 
         public override bool Equals(object o)
@@ -2838,7 +2852,6 @@ namespace PulseEditor
     {
         #region Delegates ###########################################################
 
-        public delegate void MoveEvent(Vector2 v);
 
         #endregion
 
@@ -2860,6 +2873,7 @@ namespace PulseEditor
         public List<(string, Action)> ContextActions = new List<(string, Action)>();
         private Func<bool> connectAction;
         private Action selectAction;
+        private Action<Vector2> nodeMove;
         private Vector2 nodePosition;
         private string nodeTitle;
         private Rect shape;
@@ -2889,8 +2903,7 @@ namespace PulseEditor
         public GUIStyle Style { get => style; set => style = value; }
         public bool Selected { get => selected; set => selected = value; }
         public Action SelectAction { get => selectAction; set => selectAction = value; }
-
-        public event MoveEvent NodeMove;
+        public Action<Vector2> NodeMove { get => nodeMove; set => nodeMove = value; }
 
         #endregion
 

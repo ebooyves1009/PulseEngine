@@ -305,6 +305,42 @@ namespace PulseEditor.Modules
                 com.CmdNode.Style = style_node;
                 data.specialCmds[i] = com;
                 data.specialCmds[i].CmdNode.NodeTitle = data.specialCmds[i].Path.Label;
+                if (i > 0)
+                {
+                    try
+                    {
+                        com.CmdNode.ContextActions[0] = ("Delete", () =>
+                        {
+                            int index = data.specialCmds.FindIndex(c => { return c == com; });
+                            if (data.specialCmds.IndexInCollection(index))
+                                data.specialCmds.RemoveAt(index);
+                        }
+                        );
+                    }
+                    catch
+                    {
+                        com.CmdNode.ContextActions.Add(("Delete", () =>
+                        {
+                            int index = data.specialCmds.FindIndex(c => { return c == com; });
+                            if (data.specialCmds.IndexInCollection(index))
+                                data.specialCmds.RemoveAt(index);
+                        }
+                        ));
+                    }
+                    com.CmdNode.ConnectAction = () =>
+                    {
+                        if (selectedPath == CommandPath.NullPath)
+                            return false;
+                        int indexConnectFrom = data.Sequence.FindIndex(c => { return c.Path == selectedPath; });
+                        if (indexConnectFrom >= 0 && indexConnectFrom < data.Sequence.Count)
+                        {
+                            Command.Link(data, selectedPath, com.Path);
+                            selectedPath = CommandPath.NullPath;
+                            return true;
+                        }
+                        return false;
+                    };
+                }
                 data.specialCmds[i].CmdNode.Draw();
             }
             for(int i = 0; i < data.Sequence.Count; i++)
@@ -316,11 +352,14 @@ namespace PulseEditor.Modules
                     cmd.CreateNode(new Vector2(120, 80));
                     data.Sequence[k] = cmd;
                 }
-                else
+                if(data.Sequence[k].CmdNode != null)
                 {
                     var cmd = data.Sequence[k];
-                    if (cmd.Inputs.Contains(data.specialCmds[0].Path))
+                    if (indexOfDefaultNode < 0 && cmd.Inputs.Contains(CommandPath.EntryPath))
+                    {
+                        //PulseDebug.Log("Found default node at " + k);
                         indexOfDefaultNode = k;
+                    }
                     cmd.CmdNode.Style = new GUIStyle("Button");
                     if (data.Sequence[k].CmdNode.Selected)
                     {
@@ -333,7 +372,7 @@ namespace PulseEditor.Modules
                     //Context menu parenting
                     try
                     {
-                        cmd.CmdNode.ContextActions[0] = (("Link as child of...", () =>
+                        cmd.CmdNode.ContextActions[0] = (("Link to...", () =>
                         {
                             selectedPath = cmd.Path;
                         }
@@ -341,7 +380,7 @@ namespace PulseEditor.Modules
                     }
                     catch
                     {
-                        cmd.CmdNode.ContextActions.Add(("Link as child of...", () =>
+                        cmd.CmdNode.ContextActions.Add(("Link to...", () =>
                         {
                             selectedPath = cmd.Path;
                         }
@@ -385,11 +424,17 @@ namespace PulseEditor.Modules
                         int indexConnectFrom = data.Sequence.FindIndex(c => { return c.Path == selectedPath; });
                         if (indexConnectFrom >= 0 && indexConnectFrom < data.Sequence.Count)
                         {
-                            Command.Link(data, data.Sequence[k].Path, selectedPath);
+                            Command.Link(data, selectedPath, data.Sequence[k].Path);
                             selectedPath = CommandPath.NullPath;
                             return true;
                         }
                         return false;
+                    };
+                    cmd.CmdNode.NodeMove = v =>
+                    {
+                        var c = data.Sequence[k];
+                        c.NodePosition = v;
+                        data.Sequence[k] = c;
                     };
                     cmd.CmdNode.NodeTitle = data.Sequence[k].Path.Label + " || " + data.Sequence[k].Inputs.Count + " ; " + data.Sequence[k].Outputs.Count;
                     data.Sequence[k] = cmd;
@@ -398,13 +443,14 @@ namespace PulseEditor.Modules
             }
             if (indexOfDefaultNode < 0)
             {
+                //PulseDebug.Log("No entry node");
                 for (int i = 0; i < data.Sequence.Count; i++)
                 {
                     var cmd = data.Sequence[i];
                     cmd.UnLinkAll(data);
                     data.Sequence[i] = cmd;
                 }
-                if(data.Sequence.Count > 0)
+                if (data.Sequence.Count > 0)
                 {
                     var cmd = data.Sequence[0];
                     Command.Link(data, data.specialCmds[0].Path, cmd.Path);
@@ -451,6 +497,16 @@ namespace PulseEditor.Modules
                         if (data.Sequence[index].CmdNode == null)
                             continue;
                         Node.Connect(a.CmdNode, data.Sequence[index].CmdNode);
+                    }
+                    else
+                    {
+                        index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
+                        if(index >= 0)
+                        {
+                            if (data.specialCmds[index].CmdNode == null)
+                                continue;
+                            Node.Connect(a.CmdNode, data.specialCmds[index].CmdNode);
+                        }
                     }
                 }
             }
@@ -544,6 +600,8 @@ namespace PulseEditor.Modules
         {
             GenericMenu genericMenu = new GenericMenu();
             genericMenu.AddItem(new GUIContent("Add Command"), false, () => OnClickAddCMD(mousePosition, data));
+            genericMenu.AddItem(new GUIContent("Add Break"), false, () => OnClickSpecial(mousePosition, data, CommandType.@break));
+            genericMenu.AddItem(new GUIContent("Add Exit"), false, () => OnClickSpecial(mousePosition, data, CommandType.exit));
             genericMenu.ShowAsContext();
         }
 
@@ -563,6 +621,34 @@ namespace PulseEditor.Modules
             cmd.Path = p;
             sq.Add(cmd);
             data.Sequence = sq;
+        }
+
+        /// <summary>
+        /// To add a command on the current sequencer on context menu.
+        /// </summary>
+        /// <param name="mousePosition"></param>
+        /// <param name="data"></param>
+        private void OnClickSpecial(Vector2 mousePosition, CommandSequence data, CommandType commandType)
+        {
+            if (data == null)
+                return;
+            var sq = data.specialCmds;
+            var cmd = new Command { NodePosition = mousePosition };
+            var p = cmd.Path;
+            switch (commandType)
+            {
+                default:
+                    return;
+                case CommandType.exit:
+                    p = CommandPath.ExitPath;
+                    break;
+                case CommandType.@break:
+                    p = CommandPath.BreakPath;
+                    break;
+            }
+            cmd.Path = p;
+            sq.Add(cmd);
+            data.specialCmds = sq;
         }
 
 

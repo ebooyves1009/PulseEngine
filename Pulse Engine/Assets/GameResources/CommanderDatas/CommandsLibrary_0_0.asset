@@ -36,17 +36,13 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 129, y: 166}
+      editorNodePos: {x: 106, y: 32}
       inputs:
       - timeHash: 0
         label: Entry
-      - timeHash: -8585963115673023245
-        label: Maison
+      - timeHash: -8585963114471107242
+        label: Dormir
       outputs:
-      - timeHash: -8585963115792372306
-        label: Command 3
-      - timeHash: -8585963115914778074
-        label: Puree
       - timeHash: -8585963115792372306
         label: Boulot
     - path:
@@ -57,13 +53,17 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 369, y: 177}
+      editorNodePos: {x: 136, y: 203}
       inputs:
-      - timeHash: -8585963115950057859
-        label: Se Lever
+      - timeHash: -8585963115673023245
+        label: Maison
+      - timeHash: -8585963115792372306
+        label: Boulot
       outputs:
       - timeHash: -8585963115673023245
         label: Maison
+      - timeHash: -8585963114471107242
+        label: Dormir
     - path:
         timeHash: -8585963115792372306
         label: Boulot
@@ -72,13 +72,15 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 442, y: 81}
+      editorNodePos: {x: 23, y: 118}
       inputs:
       - timeHash: -8585963115950057859
         label: Se Lever
       outputs:
-      - timeHash: -8585963114471107242
-        label: Dormir
+      - timeHash: -8585963115673023245
+        label: Maison
+      - timeHash: -8585963115914778074
+        label: Puree
     - path:
         timeHash: -8585963115673023245
         label: Maison
@@ -87,13 +89,15 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 515, y: 163}
+      editorNodePos: {x: 240, y: 117}
       inputs:
+      - timeHash: -8585963115792372306
+        label: Boulot
       - timeHash: -8585963115914778074
         label: Puree
       outputs:
-      - timeHash: -8585963115950057859
-        label: Se Lever
+      - timeHash: -8585963115914778074
+        label: Puree
       - timeHash: -8585963114471107242
         label: Dormir
     - path:
@@ -104,16 +108,161 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 760, y: 205}
+      editorNodePos: {x: 504, y: 116}
       inputs:
-      - timeHash: -8585963115792372306
-        label: Boulot
+      - timeHash: -8585963115914778074
+        label: Puree
       - timeHash: -8585963115673023245
         label: Maison
-      outputs: []
+      outputs:
+      - timeHash: -8585963115950057859
+        label: Se Lever
     location:
       id: 1
       globalLocation: 0
       localLocation: 0
       dType: 6
-    label: 
+    label: Strainght Path
+  - specialCmds:
+    - path:
+        timeHash: 0
+        label: Entry
+      type: 2
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 1, y: 1}
+      inputs: []
+      outputs: []
+    - path:
+        timeHash: 0
+        label: Exit
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 76, y: 266}
+      inputs: []
+      outputs: []
+    - path:
+        timeHash: 0
+        label: Break
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 337, y: 223}
+      inputs: []
+      outputs: []
+    sequence:
+    - path:
+        timeHash: -8585960782924818285
+        label: Command 1
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 116, y: 144}
+      inputs:
+      - timeHash: 0
+        label: Entry
+      outputs:
+      - timeHash: -8585960782895956160
+        label: Command 2
+      - timeHash: 0
+        label: Break
+    - path:
+        timeHash: -8585960782895956160
+        label: Command 2
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 362, y: 18}
+      inputs:
+      - timeHash: -8585960782924818285
+        label: Command 1
+      outputs:
+      - timeHash: -8585960782868515383
+        label: Command 3
+      - timeHash: 0
+        label: Break
+    - path:
+        timeHash: -8585960782868515383
+        label: Command 3
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 574, y: 126}
+      inputs:
+      - timeHash: -8585960782895956160
+        label: Command 2
+      outputs:
+      - timeHash: -8585960782770992067
+        label: Command 4
+      - timeHash: 0
+        label: Break
+    - path:
+        timeHash: -8585960782770992067
+        label: Command 4
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 614, y: 301}
+      inputs:
+      - timeHash: -8585960782868515383
+        label: Command 3
+      outputs:
+      - timeHash: -8585960782699555915
+        label: Command 5
+      - timeHash: 0
+        label: Break
+    - path:
+        timeHash: -8585960782699555915
+        label: Command 5
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 416, y: 372}
+      inputs:
+      - timeHash: -8585960782770992067
+        label: Command 4
+      outputs:
+      - timeHash: -8585960782644196713
+        label: Command 6
+      - timeHash: 0
+        label: Break
+    - path:
+        timeHash: -8585960782644196713
+        label: Command 6
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 145, y: 295}
+      inputs:
+      - timeHash: -8585960782699555915
+        label: Command 5
+      outputs:
+      - timeHash: 0
+        label: Exit
+      - timeHash: 0
+        label: Break
+    location:
+      id: 2
+      globalLocation: 0
+      localLocation: 0
+      dType: 6
+    label: Resumable
