@@ -19,7 +19,7 @@ namespace PulseEngine
         /// Ecrit un message en console.
         /// </summary>
         /// <param name="_message"></param>
-        public static void Log(string _message)
+        public static void Log<T>(T _message)
         {
             if (!Core.DebugMode)
                 return;
@@ -30,7 +30,7 @@ namespace PulseEngine
         /// Ecrit un message d'alerte en console.
         /// </summary>
         /// <param name="_message"></param>
-        public static void LogWarning(string _message)
+        public static void LogWarning<T>(T _message)
         {
             if (!Core.DebugMode)
                 return;
@@ -41,7 +41,7 @@ namespace PulseEngine
         /// Ecrit un message d'erreur en console.
         /// </summary>
         /// <param name="_message"></param>
-        public static void LogError(string _message)
+        public static void LogError<T>(T _message)
         {
             if (!Core.DebugMode)
                 return;

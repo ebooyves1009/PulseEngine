@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine.AddressableAssets;
 using System.Linq;
 using PulseEngine.Datas;
+using System.Threading;
 
 
 //TODO: Continuer d'implementer des fonction au fil des besoins du module, sans oublier les fonction d'access aux datas inGame.
@@ -49,10 +50,10 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<string> TextData(DataLocation _location, DatalocationField _field, bool hightLigth = false)
+        public static async Task<string> TextData(DataLocation _location, DatalocationField _field, CancellationToken ct,  bool hightLigth = false)
         {
             string result = string.Empty;
-            Localisationdata data = await CoreData.GetData<Localisationdata,LocalisationLibrary>(_location);
+            Localisationdata data = await CoreData.GetData<Localisationdata,LocalisationLibrary>(_location, ct);
             if (data == null)
                 return string.Empty;
 
@@ -125,14 +126,14 @@ namespace PulseEngine.Modules.Localisator
                         DataLocation subLocation = new DataLocation();
                         if (int.TryParse(subParts[0], out subLocation.id) && int.TryParse(subParts[1], out subLocation.globalLocation) && int.TryParse(subParts[2], out subLocation.localLocation))
                         {
-                            var subData = await CoreData.GetData<Localisationdata, LocalisationLibrary>(subLocation);
+                            var subData = await CoreData.GetData<Localisationdata, LocalisationLibrary>(subLocation, ct);
                             if (subData != null)
                             {
                                 int fieldID = -1;
                                 if (subParts.Length > 3 && int.TryParse(subParts[3], out fieldID))
                                 {
                                     //recursive
-                                    parts[i] = await TextData(subLocation, (DatalocationField)fieldID, hightLigth);
+                                    parts[i] = await TextData(subLocation, (DatalocationField)fieldID, ct, hightLigth);
                                     //One way
                                     //parts[i] = subData.GetTradField((DatalocationField)fieldID).textField;
                                     if (hightLigth && (DatalocationField)fieldID == DatalocationField.title)
@@ -157,7 +158,7 @@ namespace PulseEngine.Modules.Localisator
                                 else
                                 {
                                     //recursive
-                                    parts[i] = await TextData(subLocation, DatalocationField.title, hightLigth);
+                                    parts[i] = await TextData(subLocation, DatalocationField.title, ct, hightLigth);
                                     //One way
                                     //parts[i] = subData.Title.textField;
                                 }
@@ -176,10 +177,10 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<AudioClip> AudioData(DataLocation _location, DatalocationField _field)
+        public static async Task<AudioClip> AudioData(DataLocation _location, DatalocationField _field, CancellationToken ct)
         {
             AudioClip result = null;
-            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
+            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location, ct);
             if (data == null)
                 return null;
             switch (_field)
@@ -246,10 +247,10 @@ namespace PulseEngine.Modules.Localisator
         /// <param name="_tradDataType"></param>
         /// <param name="_langage"></param>
         /// <returns></returns>
-        public static async Task<Sprite> ImageData(DataLocation _location, DatalocationField _field)
+        public static async Task<Sprite> ImageData(DataLocation _location, DatalocationField _field, CancellationToken ct)
         {
             Sprite result = null;
-            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location);
+            Localisationdata data = await CoreData.GetData<Localisationdata, LocalisationLibrary>(_location, ct);
             if (data == null)
                 return null;
             switch (_field)

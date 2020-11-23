@@ -10,6 +10,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using PulseEngine.Datas;
 using System.Reflection;
 using System.Threading;
+using System.Text;
 
 #if UNITY_EDITOR
 
@@ -128,6 +129,59 @@ namespace PulseEngine
             }
 
             return nouvo;
+        }
+
+        /// <summary>
+        /// Wait until the predicate is true, or the timer goes on.
+        /// </summary>
+        /// <param name="predication"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public static async Task WaitPredicate(Func<bool> predication, CancellationToken ct, int waitMillisec = -1)
+        {
+            List<Task> taskPool = new List<Task>();
+            using(CancellationTokenSource linkedCT = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                CancellationToken predicateCt = linkedCT.Token;
+                if (waitMillisec > 0)
+                {
+                    CancellationToken timerCt = linkedCT.Token;
+                    DateTime startTime = DateTime.Now;
+                    Task timertask = Task.Factory.StartNew(async () =>
+                    {
+                        double elapsedtime = (DateTime.Now - startTime).TotalMilliseconds;
+                        while (elapsedtime < waitMillisec)
+                        {
+                            if (timerCt.IsCancellationRequested || ct.IsCancellationRequested)
+                                break;
+                            await Task.Yield();
+                            elapsedtime = (DateTime.Now - startTime).TotalMilliseconds;
+                        }
+                        if(elapsedtime >= waitMillisec)
+                            PulseDebug.Log("times up");
+                        else
+                            PulseDebug.Log("times break");
+                    }, timerCt);
+                    taskPool.Add(timertask);
+                }
+                Task predictedTask = Task.Factory.StartNew(async () =>
+                {
+                    while (!predication.Invoke())
+                    {
+                        if (predicateCt.IsCancellationRequested || ct.IsCancellationRequested)
+                            break;
+                        await Task.Yield();
+                    }
+                    if(predication.Invoke())
+                        PulseDebug.Log("predicted");
+                    else
+                        PulseDebug.Log("predicted break");
+                }, predicateCt);
+                taskPool.Add(predictedTask);
+                Task whenAny = await Task.WhenAny(taskPool.ToArray());
+                await whenAny;
+                linkedCT.Cancel();
+            }
         }
 
 
@@ -1048,6 +1102,17 @@ namespace PulseEngine
         }
 
         /// <summary>
+        /// get the default Output, or null commandpath.
+        /// </summary>
+        public CommandPath DefaultOutPut { get
+            {
+                if (Outputs.Count > 0)
+                    return Outputs[0];
+                else
+                    return CommandPath.NullPath;
+            } }
+
+        /// <summary>
         /// The command's primary parameters.
         /// </summary>
         public Vector4 PrimaryParameters { get => primaryParameters; set => primaryParameters = value; }
@@ -1313,6 +1378,7 @@ namespace PulseEngine
 
         public Action OnNodeSelect;
 
+        //TODO: Implement command setting in editor here.
         public Command CommandSettings()
         {
             var name = EditorGUILayout.TextField("Label", Path.Label);
@@ -1868,31 +1934,42 @@ namespace PulseEngine.Datas
         /// Get all module datas with specified parameters
         /// </summary>
         /// <returns></returns>
-        public static async Task<List<T>> GetDatas<T, Q>(DataLocation _location) where Q : CoreLibrary where T : IData
+        public static async Task<List<T>> GetDatas<T, Q>(DataLocation _location, CancellationToken ct) where Q : CoreLibrary where T : IData
         {
-            string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
+            StringBuilder str = new StringBuilder();
+            str.Append(typeof(Q).Name).Append("_").Append(_location.globalLocation).Append("_").Append(_location.localLocation);
+            //string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
+            string path = str.ToString();
             IList<IResourceLocation> location = null;
+            bool busy = true;
             try
             {
                 Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
                 {
+                    busy = false;
                     if (hdl.Status == AsyncOperationStatus.Succeeded)
                         location = hdl.Result;
-                    SetAssetLoadComplete(path);
+                    //SetAssetLoadComplete(path);
                 };
             }
             catch (Exception e)
             {
                 if (e.GetType() == typeof(UnityEngine.UnityException))
                 {
-                    await Addressables.InitializeAsync().Task;
+                    busy = true;
+                    Addressables.InitializeAsync().Completed += hdl =>
+                    {
+                        busy = false;
+                    };
+                    await Core.WaitPredicate(() => { return !busy; }, ct);
                     try
                     {
                         Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
                         {
+                            busy = false;
                             if (hdl.Status == AsyncOperationStatus.Succeeded)
                                 location = hdl.Result;
-                            SetAssetLoadComplete(path);
+                            //SetAssetLoadComplete(path);
                         };
                     }
                     catch
@@ -1902,19 +1979,23 @@ namespace PulseEngine.Datas
                 }
                 return null;
             }
-            await WaitAssetLoadUntil(path, 10000);
+            await Core.WaitPredicate(() => { return !busy; }, ct, 1000);
+            //await WaitAssetLoadUntil(path, 10000);
 
             if (location == null || location.Count <= 0)
                 return null;
+            busy = true;
             var key = location[0].PrimaryKey;
             Q library = null;
             Addressables.LoadAssetAsync<Q>(key).Completed += hdl =>
             {
+                busy = false;
                 if (hdl.Status == AsyncOperationStatus.Succeeded)
                     library = hdl.Result;
-                SetAssetLoadComplete(path);
+                //SetAssetLoadComplete(path);
             };
-            await WaitAssetLoadUntil(path, 10000);
+            await Core.WaitPredicate(() => { return !busy; }, ct, 1000);
+            //await WaitAssetLoadUntil(path, 10000);
 
             if (library == null)
                 return null;
@@ -1926,9 +2007,9 @@ namespace PulseEngine.Datas
         /// Get module data with ID
         /// </summary>
         /// <returns></returns>
-        public static async Task<T> GetData<T, Q>(DataLocation _location) where Q : CoreLibrary where T : class, IData
+        public static async Task<T> GetData<T, Q>(DataLocation _location, CancellationToken ct) where Q : CoreLibrary where T : class, IData
         {
-            var list = await GetDatas<T, Q>(_location);
+            var list = await GetDatas<T, Q>(_location, ct);
             return list != null ? list.Find(data => { return data.Location.id == _location.id; }) : null;
         }
 
@@ -2777,6 +2858,14 @@ namespace PulseEngine.Datas
             }
             set => sequence = value;
         }
+
+        /// <summary>
+        /// Return the default command in this sequence.
+        /// </summary>
+        public Command DefaultCommand { get
+            {
+                return Sequence[0];
+            } }
 
         /// <summary>
         /// The sequence label.
