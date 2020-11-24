@@ -75,6 +75,9 @@ namespace PulseEngine.Modules.Commander
             //Post execution stuffs
         }
 
+        //TODO: remove
+        public static dynamic virtualEmitter;
+
         /// <summary>
         /// Execute une commande, et renvoi vrai si la commande a ete executee correctement et false pour tout autre cas.
         /// </summary>
@@ -90,7 +93,7 @@ namespace PulseEngine.Modules.Commander
                     nextCommandPath = await ExecuteEvent(ct, emitter, _Cmd);
                     break;
                 case CmdExecutableType._action:
-                    nextCommandPath = await ExecuteAction(ct, emitter, _Cmd);
+                    nextCommandPath = await ExecuteAction(ct, virtualEmitter, _Cmd);
                     break;
                 case CmdExecutableType._global:
                     nextCommandPath = await ExecuteGlobal(ct, emitter, _Cmd);
@@ -122,13 +125,27 @@ namespace PulseEngine.Modules.Commander
         /// </summary>
         /// <param name="cmd"></param>
         /// <returns></returns>
-        private static async Task<CommandPath> ExecuteAction(CancellationToken ct, GameObject caster, Command cmd)
+        private static async Task<CommandPath> ExecuteAction<T>(CancellationToken ct, T caster, Command cmd)
         {
-            StringBuilder logtext = new StringBuilder();
-            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred Action ").Append(cmd.CodeAc));
-            logtext.Clear();
-            await Task.Delay(1000);
             CommandPath nextCommand = cmd.Outputs[0];
+            await Task.Delay(1000);
+            switch (cmd.CodeAc)
+            {
+                case CmdActionCode.Idle:
+                    break;
+                case CmdActionCode.MoveTo:
+                    IMovable actor = caster as IMovable;
+                    if(actor != null)
+                    {
+                        PulseDebug.Log("Moving to, launh for " + actor);
+                        nextCommand = await actor.MoveCommand(cmd, ct);
+                    }
+                    else
+                        PulseDebug.Log("Moving to failed");
+                    break;
+                case CmdActionCode.Jump:
+                    break;
+            }
             return nextCommand;
         }
 

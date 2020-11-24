@@ -18,6 +18,7 @@ using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets;
 using PulseEditor;
+
 #endif
 
 
@@ -139,48 +140,24 @@ namespace PulseEngine
         /// <returns></returns>
         public static async Task WaitPredicate(Func<bool> predication, CancellationToken ct, int waitMillisec = -1)
         {
-            List<Task> taskPool = new List<Task>();
-            using(CancellationTokenSource linkedCT = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            DateTime startTime = DateTime.Now;
+            double elapsedtime = 0;
+            bool chrono = waitMillisec > 0;
+            int cycles = int.MaxValue;
+            for (int i = 0; i < cycles; i++)
             {
-                CancellationToken predicateCt = linkedCT.Token;
-                if (waitMillisec > 0)
+                if (ct.IsCancellationRequested)
+                    break;
+                if (predication.Invoke())
                 {
-                    CancellationToken timerCt = linkedCT.Token;
-                    DateTime startTime = DateTime.Now;
-                    Task timertask = Task.Factory.StartNew(async () =>
-                    {
-                        double elapsedtime = (DateTime.Now - startTime).TotalMilliseconds;
-                        while (elapsedtime < waitMillisec)
-                        {
-                            if (timerCt.IsCancellationRequested || ct.IsCancellationRequested)
-                                break;
-                            await Task.Yield();
-                            elapsedtime = (DateTime.Now - startTime).TotalMilliseconds;
-                        }
-                        if(elapsedtime >= waitMillisec)
-                            PulseDebug.Log("times up");
-                        else
-                            PulseDebug.Log("times break");
-                    }, timerCt);
-                    taskPool.Add(timertask);
+                    break;
                 }
-                Task predictedTask = Task.Factory.StartNew(async () =>
+                if (elapsedtime >= waitMillisec && chrono)
                 {
-                    while (!predication.Invoke())
-                    {
-                        if (predicateCt.IsCancellationRequested || ct.IsCancellationRequested)
-                            break;
-                        await Task.Yield();
-                    }
-                    if(predication.Invoke())
-                        PulseDebug.Log("predicted");
-                    else
-                        PulseDebug.Log("predicted break");
-                }, predicateCt);
-                taskPool.Add(predictedTask);
-                Task whenAny = await Task.WhenAny(taskPool.ToArray());
-                await whenAny;
-                linkedCT.Cancel();
+                    break;
+                }
+                await Task.Yield();
+                elapsedtime = (DateTime.Now - startTime).TotalMilliseconds;
             }
         }
 
@@ -279,8 +256,6 @@ namespace PulseEngine
                 Type Mgrclass = Type.GetType("PulseEngine.Modules." + classPath);
                 if (Mgrclass == null)
                 {
-                    //TODO: Remove
-                    PulseDebug.Log("null Manager at " + classPath);
                     return;
                 }
                 ManagersCache.Add(mgrEnum, Mgrclass);
@@ -290,20 +265,11 @@ namespace PulseEngine
                 var Method = MethodFromClass(ManagersCache[mgrEnum], methodName);
                 if (Method == null)
                 {
-                    //TODO: Remove
-                    PulseDebug.Log("Null method");
                     return;
                 }
-                //TODO: Remove
-                PulseDebug.Log("Method infos summary\n" +
-                    "name: " + Method.Name + "\n" +
-                    "is static: " + Method.IsStatic + "\n" +
-                    "returning: " + Method.ReturnType);
                 try
                 {
                     Task task = (Task)Method.Invoke(null, parameters);
-                    //TODO: Remove
-                    PulseDebug.Log("its task");
                     await task.ConfigureAwait(false);
                     return;
                 }
@@ -320,14 +286,10 @@ namespace PulseEngine
                         }
                         catch (Exception r)
                         {
-                            //TODO: Remove
-                            PulseDebug.Log("second exception occured : " + r.Message);
-                            return;
+                            throw r;
                         }
                     }
-                    //TODO: Remove
-                    PulseDebug.Log("exception occured but it's not an invalid cast. it's " + e + " || " + e.Message);
-                    return;
+                    throw e;
                 }
             }
             //TODO: Remove
@@ -1425,6 +1387,21 @@ namespace PulseEngine
                                 {
                                     CodeAc = t;
                                 }
+                                switch (CodeAc)
+                                {
+                                    case CmdActionCode.Idle:
+                                        break;
+                                    case CmdActionCode.MoveTo:
+                                        //Also move to someone
+                                        Vector3 location = new Vector3(primaryParameters.x, primaryParameters.y, primaryParameters.z);
+                                        location = EditorGUILayout.Vector3Field("Destination", location);
+                                        float waitMoveEnd = primaryParameters.w;
+                                        waitMoveEnd = EditorGUILayout.Toggle("Wait Move End", waitMoveEnd > 0)? 1 : 0;
+                                        PrimaryParameters = new Vector4(location.x, location.y, location.z, waitMoveEnd);
+                                        break;
+                                    case CmdActionCode.Jump:
+                                        break;
+                                }
                             }
                             break;
                         case CmdExecutableType._global:
@@ -1618,6 +1595,17 @@ namespace PulseEngine
     public interface IData
     {
         DataLocation Location { get; set; }
+    }
+
+    /// <summary>
+    /// Interface implemented by all entities able to follow a path and reach a destination.
+    /// </summary>
+    public interface IMovable
+    {
+        Task<CommandPath> MoveCommand(Command _cmd, CancellationToken ct);
+        void MoveTo(Vector3 position);
+        event EventHandler OnArrival;
+        void ArrivedAt();
     }
 
     #endregion
@@ -1831,41 +1819,10 @@ namespace PulseEngine.Datas
         #region Methodes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         /// <summary>
-        /// Call on async load complete.
-        /// </summary>
-        /// <param name="loaderPoolIndex"></param>
-        private static void SetAssetLoadComplete(string assetPath)
-        {
-            if (!LoaderPool.ContainsKey(assetPath))
-                return;
-            LoaderPool[assetPath].Set();
-        }
-
-        /// <summary>
-        /// Await this method to wait for an asset to finnish loading.
-        /// </summary>
-        /// <param name="waitMillisec"></param>
-        /// <returns></returns>
-        private static async Task WaitAssetLoadUntil(string assetPath, int waitMillisec = 100)
-        {
-            if (LoaderPool.ContainsKey(assetPath))
-                return;
-            LoaderPool.Add(assetPath, new ManualResetEvent(false));
-            await Task.Factory.StartNew(() =>
-            {
-                LoaderPool[assetPath].WaitOne(waitMillisec);
-                LoaderPool[assetPath].Reset();
-                LoaderPool[assetPath].Dispose();
-                LoaderPool[assetPath] = null;
-                LoaderPool.Remove(assetPath);
-            });
-        }
-
-        /// <summary>
         /// Get all module datas with specified parameters
         /// </summary>
         /// <returns></returns>
-        public static async Task<List<T>> GetAllDatas<T, Q>() where Q : CoreLibrary where T : IData
+        public static async Task<List<T>> GetAllDatas<T, Q>(CancellationToken ct) where Q : CoreLibrary where T : IData
         {
             string keyNamePart = typeof(Q).Name;
             List<string> keys = new List<string>();
@@ -1885,31 +1842,39 @@ namespace PulseEngine.Datas
             }
             List<T> output = new List<T>();
             Q library = null;
+            bool waiting = false;
             int k = 0;
             for (int i = 0; i < keys.Count; i++)
             {
                 k = i;
                 try
                 {
+                    waiting = true;
                     Addressables.LoadAssetAsync<Q>(keys[k]).Completed += hdl =>
                     {
+                        waiting = false;
                         if (hdl.Status == AsyncOperationStatus.Succeeded)
                             library = hdl.Result;
-                        SetAssetLoadComplete(keys[k]);
                     };
                 }
                 catch (Exception e)
                 {
                     if (e.GetType() == typeof(UnityEngine.UnityException))
                     {
-                        Addressables.InitializeAsync();
+                        waiting = true;
+                        Addressables.InitializeAsync().Completed += hdl =>
+                        {
+                            waiting = false;
+                        };
+                        await Core.WaitPredicate(() => { return !waiting; }, ct);
                         try
                         {
+                            waiting = true;
                             Addressables.LoadAssetAsync<Q>(keys[k]).Completed += hdl =>
                             {
+                                waiting = false;
                                 if (hdl.Status == AsyncOperationStatus.Succeeded)
                                     library = hdl.Result;
-                                SetAssetLoadComplete(keys[k]);
                             };
                         }
                         catch
@@ -1919,7 +1884,7 @@ namespace PulseEngine.Datas
                     }
                     return null;
                 }
-                await WaitAssetLoadUntil(keys[k], 1000);
+                await Core.WaitPredicate(() => { return !waiting; }, ct, 1000);
                 if (library == null)
                     continue;
                 var datalist = Core.LibraryClone(library).DataList;
@@ -1938,38 +1903,37 @@ namespace PulseEngine.Datas
         {
             StringBuilder str = new StringBuilder();
             str.Append(typeof(Q).Name).Append("_").Append(_location.globalLocation).Append("_").Append(_location.localLocation);
-            //string path = typeof(Q).Name + "_" + _location.globalLocation + "_" + _location.localLocation;
             string path = str.ToString();
             IList<IResourceLocation> location = null;
-            bool busy = true;
+            bool seeking = false;
             try
             {
+                seeking = true;
                 Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
                 {
-                    busy = false;
+                    seeking = false;
                     if (hdl.Status == AsyncOperationStatus.Succeeded)
                         location = hdl.Result;
-                    //SetAssetLoadComplete(path);
                 };
             }
             catch (Exception e)
             {
                 if (e.GetType() == typeof(UnityEngine.UnityException))
                 {
-                    busy = true;
+                    seeking = true;
                     Addressables.InitializeAsync().Completed += hdl =>
                     {
-                        busy = false;
+                        seeking = false;
                     };
-                    await Core.WaitPredicate(() => { return !busy; }, ct);
+                    await Core.WaitPredicate(() => { return !seeking; }, ct);
                     try
                     {
+                        seeking = true;
                         Addressables.LoadResourceLocationsAsync(path).Completed += hdl =>
                         {
-                            busy = false;
+                            seeking = false;
                             if (hdl.Status == AsyncOperationStatus.Succeeded)
                                 location = hdl.Result;
-                            //SetAssetLoadComplete(path);
                         };
                     }
                     catch
@@ -1979,23 +1943,20 @@ namespace PulseEngine.Datas
                 }
                 return null;
             }
-            await Core.WaitPredicate(() => { return !busy; }, ct, 1000);
-            //await WaitAssetLoadUntil(path, 10000);
+            await Core.WaitPredicate(() => { return !seeking; }, ct, 1000);
 
             if (location == null || location.Count <= 0)
                 return null;
-            busy = true;
             var key = location[0].PrimaryKey;
             Q library = null;
+            seeking = true;
             Addressables.LoadAssetAsync<Q>(key).Completed += hdl =>
             {
-                busy = false;
+                seeking = false;
                 if (hdl.Status == AsyncOperationStatus.Succeeded)
                     library = hdl.Result;
-                //SetAssetLoadComplete(path);
             };
-            await Core.WaitPredicate(() => { return !busy; }, ct, 1000);
-            //await WaitAssetLoadUntil(path, 10000);
+            await Core.WaitPredicate(() => { return !seeking; }, ct, 1000);
 
             if (library == null)
                 return null;

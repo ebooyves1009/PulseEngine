@@ -10,9 +10,10 @@ using System.Threading.Tasks;
 using PulseEngine.Modules.Commander;
 using System.Threading;
 
-public class Tester : MonoBehaviour
+public class Tester : MonoBehaviour, IMovable
 {
     bool busy = false;
+    CancellationTokenSource source = new CancellationTokenSource();
 
     private async void OnGUI()
     {
@@ -20,12 +21,22 @@ public class Tester : MonoBehaviour
             return;
         if (GUILayout.Button("Execute first sequence"))
         {
-            using (var source = new CancellationTokenSource())
-            {
-                var ct = source.Token;
-                busy = true;
-                await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
-            }
+            if (Commander.virtualEmitter != this)
+                Commander.virtualEmitter = this;
+            PulseDebug.Log("virtual emitter is " + Commander.virtualEmitter);
+            var ct = source.Token;
+            busy = true;
+            await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
+            busy = false;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (source != null)
+        {
+            source.Cancel();
+            source.Dispose();
         }
     }
 
@@ -39,6 +50,7 @@ public class Tester : MonoBehaviour
         Color.cyan,
         Color.black,
     };
+
 
     private void OnDrawGizmos()
     {
@@ -92,6 +104,68 @@ public class Tester : MonoBehaviour
     private static dynamic PlayGround()
     {
         return 1 + 1;
+    }
+
+    public event EventHandler OnArrival;
+
+    void IMovable.MoveTo(Vector3 position)
+    {
+        movingPlace = position;
+    }
+
+    async Task<CommandPath> IMovable.MoveCommand(Command _cmd, CancellationToken ct)
+    {
+        //Pre movement stuffs
+        Vector3 position = new Vector3(_cmd.PrimaryParameters.x, _cmd.PrimaryParameters.y, _cmd.PrimaryParameters.z);
+        bool waitTheEndOfMove = _cmd.PrimaryParameters.w > 0;
+        IMovable mover = this;
+        try
+        {
+            mover.MoveTo(position);
+            if (waitTheEndOfMove)
+            {
+                bool arrived = false;
+                OnArrival = (o, e) =>
+                {
+                    arrived = true;
+                };
+                await Core.WaitPredicate(() => { return arrived; }, ct);
+            }
+            return _cmd.DefaultOutPut;
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        finally
+        {
+            //post movement stuffs
+        }
+    }
+
+    void IMovable.ArrivedAt()
+    {
+        if (OnArrival != null)
+            OnArrival.Invoke(gameObject, EventArgs.Empty);
+    }
+
+
+    public Vector3 movingPlace;
+    public float speed = 5;
+    public float reachDist = 1;
+
+    private void Update()
+    {
+        if(movingPlace != Vector3.zero)
+        {
+            transform.Translate((movingPlace - transform.position).normalized * speed * Time.deltaTime, Space.Self);
+            if((movingPlace - transform.position).sqrMagnitude <= Mathf.Pow(reachDist, 2))
+            {
+                movingPlace = Vector3.zero;
+                IMovable mover = this;
+                mover.ArrivedAt();
+            }
+        }
     }
 }
 

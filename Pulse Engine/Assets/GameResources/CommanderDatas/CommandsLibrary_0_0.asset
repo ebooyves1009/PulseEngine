@@ -31,10 +31,10 @@ MonoBehaviour:
     - path:
         timeHash: -8585963115950057859
         label: Se Lever
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      type: 1
+      childType: 1
+      code: 1
+      primaryParameters: {x: 1, y: 0.5, z: 0, w: 1}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
       editorNodePos: {x: 106, y: 32}
       inputs:
@@ -48,10 +48,10 @@ MonoBehaviour:
     - path:
         timeHash: -8585963115914778074
         label: Puree
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      type: 1
+      childType: 1
+      code: 1
+      primaryParameters: {x: -5, y: 0.5, z: 1, w: 1}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
       editorNodePos: {x: 136, y: 203}
       inputs:
@@ -67,10 +67,10 @@ MonoBehaviour:
     - path:
         timeHash: -8585963115792372306
         label: Boulot
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      type: 1
+      childType: 1
+      code: 1
+      primaryParameters: {x: 5, y: 0.5, z: 5, w: 1}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
       editorNodePos: {x: 23, y: 118}
       inputs:
@@ -84,10 +84,10 @@ MonoBehaviour:
     - path:
         timeHash: -8585963115673023245
         label: Maison
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      type: 1
+      childType: 1
+      code: 1
+      primaryParameters: {x: 0, y: 0.5, z: 0, w: 1}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
       editorNodePos: {x: 240, y: 117}
       inputs:
@@ -103,10 +103,10 @@ MonoBehaviour:
     - path:
         timeHash: -8585963114471107242
         label: Dormir
-      type: 0
-      childType: 0
-      code: 0
-      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      type: 1
+      childType: 1
+      code: 1
+      primaryParameters: {x: 1, y: 0.5, z: 1, w: 1}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
       editorNodePos: {x: 504, y: 116}
       inputs:
