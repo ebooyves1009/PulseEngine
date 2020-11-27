@@ -64,8 +64,9 @@ namespace PulseEditor.Modules
                 }
             }
 
-            foreach (var entry in dictionnary)
+            for (int i = 0; i < dictionnary.Count; i++)
             {
+                var entry = dictionnary.ElementAt(i);
                 if (entry.Value == null)
                 {
                     var library = allAsset.Find(lib => { return lib.Scope == (Scopes)entry.Key.globalLocation && lib.AnimType == (AnimaType)entry.Key.localLocation; });
@@ -189,7 +190,7 @@ namespace PulseEditor.Modules
         /// <summary>
         /// open Anima specific selector.
         /// </summary>
-        public static void OpenSelector(Action<object, EventArgs> onSelect, DataLocation location)
+        public static void OpenSpecialSelector(Action<object, EventArgs> onSelect, DataLocation location)
         {
             if (!registeredToRefresh)
             {
@@ -938,7 +939,7 @@ namespace PulseEditor.Modules
                         if (GUILayout.Button("+"))
                         {
                             var type = (AnimaType)(layerIndex - 1);
-                            OpenSelector((obj, arg) =>
+                            OpenSpecialSelector((obj, arg) =>
                             {
                                 AnimaData data = obj as AnimaData;
                                 if (data != null)
@@ -961,7 +962,7 @@ namespace PulseEditor.Modules
                                 }
                                 if (GUILayout.Button("Replace"))
                                 {
-                                    OpenSelector((obj, arg) =>
+                                    OpenSpecialSelector((obj, arg) =>
                                     {
                                         AnimaData data = obj as AnimaData;
                                         if (data != null)

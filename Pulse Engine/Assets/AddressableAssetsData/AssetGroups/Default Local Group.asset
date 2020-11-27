@@ -119,6 +119,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
+  - m_GUID: 58b0d59c731920e4bb3ca42a0017707d
+    m_Address: CharactersLibrary_0_1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
   - m_GUID: 5fd20fe4869d0114ba60c3d1d86a5b77
     m_Address: LocalisationLibrary_0_2
     m_ReadOnly: 0

@@ -11,6 +11,7 @@ using PulseEngine.Datas;
 using System.Reflection;
 using System.Threading;
 using System.Text;
+using PulseEngine;
 
 #if UNITY_EDITOR
 
@@ -370,6 +371,60 @@ namespace PulseEngine
             return false;
         }
 
+        /// <summary>
+        /// Return the corresponding egde's mid-point of a rect.
+        /// </summary>
+        /// <param name="_side">The specicied node edge</param>
+        /// <returns></returns>
+        public static Vector2[] GetNodeEdge(this IEditorNode node, NodeEdgeSide _side, float normalLenght = 100)
+        {
+            Vector2[] output = new Vector2[2];
+            float normalValue = normalLenght;
+            Vector2 point = node.NodeShape.center;
+            Vector2 normal = node.NodeShape.center;
+            switch (_side)
+            {
+                case NodeEdgeSide.upper:
+                    point = node.NodeShape.center - Vector2.up * (node.NodeShape.height * 0.5f);
+                    normal = point - Vector2.up * normalValue;
+                    break;
+                case NodeEdgeSide.lower:
+                    point = node.NodeShape.center + Vector2.up * node.NodeShape.height;
+                    normal = point + Vector2.up * normalValue;
+                    break;
+                case NodeEdgeSide.lefty:
+                    point = node.NodeShape.center - Vector2.right * (node.NodeShape.width * 0.5f);
+                    normal = point + Vector2.left * normalValue;
+                    break;
+                case NodeEdgeSide.righty:
+                    point = node.NodeShape.center + Vector2.up * (node.NodeShape.width * 0.5f);
+                    normal = point - Vector2.left * normalValue;
+                    break;
+            }
+            output[0] = point;
+            output[1] = normal;
+            return output;
+        }
+
+        /// <summary>
+        /// Get the closest node's Edge
+        /// </summary>
+        /// <param name="_point">the point from wich calculation begins</param>
+        /// <param name="_nodeRect">the node's rect where to find edge</param>
+        /// <returns></returns>
+        public static Vector2[] GetClosestNodeEdge(this IEditorNode node, Vector2 _point, Rect _nodeRect)
+        {
+            List<Vector2[]> sides = new List<Vector2[]>();
+            float normal = Vector2.Distance(node.NodeShape.center, _point) * 0.2f;
+            Vector2 center = _point;
+            sides.Add(GetNodeEdge(node, NodeEdgeSide.lefty, normal));
+            sides.Add(GetNodeEdge(node, NodeEdgeSide.righty, normal));
+            sides.Add(GetNodeEdge(node, NodeEdgeSide.upper, normal));
+            sides.Add(GetNodeEdge(node, NodeEdgeSide.lower, normal));
+            sides.Sort((side1, side2) => { return ((side1[0] - center).sqrMagnitude.CompareTo((side2[0] - center).sqrMagnitude)); });
+            return sides[0];
+        }
+
         #endregion
 
         #region Extensions ###########################################################################
@@ -552,6 +607,23 @@ namespace PulseEngine
         Message,
         CommandSequence,
     }
+
+    /// <summary>
+    /// The differents sides of a node.
+    /// </summary>
+    public enum NodeEdgeSide
+    {
+        upper, lower, lefty, righty
+    }
+
+    /// <summary>
+    /// The differents nodes states
+    /// </summary>
+    public enum NodeState
+    {
+        free, selected, dragged, doubleClicked
+    }
+
 
     #endregion
 
@@ -970,7 +1042,7 @@ namespace PulseEngine
     /// Une commande action.
     /// </summary>
     [System.Serializable]
-    public struct Command : IEquatable<Command>
+    public struct Command : IEquatable<Command>, IEditorNode
     {
         #region Attributs #######################################################################
 
@@ -1324,113 +1396,170 @@ namespace PulseEngine
             return this;
         }
 
-        
+
         /////////////////////////////////////////////////////////////////////////////////////////////////
 
         public static Command NullCmd { get => new Command { path = CommandPath.NullPath, code = -1 }; }
 
 #if UNITY_EDITOR
 
-        private Node cmdnode;
-        public Vector2 NodePosition { get => editorNodePos; set => editorNodePos = value; }
-        public Node CmdNode { get {
-                return cmdnode;
-            } set => cmdnode = value;
-        }
+        public Rect NodeShape { get; set; }
+        public NodeState NodeState { get; set; }
+        public GenericMenu ContextMenu { get; set; }
 
-        public Action OnNodeSelect;
-
-        //TODO: Implement command setting in editor here.
-        public Command CommandSettings()
+        public IEditorNode CreateNode()
         {
-            var name = EditorGUILayout.TextField("Label", Path.Label);
-            EditorGUILayout.LabelField("Links:", "Parents = " + Inputs.Count + "; Childrens= " + Outputs.Count);
-            EditorGUILayout.Space();
-            if (name != Path.Label)
-            {
-                var path = Path;
-                path.Label = name;
-                Path = path;
-            }
-            var tp = (CommandType)EditorGUILayout.EnumPopup("Node Type", Type);
-            if (tp != Type)
-            {
-                Type = tp;
-            }
-            switch (Type)
-            {
-                case CommandType.comment:
-                    break;
-                case CommandType.exit:
-                    break;
-                case CommandType.execute:
-                    var ct = (CmdExecutableType)EditorGUILayout.EnumPopup("Execute", ChildType);
-                    if (ct != ChildType)
-                    {
-                        ChildType = ct;
-                    }
-                    switch (ChildType)
-                    {
-                        case CmdExecutableType._event:
-                            {
-                                var t = (CmdEventCode)EditorGUILayout.EnumPopup("Code", CodeEv);
-                                if (t != CodeEv)
-                                {
-                                    CodeEv = t;
-                                }
-                            }
-                            break;
-                        case CmdExecutableType._action:
-                            {
-                                var t = (CmdActionCode)EditorGUILayout.EnumPopup("Code", CodeAc);
-                                if (t != CodeAc)
-                                {
-                                    CodeAc = t;
-                                }
-                                switch (CodeAc)
-                                {
-                                    case CmdActionCode.Idle:
-                                        break;
-                                    case CmdActionCode.MoveTo:
-                                        //Also move to someone
-                                        Vector3 location = new Vector3(primaryParameters.x, primaryParameters.y, primaryParameters.z);
-                                        location = EditorGUILayout.Vector3Field("Destination", location);
-                                        float waitMoveEnd = primaryParameters.w;
-                                        waitMoveEnd = EditorGUILayout.Toggle("Wait Move End", waitMoveEnd > 0)? 1 : 0;
-                                        PrimaryParameters = new Vector4(location.x, location.y, location.z, waitMoveEnd);
-                                        break;
-                                    case CmdActionCode.Jump:
-                                        break;
-                                }
-                            }
-                            break;
-                        case CmdExecutableType._global:
-                            {
-                                var t = (CmdGlobalCode)EditorGUILayout.EnumPopup("Code", CodeGl);
-                                if (t != CodeGl)
-                                {
-                                    CodeGl = t;
-                                }
-                            }
-                            break;
-                        case CmdExecutableType._story:
-                            {
-                                var t = (CmdStoryCode)EditorGUILayout.EnumPopup("Code", CodeSt);
-                                if (t != CodeSt)
-                                {
-                                    CodeSt = t;
-                                }
-                            }
-                            break;
-                    }
-                    break;
-            }
+            NodeShape = new Rect(editorNodePos, new Vector2(200, 80));
             return this;
         }
 
-        public void CreateNode(Vector2 size)
+        public IEditorNode ShowDetails()
         {
-            CmdNode = new Node(NodePosition, size);
+            throw new NotImplementedException();
+        }
+
+        public void DrawNode(GUIStyle style)
+        {
+            switch (NodeState)
+            {
+                case NodeState.selected:
+                    style = "Button";
+                    break;
+                case NodeState.dragged:
+                    style = "Button";
+                    break;
+            }
+            if (style == null)
+                style = "Button";
+
+            GUI.Box(NodeShape, NodeShape.size.x > 80 ? path.Label : string.Empty, style);
+        }
+
+        public IEditorNode ProcessNodeEvents(Event e, IEditorGraph linkSource, out bool changed)
+        {
+            switch (e.type)
+            {
+                case EventType.MouseDown:
+                    if (e.button == 0)
+                    {
+                        if (NodeShape.Contains(e.mousePosition))
+                        {
+                            if (e.clickCount == 2)
+                            {
+                                NodeState = NodeState.doubleClicked;
+                                e.Use();
+                                changed = true;
+                                return this;
+                            }
+                            if (e.clickCount == 1)
+                            {
+                                NodeState = NodeState.selected;
+                            }
+                        }
+                        else
+                            NodeState = NodeState.free;
+                    }
+                    if (e.button == 1 && NodeShape.Contains(e.mousePosition))
+                    {
+                        GUI.FocusControl(null);
+                        if (ContextMenu != null)
+                            ContextMenu.ShowAsContext();
+                        e.Use();
+                    }
+                    break;
+
+                case EventType.MouseUp:
+                    if (e.button == 0 && NodeShape.Contains(e.mousePosition) && NodeState == NodeState.free)
+                    {
+                        if (linkSource != null && linkSource.LinkRequester != default) {
+                            try
+                            {
+                                if (Command.Link((CommandSequence)linkSource, ((Command)(linkSource.LinkRequester)).Path, Path))
+                                    PulseDebug.Log($"Connected {((Command)(linkSource.LinkRequester)).Path.Label} to {path.Label}");
+                                else
+                                    PulseDebug.Log($"Connection to {path.Label} failed");
+                            }
+                            finally {
+                                linkSource.LinkRequester = default;
+                                changed = true;
+                            }
+                            return this;
+                        }
+                    }
+                    if (NodeState != NodeState.selected && e.button == 0)
+                    {
+                        NodeState = NodeState.free;
+                        changed = true;
+                        return this;
+                    }
+                    break;
+
+                case EventType.MouseDrag:
+                    if (e.button == 0)
+                    {
+                        if (NodeShape.Contains(e.mousePosition) && NodeState != NodeState.free)
+                        {
+                            if ((e.delta.magnitude > 0 || NodeState == NodeState.dragged) && NodeState != NodeState.doubleClicked)
+                            {
+                                NodeState = NodeState.dragged;
+                                Drag(e.delta);
+                                GUI.changed = true;
+                                e.Use();
+                                changed = true;
+                                return this;
+                            }
+                            if (NodeState == NodeState.doubleClicked)
+                            {
+                                if (linkSource != null)
+                                {
+                                    linkSource.LinkRequester = this;
+                                }
+                                GUI.changed = true;
+                                e.Use();
+                                changed = true;
+                                return this;
+                            }
+                        }
+                    }
+                    break;
+            }
+            changed = false;
+            return this;
+        }
+
+        public IEditorNode Drag(Vector2 _pos)
+        {
+            Rect shape = NodeShape;
+            shape.center += _pos;
+            editorNodePos = shape.position;
+            NodeShape = shape;
+            return this;
+        }
+
+        public IEditorNode Scale(float scale, float delta, Vector2 mousePos)
+        {
+            Vector2 displacement = NodeShape.center - mousePos;
+            Vector2 center = NodeShape.center;
+            displacement.Normalize();
+            if (scale > 50 && scale < 200)
+                center += displacement * (delta * 10);
+            Vector2 newSize = new Vector3(1, NodeShape.size.y / NodeShape.size.x, 0) * scale;
+            Vector2 center2 = center;
+            var shape = new Rect(NodeShape.position, newSize);
+            shape.center = center2;
+            NodeShape = shape;
+            editorNodePos = NodeShape.position;
+            return this;
+        }
+
+        public void EndLink(IEditorNode parent)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEditorNode StartLink()
+        {
+            throw new NotImplementedException();
         }
 
 #endif
@@ -1595,6 +1724,41 @@ namespace PulseEngine
     public interface IData
     {
         DataLocation Location { get; set; }
+    }
+
+    /// <summary>
+    /// Interface of all nodable editor's data.
+    /// </summary>
+    public interface IEditorNode
+    {
+        IEditorNode CreateNode();
+        IEditorNode ShowDetails();
+        void DrawNode(GUIStyle style);
+        IEditorNode ProcessNodeEvents(Event e, IEditorGraph linkSource, out bool changed);
+        IEditorNode Drag(Vector2 _pos);
+        IEditorNode Scale(float scale, float delta, Vector2 mousePos);
+        Rect NodeShape { get; set; }
+        NodeState NodeState { get; set; }
+        GenericMenu ContextMenu { get; set; }
+        void EndLink(IEditorNode parent);
+        IEditorNode StartLink();
+    }
+
+    /// <summary>
+    /// The editor node graph interface.
+    /// </summary>
+    public interface IEditorGraph
+    {
+        bool InitializedGraph { get; set; }
+        Vector2 GraphPosition { get; set; }
+        float GraphScale { get; set; }
+        Matrix4x4 TransformMatrix { get; set; }
+        IEditorNode LinkRequester { get; set; }
+        List<NodeLink> Links { get; set; }
+        GenericMenu ContextMenu { get; set; }
+        void Drag();
+        void Zoom(float delta);
+        void InitializeGraph();
     }
 
     /// <summary>
@@ -2781,7 +2945,7 @@ namespace PulseEngine.Datas
     /// The command sequence executed.
     /// </summary>
     [System.Serializable]
-    public class CommandSequence : IEquatable<CommandSequence>, IData
+    public class CommandSequence : IEquatable<CommandSequence>, IData, IEditorGraph
     {
         #region Attributes #####################################################################################
 
@@ -2845,36 +3009,48 @@ namespace PulseEngine.Datas
 
 #if UNITY_EDITOR
 
+        public Vector2 GraphPosition { get; set; }
+        public float GraphScale { get; set; }
+        public Matrix4x4 TransformMatrix { get; set; }
+        public List<IEditorNode> Nodes { get; set; }
+        public GenericMenu ContextMenu { get; set; }
+        public List<NodeLink> Links { get; set; }
+        public bool InitializedGraph { get; set; }
+        public IEditorNode LinkRequester { get; set; }
 
-        /// <summary>
-        /// Initialise the special Nodes array.
-        /// </summary>
-        public void SetSpecialNodes()
+        public void Drag()
         {
-            if (specialCmds == null)
-                specialCmds = new List<Command>();
-            else
-                specialCmds.Clear();
-            Command entryCmd = new Command { Path = CommandPath.EntryPath, NodePosition = Vector2.one * (specialCmds.Count + 1) };
-            entryCmd.Type = CommandType.start;
-            entryCmd.CreateNode(new Vector2(150, 30));
-            specialCmds.Add(entryCmd);
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// To deselect all nodes in the sequence.
-        /// </summary>
-        public void DeselectAllNodes()
+        public void Zoom(float delta)
         {
+            throw new NotImplementedException();
+        }
+
+        public void InitializeGraph()
+        {
+            //Forcing base special commands.
+            if (specialCmds == null)
+                specialCmds = new List<Command>();
+            if (specialCmds.Count <= 0)
+                specialCmds.Add(new Command { Path = CommandPath.EntryPath });
+            if (specialCmds[0].Path != CommandPath.EntryPath)
+                specialCmds[0] = new Command { Path = CommandPath.EntryPath };
+            if (specialCmds.Count <= 1)
+                specialCmds.Add(new Command { Path = CommandPath.ExitPath });
+            if (specialCmds[1].Path != CommandPath.ExitPath)
+                specialCmds[1] = new Command { Path = CommandPath.ExitPath };
+
+            for(int i = 0; i < specialCmds.Count; i++)
+            {
+                specialCmds[i] = (Command)specialCmds[i].CreateNode();
+            }
             for(int i = 0; i < sequence.Count; i++)
             {
-                if(sequence[i].CmdNode != null)
-                {
-                    var cmd = sequence[i];
-                    cmd.CmdNode.Selected = false;
-                    sequence[i] = cmd;
-                }
+                sequence[i] = (Command)sequence[i].CreateNode();
             }
+            InitializedGraph = true;
         }
 
 #endif
@@ -2896,246 +3072,53 @@ namespace PulseEditor
 {
 
     /// <summary>
-    /// The editor node class
+    /// The editor link node class
     /// </summary>
-    public class Node
+    public class NodeLink
     {
-        #region Delegates ###########################################################
-
-
-        #endregion
-
-        #region Enums ###########################################################
-
-
-        /// <summary>
-        /// The differents sides of a node.
-        /// </summary>
-        public enum NodeEdgeSide
-        {
-            upper, lower, lefty, righty
-        }
-
-        #endregion
-
         #region Attributes ###########################################################
 
-        public List<(string, Action)> ContextActions = new List<(string, Action)>();
-        private Func<bool> connectAction;
-        private Action selectAction;
-        private Action<Vector2> nodeMove;
-        private Vector2 nodePosition;
-        private string nodeTitle;
-        private Rect shape;
-        private GUIStyle style;
-        private bool isDragged;
-        private bool selected;
-
         #endregion
-
         #region Properties ###########################################################
 
-        public Node(Vector2 _position, Vector2 _size)
+        public NodeLink(IEditorNode a, IEditorNode b)
         {
-            Shape = new Rect(_position, _size);
+
         }
 
-        ~Node()
-        {
-            UnlinkEvents();
-        }
+        /// <summary>
+        /// The start node.
+        /// </summary>
+        public IEditorNode StartNode { get; private set; }
 
-        public Vector2 NodePosition { get => nodePosition; set => nodePosition = value; }
-        public string NodeTitle { get => nodeTitle; set => nodeTitle = value; }
-        public Rect Shape { get => shape; set => shape = value; }
-        public bool IsDragged { get => isDragged; set => isDragged = value; }
-        public Func<bool> ConnectAction { get => connectAction; set => connectAction = value; }
-        public GUIStyle Style { get => style; set => style = value; }
-        public bool Selected { get => selected; set => selected = value; }
-        public Action SelectAction { get => selectAction; set => selectAction = value; }
-        public Action<Vector2> NodeMove { get => nodeMove; set => nodeMove = value; }
+        /// <summary>
+        /// The end node
+        /// </summary>
+        public IEditorNode EndNode { get; private set; }
+
+        #endregion
+        #region Methods ###########################################################
+
+        public void Draw()
+        {
+
+        }
 
         #endregion
 
         #region Methods ###########################################################
 
         /// <summary>
-        /// Return the corresponding egde's mid-point of a rect.
-        /// </summary>
-        /// <param name="_side">The specicied node edge</param>
-        /// <returns></returns>
-        public Vector2[] GetNodeEdge(NodeEdgeSide _side, float normalLenght = 100)
-        {
-            Vector2[] output = new Vector2[2];
-            float normalValue = normalLenght;
-            Vector2 point = Shape.position;
-            Vector2 normal = Shape.position;
-            switch (_side)
-            {
-                case NodeEdgeSide.upper:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f);
-                    normal = point - Vector2.up * normalValue;
-                    break;
-                case NodeEdgeSide.lower:
-                    point = Shape.position + Vector2.right * (Shape.width * 0.5f) + Vector2.up * Shape.height;
-                    normal = point + Vector2.up * normalValue;
-                    break;
-                case NodeEdgeSide.lefty:
-                    point = Shape.position + Vector2.up * (Shape.height * 0.5f);
-                    normal = point + Vector2.left * normalValue;
-                    break;
-                case NodeEdgeSide.righty:
-                    point = Shape.position + Vector2.right * Shape.width + Vector2.up * (Shape.height * 0.5f);
-                    normal = point - Vector2.left * normalValue;
-                    break;
-            }
-            output[0] = point;
-            output[1] = normal;
-            return output;
-        }
-
-        /// <summary>
-        /// Get the closest node's Edge
-        /// </summary>
-        /// <param name="_point">the point from wich calculation begins</param>
-        /// <param name="_nodeRect">the node's rect where to find edge</param>
-        /// <returns></returns>
-        public Vector2[] GetClosestNodeEdge(Vector2 _point, Rect _nodeRect)
-        {
-            List<Vector2[]> sides = new List<Vector2[]>();
-            float normal = Vector2.Distance(shape.position, _point) * 0.2f;
-            Vector2 center = _point;
-            sides.Add(GetNodeEdge(NodeEdgeSide.lefty, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.righty, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.upper, normal));
-            sides.Add(GetNodeEdge(NodeEdgeSide.lower, normal));
-            sides.Sort((side1, side2) => { return ((side1[0] - center).sqrMagnitude.CompareTo((side2[0] - center).sqrMagnitude)); });
-            return sides[0];
-        }
-
-        /// <summary>
-        /// Drad the node to move it
-        /// </summary>
-        /// <param name="delta"></param>
-        public void Drag(Vector2 delta)
-        {
-            shape.position += delta;
-            if (NodeMove != null)
-                NodeMove.Invoke(Shape.position);
-        }
-
-        /// <summary>
-        /// Draw the node shape and content
-        /// </summary>
-        public void Draw()
-        {
-            GUIContent content = new GUIContent();
-            content.text = NodeTitle;
-            content.tooltip = "Middle Click to edit";
-            GUI.Box(shape, content, Style);
-        }
-
-        /// <summary>
-        /// Listen to User interactions.
-        /// </summary>
-        /// <param name="e"></param>
-        /// <returns></returns>
-        public bool ProcessEvents(Event e)
-        {
-            switch (e.type)
-            {
-                case EventType.MouseDown:
-                    if (e.button == 0)
-                    {
-                        if (shape.Contains(e.mousePosition))
-                        {
-                            selected = false;
-                            if (connectAction != null)
-                                if (connectAction.Invoke())
-                                {
-                                    e.Use();
-                                    return true;
-                                }
-                            IsDragged = true;
-                            GUI.changed = true;
-                        }
-                        else
-                        {
-                            GUI.changed = true;
-                        }
-                    }
-                    if (e.button == 1 && shape.Contains(e.mousePosition))
-                    {
-                        GUI.FocusControl(null);
-                        ProcessContextMenu(e.mousePosition);
-                        e.Use();
-                    }
-                    if (e.button == 2 && shape.Contains(e.mousePosition))
-                    {
-                        if (selectAction != null)
-                            selectAction.Invoke();
-                        selected = true;
-                        e.Use();
-                    }
-                    break;
-
-                case EventType.MouseUp:
-                    IsDragged = false;
-                    break;
-
-                case EventType.MouseDrag:
-                    if (e.button == 0 && IsDragged)
-                    {
-                        Drag(e.delta);
-                        e.Use();
-                        return true;
-                    }
-                    break;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Show the context menu.
-        /// </summary>
-        /// <param name="mousePosition"></param>
-        private void ProcessContextMenu(Vector2 mousePosition)
-        {
-            GenericMenu genericMenu = new GenericMenu();
-            for (int i = 0; i < ContextActions.Count; i++)
-            {
-                int k = i;
-                GenericMenu.MenuFunction menuF = new GenericMenu.MenuFunction(() =>
-                {
-                    if (ContextActions[k].Item2 != null)
-                        ContextActions[k].Item2.Invoke();
-                });
-                genericMenu.AddItem(new GUIContent(ContextActions[i].Item1), false, menuF);
-            }
-            genericMenu.ShowAsContext();
-        }
-
-        /// <summary>
-        /// Try Connect Nodes with bezier.
-        /// </summary>
-        /// <param name="a"></param>
-        public static void TryConnect(Node a, Vector2 b)
-        {
-            Vector2[] trFromStart = a.GetClosestNodeEdge(b, a.Shape);
-            Handles.DrawBezier(trFromStart[0], b, trFromStart[1], b, Color.green, null, 1);
-        }
-
-        /// <summary>
         /// Connect Two Nodes with bezier.
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
-        public static void Connect(Node a, Node b)
+        public static void Connect(IEditorNode a, IEditorNode b)
         {
-            Vector2 dir = (b.shape.position - a.shape.position);
-            Vector2 joint = a.shape.position + (dir.normalized * 0.5f * dir.magnitude);
-            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.Shape);
-            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.Shape);
+            Vector2 dir = (b.NodeShape.position - a.NodeShape.position);
+            Vector2 joint = a.NodeShape.position + (dir.normalized * 0.5f * dir.magnitude);
+            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.NodeShape);
+            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.NodeShape);
             float arrowSize = 8;
             Vector2 staticEnd = (trToEnd[1] - trToEnd[0]).normalized * arrowSize;
             Vector2 perpendicularVector = Vector2.Perpendicular(trToEnd[0] - trToEnd[1]).normalized;
@@ -3144,7 +3127,7 @@ namespace PulseEditor
             arrowPoints[1] = trToEnd[0] + (staticEnd - perpendicularVector * arrowSize);
             arrowPoints[2] = trToEnd[0];
             Vector2 middleArrowPt = (Vector2)arrowPoints[2] + staticEnd;
-            Vector2 newNormal = middleArrowPt + staticEnd * 0.25f *(arrowPoints[0] - arrowPoints[1]).magnitude;
+            Vector2 newNormal = middleArrowPt + staticEnd * 0.25f * (arrowPoints[0] - arrowPoints[1]).magnitude;
             //var path = Handles.MakeBezierPoints(trFromStart[0], trToEnd[0], trFromStart[1], trToEnd[1], 50);
             Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, Color.white, null, 4);
             //int texLenght = 5;
@@ -3160,17 +3143,8 @@ namespace PulseEditor
             Handles.DrawAAConvexPolygon(arrowPoints);
         }
 
-        /// <summary>
-        /// Detach attached events.
-        /// </summary>
-        public void UnlinkEvents()
-        {
-            NodeMove = delegate { };
-        }
-
         #endregion
     }
-
 
 #endif
 }

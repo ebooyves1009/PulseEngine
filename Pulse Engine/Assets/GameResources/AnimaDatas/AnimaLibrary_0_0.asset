@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 340334532b1b21e4992aaf2972209b7c, type: 3}
-  m_Name: AnimaLibrary_0_0(Clone)
+  m_Name: AnimaLibrary_0_0(Clone)(Clone)
   m_EditorClassIdentifier: 
   libraryMainLocation: 0
   librarySecLocation: 0
@@ -22,17 +22,33 @@ MonoBehaviour:
       dType: 2
     eventList:
     - command:
+        path:
+          timeHash: 0
+          label: 
+        type: 0
+        childType: 0
         code: 0
         primaryParameters: {x: 0, y: 0, z: 0, w: 0}
         secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        editorNodePos: {x: 0, y: 0}
+        inputs: []
+        outputs: []
       timeStamp:
         time: 2.07
         duration: 0.033333335
       isOneTimeAction: 1
     - command:
+        path:
+          timeHash: 0
+          label: 
+        type: 0
+        childType: 0
         code: 0
         primaryParameters: {x: 0, y: 0, z: 0, w: 0}
         secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+        editorNodePos: {x: 0, y: 0}
+        inputs: []
+        outputs: []
       timeStamp:
         time: 5.81
         duration: 0.033333335

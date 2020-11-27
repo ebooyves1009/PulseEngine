@@ -19,12 +19,23 @@ MonoBehaviour:
     - path:
         timeHash: 0
         label: Entry
-      type: 2
+      type: 0
       childType: 0
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 1, y: 1}
+      editorNodePos: {x: 41.21811, y: 74.684814}
+      inputs: []
+      outputs: []
+    - path:
+        timeHash: 0
+        label: Exit
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 318.61658, y: 300.1399}
       inputs: []
       outputs: []
     sequence:
@@ -132,7 +143,7 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 1, y: 1}
+      editorNodePos: {x: 5.4264526, y: 16.547241}
       inputs: []
       outputs: []
     - path:
@@ -143,7 +154,7 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 76, y: 266}
+      editorNodePos: {x: 68.42645, y: 363.54724}
       inputs: []
       outputs: []
     - path:
@@ -154,7 +165,7 @@ MonoBehaviour:
       code: 0
       primaryParameters: {x: 0, y: 0, z: 0, w: 0}
       secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
-      editorNodePos: {x: 337, y: 223}
+      editorNodePos: {x: 479.42645, y: 258.54724}
       inputs: []
       outputs: []
     sequence:
@@ -266,3 +277,33 @@ MonoBehaviour:
       localLocation: 0
       dType: 6
     label: Resumable
+  - specialCmds:
+    - path:
+        timeHash: 0
+        label: Entry
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 120, y: 222}
+      inputs: []
+      outputs: []
+    - path:
+        timeHash: 0
+        label: Exit
+      type: 0
+      childType: 0
+      code: 0
+      primaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      secondaryParameters: {x: 0, y: 0, z: 0, w: 0}
+      editorNodePos: {x: 257, y: 60}
+      inputs: []
+      outputs: []
+    sequence: []
+    location:
+      id: 3
+      globalLocation: 0
+      localLocation: 0
+      dType: 6
+    label: Moyo

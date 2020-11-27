@@ -197,7 +197,6 @@ namespace PulseEditor.Modules
             ZonesSelector();
         }
 
-
         /// <summary>
         /// the selected CommandSequence datas.
         /// </summary>
@@ -206,29 +205,37 @@ namespace PulseEditor.Modules
         {
             if (data == null)
                 return;
+            if (!data.InitializedGraph)
+            {
+                data.InitializeGraph();
+                return;
+            }
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
+            //Show data main details
             GroupGUI(() =>
             {
-                data.Label = EditorGUILayout.TextField("Label: ",data.Label);
+                data.Label = EditorGUILayout.TextField("Label: ", data.Label);
             }, "Command Sequence Parameters");
-            int indexOfModified = data.Sequence.FindIndex(cmd => { return cmd.CmdNode != null && cmd.CmdNode.Selected; });
-            if (indexOfModified >= 0 && indexOfModified < data.Sequence.Count)
-            {
-                GroupGUI(() =>
-                {
-                    var sequence = data.Sequence;
-                    sequence[indexOfModified] = sequence[indexOfModified].CommandSettings();
-                    data.Sequence = sequence;
-                }, "Command Parameters");
-            }
+            //Show selected nodes details
+            //int indexOfModified = data.Sequence.FindIndex(cmd => { return cmd.CmdNode != null && cmd.CmdNode.Selected; });
+            //if (indexOfModified >= 0 && indexOfModified < data.Sequence.Count)
+            //{
+            //    GroupGUI(() =>
+            //    {
+            //        var sequence = data.Sequence;
+            //        sequence[indexOfModified] = sequence[indexOfModified].CommandSettings();
+            //        data.Sequence = sequence;
+            //    }, "Command Parameters");
+            //}
             GUILayout.EndVertical();
+            //Show graph nodes
             GroupGUI(() =>
             {
-                gridRect= GUILayoutUtility.GetAspectRect(18f / 9f);
+                gridRect = GUILayoutUtility.GetAspectRect(18f / 9f);
                 GUI.BeginGroup(gridRect, style_grid);
                 DrawNodes(data);
-                DrawLinks(data);
+                //DrawLinks(data);
                 ProcessNodeEvents(data, Event.current);
                 ProcessGraphEvents(Event.current, data);
                 GUI.EndGroup();
@@ -287,175 +294,15 @@ namespace PulseEditor.Modules
         /// </summary>
         protected void DrawNodes(CommandSequence data)
         {
-            if (data == null)
+            if (data == null || data.Sequence == null)
                 return;
-            int indexOfDefaultNode = -1;
-            if (data.specialCmds == null || data.specialCmds.Count <= 0)
-                data.SetSpecialNodes();
             for (int i = 0; i < data.specialCmds.Count; i++)
             {
-                if (data.specialCmds[i].CmdNode == null)
-                {
-                    var scmd = data.specialCmds[i];
-                    scmd.CreateNode(new Vector2(150, 30));
-                    data.specialCmds[i] = scmd;
-                    continue;
-                }
-                var com = data.specialCmds[i];
-                com.CmdNode.Style = style_node;
-                data.specialCmds[i] = com;
-                data.specialCmds[i].CmdNode.NodeTitle = data.specialCmds[i].Path.Label;
-                if (i > 0)
-                {
-                    try
-                    {
-                        com.CmdNode.ContextActions[0] = ("Delete", () =>
-                        {
-                            int index = data.specialCmds.FindIndex(c => { return c == com; });
-                            if (data.specialCmds.IndexInCollection(index))
-                                data.specialCmds.RemoveAt(index);
-                        }
-                        );
-                    }
-                    catch
-                    {
-                        com.CmdNode.ContextActions.Add(("Delete", () =>
-                        {
-                            int index = data.specialCmds.FindIndex(c => { return c == com; });
-                            if (data.specialCmds.IndexInCollection(index))
-                                data.specialCmds.RemoveAt(index);
-                        }
-                        ));
-                    }
-                    com.CmdNode.ConnectAction = () =>
-                    {
-                        if (selectedPath == CommandPath.NullPath)
-                            return false;
-                        int indexConnectFrom = data.Sequence.FindIndex(c => { return c.Path == selectedPath; });
-                        if (indexConnectFrom >= 0 && indexConnectFrom < data.Sequence.Count)
-                        {
-                            Command.Link(data, selectedPath, com.Path);
-                            selectedPath = CommandPath.NullPath;
-                            return true;
-                        }
-                        return false;
-                    };
-                }
-                data.specialCmds[i].CmdNode.Draw();
+                data.specialCmds[i].DrawNode(style_nodeSpecials);
             }
-            for(int i = 0; i < data.Sequence.Count; i++)
+            for (int i = 0; i < data.Sequence.Count; i++)
             {
-                int k = i;
-                if (data.Sequence[k].CmdNode == null)
-                {
-                    var cmd = data.Sequence[k];
-                    cmd.CreateNode(new Vector2(120, 80));
-                    data.Sequence[k] = cmd;
-                }
-                if(data.Sequence[k].CmdNode != null)
-                {
-                    var cmd = data.Sequence[k];
-                    if (indexOfDefaultNode < 0 && cmd.Inputs.Contains(CommandPath.EntryPath))
-                    {
-                        //PulseDebug.Log("Found default node at " + k);
-                        indexOfDefaultNode = k;
-                    }
-                    cmd.CmdNode.Style = new GUIStyle("Button");
-                    if (data.Sequence[k].CmdNode.Selected)
-                    {
-                        cmd.CmdNode.Style = style_node;
-                    }
-                    cmd.CmdNode.SelectAction = () =>
-                    {
-                        data.DeselectAllNodes();
-                    };
-                    //Context menu parenting
-                    try
-                    {
-                        cmd.CmdNode.ContextActions[0] = (("Link to...", () =>
-                        {
-                            selectedPath = cmd.Path;
-                        }
-                        ));
-                    }
-                    catch
-                    {
-                        cmd.CmdNode.ContextActions.Add(("Link to...", () =>
-                        {
-                            selectedPath = cmd.Path;
-                        }
-                        ));
-                    }
-                    //Context menu Delete
-                    try
-                    {
-                        cmd.CmdNode.ContextActions[1] = (("Delete", () =>
-                        {
-                            var sq = data.Sequence;
-                            int index = sq.FindIndex(c => { return c.Path == cmd.Path; });
-                            if (index < 0)
-                                return;
-                            sq[index].UnLinkAll(data);
-                            sq[index].CmdNode.UnlinkEvents();
-                            sq.RemoveAt(index);
-                            data.Sequence = sq;
-                        }
-                        ));
-                    }
-                    catch
-                    {
-                        cmd.CmdNode.ContextActions.Add(("Delete", () =>
-                        {
-                            var sq = data.Sequence;
-                            int index = sq.FindIndex(c => { return c.Path == cmd.Path; });
-                            if (index < 0)
-                                return;
-                            sq[index].UnLinkAll(data);
-                            sq[index].CmdNode.UnlinkEvents();
-                            sq.RemoveAt(index);
-                            data.Sequence = sq;
-                        }
-                        ));
-                    }
-                    cmd.CmdNode.ConnectAction = () =>
-                    {
-                        if (selectedPath == CommandPath.NullPath)
-                            return false;
-                        int indexConnectFrom = data.Sequence.FindIndex(c => { return c.Path == selectedPath; });
-                        if (indexConnectFrom >= 0 && indexConnectFrom < data.Sequence.Count)
-                        {
-                            Command.Link(data, selectedPath, data.Sequence[k].Path);
-                            selectedPath = CommandPath.NullPath;
-                            return true;
-                        }
-                        return false;
-                    };
-                    cmd.CmdNode.NodeMove = v =>
-                    {
-                        var c = data.Sequence[k];
-                        c.NodePosition = v;
-                        data.Sequence[k] = c;
-                    };
-                    cmd.CmdNode.NodeTitle = data.Sequence[k].Path.Label + " || " + data.Sequence[k].Inputs.Count + " ; " + data.Sequence[k].Outputs.Count;
-                    data.Sequence[k] = cmd;
-                    data.Sequence[k].CmdNode.Draw();
-                }
-            }
-            if (indexOfDefaultNode < 0)
-            {
-                //PulseDebug.Log("No entry node");
-                for (int i = 0; i < data.Sequence.Count; i++)
-                {
-                    var cmd = data.Sequence[i];
-                    cmd.UnLinkAll(data);
-                    data.Sequence[i] = cmd;
-                }
-                if (data.Sequence.Count > 0)
-                {
-                    var cmd = data.Sequence[0];
-                    Command.Link(data, data.specialCmds[0].Path, cmd.Path);
-                    data.Sequence[0] = cmd;
-                }
+                data.Sequence[i].DrawNode(style_node);
             }
         }
 
@@ -464,52 +311,52 @@ namespace PulseEditor.Modules
         /// </summary>
         protected void DrawLinks(CommandSequence data)
         {
-            for(int i = 0; i < data.Sequence.Count; i++)
-            {
-                var a = data.Sequence[i];
-                if (a.CmdNode == null)
-                    continue;
-                for(int j = 0; j < a.Inputs.Count; j++)
-                {
-                    if (a.Inputs[j] != CommandPath.EntryPath)
-                        continue;
-                    int index = data.specialCmds.FindIndex(t => { return t.Path == a.Inputs[j]; });
-                    if (index >= 0)
-                    {
-                        if (data.specialCmds[index].CmdNode == null)
-                            continue;
-                        Node.Connect(data.specialCmds[index].CmdNode, a.CmdNode);
-                    }
-                }
-            }
-            for(int i = 0; i < data.Sequence.Count; i++)
-            {
-                var a = data.Sequence[i];
-                if (a.CmdNode == null)
-                    continue;
-                for(int j = 0; j < a.Outputs.Count; j++)
-                {
-                    if (a.Outputs[j] == CommandPath.NullPath)
-                        continue;
-                    int index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
-                    if (index >= 0)
-                    {
-                        if (data.Sequence[index].CmdNode == null)
-                            continue;
-                        Node.Connect(a.CmdNode, data.Sequence[index].CmdNode);
-                    }
-                    else
-                    {
-                        index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
-                        if(index >= 0)
-                        {
-                            if (data.specialCmds[index].CmdNode == null)
-                                continue;
-                            Node.Connect(a.CmdNode, data.specialCmds[index].CmdNode);
-                        }
-                    }
-                }
-            }
+            //for(int i = 0; i < data.Sequence.Count; i++)
+            //{
+            //    var a = data.Sequence[i];
+            //    if (a.CmdNode == null)
+            //        continue;
+            //    for(int j = 0; j < a.Inputs.Count; j++)
+            //    {
+            //        if (a.Inputs[j] != CommandPath.EntryPath)
+            //            continue;
+            //        int index = data.specialCmds.FindIndex(t => { return t.Path == a.Inputs[j]; });
+            //        if (index >= 0)
+            //        {
+            //            if (data.specialCmds[index].CmdNode == null)
+            //                continue;
+            //            Node.Connect(data.specialCmds[index].CmdNode, a.CmdNode);
+            //        }
+            //    }
+            //}
+            //for(int i = 0; i < data.Sequence.Count; i++)
+            //{
+            //    var a = data.Sequence[i];
+            //    if (a.CmdNode == null)
+            //        continue;
+            //    for(int j = 0; j < a.Outputs.Count; j++)
+            //    {
+            //        if (a.Outputs[j] == CommandPath.NullPath)
+            //            continue;
+            //        int index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
+            //        if (index >= 0)
+            //        {
+            //            if (data.Sequence[index].CmdNode == null)
+            //                continue;
+            //            Node.Connect(a.CmdNode, data.Sequence[index].CmdNode);
+            //        }
+            //        else
+            //        {
+            //            index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
+            //            if(index >= 0)
+            //            {
+            //                if (data.specialCmds[index].CmdNode == null)
+            //                    continue;
+            //                Node.Connect(a.CmdNode, data.specialCmds[index].CmdNode);
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         /// <summary>
@@ -524,9 +371,8 @@ namespace PulseEditor.Modules
             {
                 for (int i = 0; i < data.specialCmds.Count; i++)
                 {
-                    if (data.specialCmds[i].CmdNode == null)
-                        continue;
-                    bool guiChanged = data.specialCmds[i].CmdNode.ProcessEvents(e);
+                    bool guiChanged = false;
+                    data.specialCmds[i] = (Command)data.specialCmds[i].ProcessNodeEvents(e, data, out guiChanged);
 
                     if (guiChanged)
                     {
@@ -535,16 +381,21 @@ namespace PulseEditor.Modules
                     }
                 }
             }
-            for (int i = data.Sequence.Count - 1; i >= 0; i--)
-            {
-                if (data.Sequence[i].CmdNode == null)
-                    continue;
-                bool guiChanged = data.Sequence[i].CmdNode.ProcessEvents(e);
+            //TODO: Force an enter and an exit
 
-                if (guiChanged)
+            //
+            if (data.Sequence != null)
+            {
+                for (int i = 0; i < data.Sequence.Count; i++)
                 {
-                    GUI.FocusControl(null);
-                    GUI.changed = true;
+                    bool guiChanged = false;
+                    data.Sequence[i] = (Command)data.Sequence[i].ProcessNodeEvents(e, data, out guiChanged);
+
+                    if (guiChanged)
+                    {
+                        GUI.FocusControl(null);
+                        GUI.changed = true;
+                    }
                 }
             }
         }
@@ -563,29 +414,99 @@ namespace PulseEditor.Modules
                     if (e.button == 1)
                     {
                         GUI.FocusControl(null);
-                        ProcessContextMenu(e.mousePosition, data);
+                        //ProcessContextMenu(e.mousePosition, data);
                     }
                     if (e.button == 0)
                     {
                         GUI.FocusControl(null);
-                        if (data.Sequence != null)
+                        //if (data.Sequence != null)
+                        //{
+                        //    int index = data.Sequence.FindIndex(cmd => { return cmd.Path == selectedPath; });
+                        //    if (index >= 0)
+                        //        data.Sequence[index].BreakInputs(data);
+                        //}
+                        //selectedPath = CommandPath.NullPath;
+                        //data.DeselectAllNodes();
+                    }
+                    break;
+                case EventType.MouseDrag:
+                    {
+                        if (e.button == 2)
                         {
-                            int index = data.Sequence.FindIndex(cmd => { return cmd.Path == selectedPath; });
-                            if (index >= 0)
-                                data.Sequence[index].BreakInputs(data);
+                            Vector2 delta = e.delta;
+                            data.GraphPosition += delta;
+                            Parallel.For(0, data.specialCmds.Count, i =>
+                             {
+                                 data.specialCmds[i] = (Command)data.specialCmds[i].Drag(delta);
+                             });
+                            Parallel.For(0, data.Sequence.Count, i =>
+                             {
+                                 data.Sequence[i] = (Command)data.Sequence[i].Drag(delta);
+                             });
                         }
-                        selectedPath = CommandPath.NullPath;
-                        data.DeselectAllNodes();
+                    }
+                    break;
+                case EventType.ScrollWheel:
+                    {
+                        data.GraphScale += e.delta.y * 10f;
+                        data.GraphScale = Mathf.Clamp(data.GraphScale, 50, 200);
+                        Rect gridZone = new Rect(Vector2.zero, gridRect.size);
+                        float delta = e.delta.y;
+                        Vector2 mPos = e.mousePosition;
+
+                        Parallel.For(0, data.specialCmds.Count, i =>
+                       {
+                           data.specialCmds[i] = (Command)data.specialCmds[i].Scale(data.GraphScale, delta, mPos);
+                       });
+                        Parallel.For(0, data.Sequence.Count, i =>
+                       {
+                           data.Sequence[i] = (Command)data.Sequence[i].Scale(data.GraphScale, delta, mPos);
+                       });
                     }
                     break;
                 case EventType.Repaint:
-                    if (data.Sequence != null)
                     {
-                        if (selectedPath == CommandPath.NullPath)
-                            break;
-                        int index = data.Sequence.FindIndex(cmd => { return cmd.Path == selectedPath; });
-                        if (index >= 0 && data.Sequence[index].CmdNode != null)
-                            Node.TryConnect(data.Sequence[index].CmdNode, e.mousePosition);
+                        Rect gridZone = new Rect(Vector2.zero, gridRect.size);
+                        data.TransformMatrix = Matrix4x4.TRS(gridZone.center, Quaternion.identity, Vector3.one);
+                        List<Rect> rectList = new List<Rect>(data.specialCmds.Where(c=> { return !gridZone.Contains(c.NodeShape.center); }).Select(c => { return c.NodeShape; }));
+                        if (rectList.Count > 0 && rectList.Count >= data.specialCmds.Count)
+                        {
+                            rectList.Sort((x, y) => { return (x.center - e.mousePosition).sqrMagnitude.CompareTo((y.center - e.mousePosition).sqrMagnitude); });
+                            if (!gridZone.Contains(rectList[0].center, true))
+                            {
+                                Handles.DrawLine(rectList[0].center, e.mousePosition);
+                            }
+                        }
+                        Vector2 mPos = e.mousePosition;
+
+                        data.specialCmds.ForEach(cmd =>
+                        {
+                            Vector2 dir = cmd.NodeShape.center - mPos;
+                            float angle = Vector2.SignedAngle(dir.normalized, Vector2.right);
+                            float magnitude = dir.magnitude;
+                            Vector2 tangent = new Vector2(mPos.x + magnitude * Mathf.Cos(angle * Mathf.Deg2Rad), cmd.NodeShape.center.y + magnitude * Mathf.Sin(angle * Mathf.Deg2Rad));
+                            if (cmd.NodeState == NodeState.doubleClicked)
+                            {
+                                Handles.DrawBezier(cmd.NodeShape.center, mPos, tangent, tangent, Color.green, null, 2);
+                            }
+                        });
+                        data.Sequence.ForEach(cmd =>
+                        {
+                            Vector2 dir = cmd.NodeShape.center - mPos;
+                            float angle = Vector2.SignedAngle(dir.normalized, Vector2.right);
+                            float magnitude = dir.magnitude;
+                            Vector2 tangent = new Vector2(mPos.x + magnitude * Mathf.Cos(angle * Mathf.Deg2Rad), cmd.NodeShape.center.y + magnitude * Mathf.Sin(angle * Mathf.Deg2Rad));
+                            if (cmd.NodeState == NodeState.doubleClicked)
+                            {
+                                Handles.DrawBezier(cmd.NodeShape.center, mPos, tangent, tangent, Color.green, null, 2);
+                            }
+                        });
+
+                        //if (selectedPath == CommandPath.NullPath)
+                        //    break;
+                        //int index = data.Sequence.FindIndex(cmd => { return cmd.Path == selectedPath; });
+                        //if (index >= 0 && data.Sequence[index].CmdNode != null)
+                        //    Node.TryConnect(data.Sequence[index].CmdNode, e.mousePosition);
                     }
                     break;
             }
@@ -615,7 +536,7 @@ namespace PulseEditor.Modules
             if (data == null)
                 return;
             var sq = data.Sequence;
-            var cmd = new Command { Path = new CommandPath(DateTime.Now), NodePosition = mousePosition };
+            var cmd = new Command { Path = new CommandPath(DateTime.Now), NodeShape = new Rect(mousePosition, new Vector2(200,80)) };
             var p = cmd.Path;
             p.Label = "Command "+(sq.Count + 1);
             cmd.Path = p;
@@ -633,7 +554,7 @@ namespace PulseEditor.Modules
             if (data == null)
                 return;
             var sq = data.specialCmds;
-            var cmd = new Command { NodePosition = mousePosition };
+            var cmd = new Command { NodeShape = new Rect(mousePosition, new Vector2(200, 80)) };
             var p = cmd.Path;
             switch (commandType)
             {
@@ -669,7 +590,6 @@ namespace PulseEditor.Modules
         /// </summary>
         protected override void OnListChange()
         {
-
         }
 
         /// <summary>

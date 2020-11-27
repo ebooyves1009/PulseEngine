@@ -226,6 +226,11 @@ namespace PulseEditor
         protected GUIStyle style_node;
 
         /// <summary>
+        /// le style des Nodes speciaux.
+        /// </summary>
+        protected GUIStyle style_nodeSpecials;
+
+        /// <summary>
         /// le style des labels.
         /// </summary>
         protected GUIStyle style_label;
@@ -288,85 +293,96 @@ namespace PulseEditor
             }
             GUILayout.BeginHorizontal();
             //left panel
-            if (currentEditorMode != EditorMode.DataEdition && dataList != null)
+            try
             {
-                string[] names = new string[dataList.Count];
-                if (dataList.Count > 0)
+                if (currentEditorMode != EditorMode.DataEdition && dataList != null)
                 {
-                    Type Ttype = dataList[0].GetType();
-                    PropertyInfo locationField = Ttype.GetProperty("Location");
-                    PropertyInfo tradField = Ttype.GetProperty("TradLocation");
-                    DataLocation locationFieldValue = default;
-                    DataLocation tradFieldValue = default;
-                    bool traductible = Ttype.BaseType == typeof(LocalisableData);
-                    bool tradData = Ttype == typeof(Localisationdata);
-                    for (int i = 0, len = dataList.Count; i < len; i++)
+                    string[] names = new string[dataList.Count];
+                    if (dataList.Count > 0)
                     {
-                        locationFieldValue = locationField != null ? (DataLocation)locationField.GetValue(dataList[i]) : default;
-                        tradFieldValue = tradField != null ? (DataLocation)tradField.GetValue(dataList[i]) : default;
-                        string idValue = (locationFieldValue != default(DataLocation) ? locationFieldValue.id.ToString() : "Null ID");
-                        string tradValue = string.Empty;
-                        if (tradFieldValue != default(DataLocation) && traductible)
+                        Type Ttype = dataList[0].GetType();
+                        PropertyInfo locationField = null;
+                        locationField = Ttype.GetProperty("Location");
+                        PropertyInfo tradField = null;
+                        tradField = Ttype.GetProperty("TradLocation");
+                        DataLocation locationFieldValue = default;
+                        DataLocation tradFieldValue = default;
+                        bool traductible = Ttype.BaseType == typeof(LocalisableData);
+                        bool tradData = Ttype == typeof(Localisationdata);
+                        for (int i = 0, len = dataList.Count; i < len; i++)
                         {
-                            var cachedData = GetCachedData(tradFieldValue);
-                            if (cachedData != null)
+                            locationFieldValue = locationField != null ? (DataLocation)locationField.GetValue(dataList[i]) : default;
+                            tradFieldValue = tradField != null ? (DataLocation)tradField.GetValue(dataList[i]) : default;
+                            string idValue = (locationFieldValue != default(DataLocation) ? locationFieldValue.id.ToString() : "Null ID");
+                            string tradValue = string.Empty;
+                            if (tradFieldValue != default(DataLocation) && traductible)
                             {
-                                Localisationdata lData = cachedData as Localisationdata;
-                                if (lData != null)
+                                var cachedData = GetCachedData(tradFieldValue);
+                                if (cachedData != null)
                                 {
-                                    tradValue = lData.Title.textField;
+                                    Localisationdata lData = cachedData as Localisationdata;
+                                    if (lData != null)
+                                    {
+                                        tradValue = lData.Title.textField;
+                                    }
                                 }
                             }
-                        } else if (tradData)
-                        {
-                            var titleValue = ((Localisationdata)dataList[i]).Title.textField;
-                            tradValue = titleValue != null ? titleValue : "Empty title";
-                        }else
-                        {
-                            switch (Ttype.Name)
+                            else if (tradData)
                             {
-                                case "AnimaData":
-                                    {
-                                        AnimaData dtValue = dataList[i] as AnimaData;
-                                        tradValue = dtValue != null && dtValue.Motion != null ? dtValue.Motion.name : "No Motion";
-                                    }
-                                    break;
-                                case "CommandSequence":
-                                    {
-                                        CommandSequence dtValue = dataList[i] as CommandSequence;
-                                        tradValue = dtValue != null ? (string.IsNullOrEmpty(dtValue.Label)? "-****-" : dtValue.Label) +(dtValue.Sequence.Count > 0? string.Empty : " @Empty...") : "Null Sequence";
-                                    }
-                                    break;
+                                var titleValue = ((Localisationdata)dataList[i]).Title.textField;
+                                tradValue = titleValue != null ? titleValue : "Empty title";
                             }
+                            else
+                            {
+                                switch (Ttype.Name)
+                                {
+                                    case "AnimaData":
+                                        {
+                                            AnimaData dtValue = dataList[i] as AnimaData;
+                                            tradValue = dtValue != null && dtValue.Motion != null ? dtValue.Motion.name : "No Motion";
+                                        }
+                                        break;
+                                    case "CommandSequence":
+                                        {
+                                            CommandSequence dtValue = dataList[i] as CommandSequence;
+                                            tradValue = dtValue != null ? (string.IsNullOrEmpty(dtValue.Label) ? "-****-" : dtValue.Label) + (dtValue.Sequence.Count > 0 ? string.Empty : " @Empty...") : "Null Sequence";
+                                        }
+                                        break;
+                                }
+                            }
+                            names[i] = idValue + " -> " + (tradValue != string.Empty ? tradValue : "null trad name");
                         }
-                        names[i] = idValue + " -> " + (tradValue != string.Empty ? tradValue : "null trad name");
                     }
-                }
-                //filtering here
-                //TODO: function to filter the list here
-                //sorting here
-                //TODO: function to sort the list here
-                //displaying
-                ScrollablePanel(() =>
-                {
-                    //search and filter
-                    //listing
-                    GroupGUI(() =>
+                    //filtering here
+                    //TODO: function to filter the list here
+                    //sorting here
+                    //TODO: function to sort the list here
+                    //displaying
+                    ScrollablePanel(() =>
                     {
-                        MakeList(selectDataIndex, names, index => selectDataIndex = index, dataList.ToArray());
-                        if (asset != null)
-                            asset.DataList = dataList.Cast<IData>().ToList();
-                        //if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
-                        //    data = dataList[selectDataIndex];
-                        if (editorDataType != DataTypes.none)
-                            OnListButtons(editorDataType);
-                    }, editorDataType.ToString() + " Items");
-                    //foot panel
-                    OnFootRedraw();
-                    //save panel
-                    SaveBarPanel();
+                        //search and filter
+                        //listing
+                        GroupGUI(() =>
+                        {
+                            MakeList(selectDataIndex, names, index => selectDataIndex = index, dataList.ToArray());
+                            if (asset != null)
+                                asset.DataList = dataList.Cast<IData>().ToList();
+                            //if (selectDataIndex >= 0 && selectDataIndex < dataList.Count)
+                            //    data = dataList[selectDataIndex];
+                            if (editorDataType != DataTypes.none)
+                                OnListButtons(editorDataType);
+                        }, editorDataType.ToString() + " Items");
+                        //foot panel
+                        OnFootRedraw();
+                        //save panel
+                        SaveBarPanel();
 
-                },true);
+                    }, true);
+                }
+            }
+            catch(Exception e) {
+                PulseDebug.LogError("Exeption thrown " + e.Message);
+                CloseWindow();
             }
             ScrollablePanel(() =>
             {
@@ -465,11 +481,54 @@ namespace PulseEditor
             //obj select
             style_objSelect = new[] { GUILayout.Width(150), GUILayout.Height(150) };
             //Nodes
-            style_node = new GUIStyle("Button");
-            style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
-            style_node.border = new RectOffset(20, 20, 20, 20);
-            //Nodes
+            style_node = new GUIStyle();
+            style_node.focused.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+            style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node0.png") as Texture2D;
+            style_node.normal.textColor = Color.white;
+            style_node.hover.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node2.png") as Texture2D;
+            style_node.hover.textColor = Color.white;
+            style_node.alignment = TextAnchor.MiddleCenter;
+            style_node.fontStyle = FontStyle.Bold;
+            {
+                int border = 15;
+                style_node.border = new RectOffset(border, border, border, border);
+            }
+            //Nodes special
+            style_nodeSpecials = new GUIStyle();
+            style_nodeSpecials.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+            style_nodeSpecials.normal.textColor = Color.white;
+            style_nodeSpecials.alignment = TextAnchor.MiddleCenter;
+            {
+                int border = 8;
+                style_nodeSpecials.border = new RectOffset(border, border, border, border);
+            }
+            //Grid
             style_grid = new GUIStyle(GUI.skin.window);
+            Vector2Int scale = new Vector2Int(1024, 1024 * (16 / 9));
+            var gridTexture = new Texture2D(scale.x, scale.y);
+            float caseRatio = 0.95f;
+            float linesTickness = (1 - caseRatio) / 2;
+            float aspectratio = gridTexture.width / gridTexture.height;
+            int caseNumX = 64;
+            int caseNumY = Mathf.RoundToInt(caseNumX * aspectratio);
+            int caseSizeX = gridTexture.width / caseNumX;
+            int caseSizeY = gridTexture.height / caseNumY;
+            for (int i = 0; i < gridTexture.width; i++)
+            {
+                float progressionX = i % caseSizeX;
+                float xpercent = (progressionX / caseSizeX);
+                bool inMiddleX = xpercent > linesTickness && xpercent <= (caseRatio + linesTickness);
+                for (int j = 0; j < gridTexture.height; j++)
+                {
+                    float progressionY = j % caseSizeY;
+                    float ypercent = (progressionY / caseSizeY);
+                    bool inMiddleY = ypercent > linesTickness && ypercent <= (caseRatio + linesTickness);
+                    Color c = inMiddleX && inMiddleY ? new Color(0, 0, 0, 0.15f) : new Color(1, 1, 1, 0.5f);
+                    gridTexture.SetPixel(i, j, c);
+                }
+            }
+            gridTexture.Apply();
+            style_grid.normal.background = gridTexture;
 
             multipleStyleSetLock = true;
         }
@@ -1090,13 +1149,13 @@ namespace PulseEditor
         private void OnDisable()
         {
             clipBoard = null;
-            if (currentEditorMode == EditorMode.DataEdition)
-            {
-                SaveAsset(asset, originalAsset);
-            }
-            RefreshCache(editorDataType);
+            //if (currentEditorMode == EditorMode.DataEdition)
+            //{
+            //    SaveAsset(asset, originalAsset);
+            //}
+            //RefreshCache(editorDataType);
             OnQuit();
-            CloseWindow();
+            //CloseWindow();
         }
 
         #endregion
@@ -1711,21 +1770,28 @@ namespace PulseEditor
             if (clip == null)
                 return;
             //Display controls
-            GUILayout.BeginHorizontal("HelpBox");
-            if (GUILayout.Button(isPlaying ? "||" : ">>", new[] { GUILayout.Width(30), GUILayout.Height(20) }))
+            try
             {
-                isPlaying = !isPlaying;
+                GUILayout.BeginHorizontal("HelpBox");
+                if (GUILayout.Button(isPlaying ? "||" : ">>", new[] { GUILayout.Width(30), GUILayout.Height(20) }))
+                {
+                    isPlaying = !isPlaying;
+                }
+                if (isPlaying)
+                {
+                    var rect2 = GUILayoutUtility.GetRect(50, 20);
+                    EditorGUI.ProgressBar(rect2, pTime / clip.length, "");
+                }
+                else
+                {
+                    pTime = EditorGUILayout.Slider(pTime, 0, clip.length);
+                }
+                GUILayout.EndHorizontal();
             }
-            if (isPlaying)
-            {
-                var rect2 = GUILayoutUtility.GetRect(50, 20);
-                EditorGUI.ProgressBar(rect2, pTime / clip.length, "");
+            catch (Exception e){
+                if (Core.DebugMode)
+                    throw e;
             }
-            else
-            {
-                pTime = EditorGUILayout.Slider(pTime, 0, clip.length);
-            }
-            GUILayout.EndHorizontal();
         }
 
         #endregion

@@ -299,14 +299,14 @@ namespace PulseEditor.Modules
                 if (GUILayout.Button("Edit " + name + " Stats"))
                 {
                     StatWinEditor.OpenEditor(data.Stats, obj =>
-                   {
-                       try
-                       {
-                           MindStat rSt = (MindStat)obj;
-                           data.Stats = rSt;
-                       }
-                       catch (Exception e) { PulseDebug.Log(e.Message); }
-                   });
+                    {
+                        try
+                        {
+                            MindStat rSt = (MindStat)obj;
+                            data.Stats = rSt;
+                        }
+                        catch (Exception e) { PulseDebug.Log(e.Message); }
+                    });
                 }
                 GUILayout.EndHorizontal();
 
@@ -330,18 +330,18 @@ namespace PulseEditor.Modules
                         if (openMethod != null)
                         {
                             Action<object, EventArgs> parameters = (obj, arg) =>
-                             {
-                                 var collection = obj as List<WeaponData>;
-                                 if (collection != null)
-                                 {
-                                     List<DataLocation> wpLocations = new List<DataLocation>();
-                                     for (int i = 0; i < collection.Count; i++)
-                                     {
-                                         wpLocations.Add(collection[i].Location);
-                                     }
-                                     data.Armurie = wpLocations;
-                                 }
-                             };
+                            {
+                                var collection = obj as List<WeaponData>;
+                                if (collection != null)
+                                {
+                                    List<DataLocation> wpLocations = new List<DataLocation>();
+                                    for (int i = 0; i < collection.Count; i++)
+                                    {
+                                        wpLocations.Add(collection[i].Location);
+                                    }
+                                    data.Armurie = wpLocations;
+                                }
+                            };
                             openMethod.Invoke(null, new object[] { parameters });
                         }
                     }
@@ -356,18 +356,18 @@ namespace PulseEditor.Modules
                 if (GUILayout.Button("Edit " + name + " Runtime Controller"))
                 {
                     var machineEditor = TypeInfo.GetType("Anima.AnimaEditor.AnimaMachineEditor");
-                    if(machineEditor != null)
+                    if (machineEditor != null)
                     {
                         var openMethod = machineEditor.GetMethod("Open", BindingFlags.Public);
-                        if(openMethod != null)
+                        if (openMethod != null)
                         {
                             Action<object, EventArgs> parameters = (obj, arg) =>
-                             {
-                                 var rt = obj as RuntimeAnimatorController;
-                                 if (rt != null)
-                                     data.AnimatorController = rt;
-                                 RefreshPreview();
-                             };
+                            {
+                                var rt = obj as RuntimeAnimatorController;
+                                if (rt != null)
+                                    data.AnimatorController = rt;
+                                RefreshPreview();
+                            };
                             openMethod.Invoke(null, new object[] { data.AnimatorController, data.AnimatorAvatar, name, parameters });
                         }
                     }
@@ -379,6 +379,8 @@ namespace PulseEditor.Modules
 
                 GUILayout.EndVertical();
             }, data.Location.id + " Edition");
+            GUILayout.Space(10);
+            AnimationsPreview((CharacterData)data);
         }
 
         /// <summary>
@@ -545,12 +547,7 @@ namespace PulseEditor.Modules
 
         protected override void OnBodyRedraw()
         {
-            ScrollablePanel(() =>
-            {
-                Details((CharacterData)data);
-                GUILayout.Space(5);
-                AnimationsPreview((CharacterData)data);
-            });
+            Details((CharacterData)data);
         }
 
         protected override void OnHeaderRedraw()
