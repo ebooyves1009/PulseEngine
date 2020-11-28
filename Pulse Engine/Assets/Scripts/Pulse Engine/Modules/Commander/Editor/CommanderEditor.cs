@@ -218,16 +218,14 @@ namespace PulseEditor.Modules
                 data.Label = EditorGUILayout.TextField("Label: ", data.Label);
             }, "Command Sequence Parameters");
             //Show selected nodes details
-            //int indexOfModified = data.Sequence.FindIndex(cmd => { return cmd.CmdNode != null && cmd.CmdNode.Selected; });
-            //if (indexOfModified >= 0 && indexOfModified < data.Sequence.Count)
-            //{
-            //    GroupGUI(() =>
-            //    {
-            //        var sequence = data.Sequence;
-            //        sequence[indexOfModified] = sequence[indexOfModified].CommandSettings();
-            //        data.Sequence = sequence;
-            //    }, "Command Parameters");
-            //}
+            int indexOfModified = data.Sequence.FindIndex(cmd => { return cmd.NodeState == NodeState.selected; });
+            if (indexOfModified >= 0 && indexOfModified < data.Sequence.Count)
+            {
+                GroupGUI(() =>
+                {
+                    data.Sequence[indexOfModified] = (Command)data.Sequence[indexOfModified].ShowDetails();
+                }, "Command Parameters");
+            }
             GUILayout.EndVertical();
             //Show graph nodes
             GroupGUI(() =>
@@ -235,7 +233,7 @@ namespace PulseEditor.Modules
                 gridRect = GUILayoutUtility.GetAspectRect(18f / 9f);
                 GUI.BeginGroup(gridRect, style_grid);
                 DrawNodes(data);
-                //DrawLinks(data);
+                DrawLinks(data);
                 ProcessNodeEvents(data, Event.current);
                 ProcessGraphEvents(Event.current, data);
                 GUI.EndGroup();
@@ -300,6 +298,17 @@ namespace PulseEditor.Modules
             {
                 data.specialCmds[i].DrawNode(style_nodeSpecials);
             }
+
+            Parallel.For(0, data.Sequence.Count, i =>
+            {
+                int k = i;
+                var cmd = data.Sequence[k];
+                GenericMenu spMenu = new GenericMenu();
+                spMenu.AddItem(new GUIContent("Delete"), false, () => { data.Sequence[k].UnLinkAll(data); data.Sequence.RemoveAt(k); });
+                cmd.ContextMenu = spMenu;
+                data.Sequence[k] = cmd;
+            });
+
             for (int i = 0; i < data.Sequence.Count; i++)
             {
                 data.Sequence[i].DrawNode(style_node);
@@ -311,52 +320,58 @@ namespace PulseEditor.Modules
         /// </summary>
         protected void DrawLinks(CommandSequence data)
         {
-            //for(int i = 0; i < data.Sequence.Count; i++)
-            //{
-            //    var a = data.Sequence[i];
-            //    if (a.CmdNode == null)
-            //        continue;
-            //    for(int j = 0; j < a.Inputs.Count; j++)
-            //    {
-            //        if (a.Inputs[j] != CommandPath.EntryPath)
-            //            continue;
-            //        int index = data.specialCmds.FindIndex(t => { return t.Path == a.Inputs[j]; });
-            //        if (index >= 0)
-            //        {
-            //            if (data.specialCmds[index].CmdNode == null)
-            //                continue;
-            //            Node.Connect(data.specialCmds[index].CmdNode, a.CmdNode);
-            //        }
-            //    }
-            //}
-            //for(int i = 0; i < data.Sequence.Count; i++)
-            //{
-            //    var a = data.Sequence[i];
-            //    if (a.CmdNode == null)
-            //        continue;
-            //    for(int j = 0; j < a.Outputs.Count; j++)
-            //    {
-            //        if (a.Outputs[j] == CommandPath.NullPath)
-            //            continue;
-            //        int index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
-            //        if (index >= 0)
-            //        {
-            //            if (data.Sequence[index].CmdNode == null)
-            //                continue;
-            //            Node.Connect(a.CmdNode, data.Sequence[index].CmdNode);
-            //        }
-            //        else
-            //        {
-            //            index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
-            //            if(index >= 0)
-            //            {
-            //                if (data.specialCmds[index].CmdNode == null)
-            //                    continue;
-            //                Node.Connect(a.CmdNode, data.specialCmds[index].CmdNode);
-            //            }
-            //        }
-            //    }
-            //}
+            if (data == null)
+                return;
+            if (data.Links == null)
+                data.Links = new List<NodeLink>();
+
+            //Force an enter links
+
+            int index = data.Sequence.FindIndex(cmd => { return cmd.Inputs.Contains(CommandPath.EntryPath); });
+            if(index < 0)
+            {
+                if (data.Sequence.Count > 0)
+                    Command.Link(data, CommandPath.EntryPath, data.Sequence[0].Path);
+            }
+            //
+            for (int i = 0; i < data.Sequence.Count; i++)
+            {
+                var a = data.Sequence[i];
+                for (int j = 0; j < a.Inputs.Count; j++)
+                {
+                    if (a.Inputs[j] != CommandPath.EntryPath)
+                        continue;
+                    index = data.specialCmds.FindIndex(t => { return t.Path == a.Inputs[j]; });
+                    if (index >= 0)
+                    {
+                        if (data.specialCmds[index] == Command.NullCmd)
+                            continue;
+                        NodeLink.Connect(data.specialCmds[index], a, data.GraphScale / 40, Color.green);
+                    }
+                }
+            }
+            for (int i = 0; i < data.Sequence.Count; i++)
+            {
+                var a = data.Sequence[i];
+                for (int j = 0; j < a.Outputs.Count; j++)
+                {
+                    if (a.Outputs[j] == CommandPath.NullPath)
+                        continue;
+                    index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
+                    if (index >= 0)
+                    {
+                        NodeLink.Connect(a, data.Sequence[index], data.GraphScale / 40, Color.white);
+                    }
+                    else
+                    {
+                        index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
+                        if (index >= 0)
+                        {
+                            NodeLink.Connect(a, data.specialCmds[index], data.GraphScale / 40, Color.white);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -381,9 +396,6 @@ namespace PulseEditor.Modules
                     }
                 }
             }
-            //TODO: Force an enter and an exit
-
-            //
             if (data.Sequence != null)
             {
                 for (int i = 0; i < data.Sequence.Count; i++)
@@ -414,7 +426,7 @@ namespace PulseEditor.Modules
                     if (e.button == 1)
                     {
                         GUI.FocusControl(null);
-                        //ProcessContextMenu(e.mousePosition, data);
+                        ProcessContextMenu(e.mousePosition, data);
                     }
                     if (e.button == 0)
                     {
@@ -536,7 +548,7 @@ namespace PulseEditor.Modules
             if (data == null)
                 return;
             var sq = data.Sequence;
-            var cmd = new Command { Path = new CommandPath(DateTime.Now), NodeShape = new Rect(mousePosition, new Vector2(200,80)) };
+            var cmd = new Command { Path = new CommandPath(DateTime.Now), NodeShape = new Rect(mousePosition, data.specialCmds[0].NodeShape.size) };
             var p = cmd.Path;
             p.Label = "Command "+(sq.Count + 1);
             cmd.Path = p;

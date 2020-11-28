@@ -389,16 +389,16 @@ namespace PulseEngine
                     normal = point - Vector2.up * normalValue;
                     break;
                 case NodeEdgeSide.lower:
-                    point = node.NodeShape.center + Vector2.up * node.NodeShape.height;
+                    point = node.NodeShape.center + Vector2.up * (node.NodeShape.height * 0.5f);
                     normal = point + Vector2.up * normalValue;
                     break;
                 case NodeEdgeSide.lefty:
                     point = node.NodeShape.center - Vector2.right * (node.NodeShape.width * 0.5f);
-                    normal = point + Vector2.left * normalValue;
+                    normal = point - Vector2.right * normalValue;
                     break;
                 case NodeEdgeSide.righty:
-                    point = node.NodeShape.center + Vector2.up * (node.NodeShape.width * 0.5f);
-                    normal = point - Vector2.left * normalValue;
+                    point = node.NodeShape.center + Vector2.right * (node.NodeShape.width * 0.5f);
+                    normal = point + Vector2.right * normalValue;
                     break;
             }
             output[0] = point;
@@ -1415,7 +1415,12 @@ namespace PulseEngine
 
         public IEditorNode ShowDetails()
         {
-            throw new NotImplementedException();
+            var p = Path;
+            //
+            p.Label = EditorGUILayout.TextField("Label", p.Label);
+            //
+            Path = p;
+            return this;
         }
 
         public void DrawNode(GUIStyle style)
@@ -3078,12 +3083,15 @@ namespace PulseEditor
     {
         #region Attributes ###########################################################
 
+        private Rect handlerShape;
+
         #endregion
         #region Properties ###########################################################
 
         public NodeLink(IEditorNode a, IEditorNode b)
         {
-
+            StartNode = a;
+            EndNode = b;
         }
 
         /// <summary>
@@ -3101,7 +3109,9 @@ namespace PulseEditor
 
         public void Draw()
         {
-
+            if (StartNode == null || EndNode == null)
+                return;
+            Handles.DrawLine(StartNode.NodeShape.center, EndNode.NodeShape.center);
         }
 
         #endregion
@@ -3113,13 +3123,13 @@ namespace PulseEditor
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
-        public static void Connect(IEditorNode a, IEditorNode b)
+        public static void Connect(IEditorNode a, IEditorNode b, float tickness, Color c)
         {
-            Vector2 dir = (b.NodeShape.position - a.NodeShape.position);
-            Vector2 joint = a.NodeShape.position + (dir.normalized * 0.5f * dir.magnitude);
-            Vector2[] trFromStart = a.GetClosestNodeEdge(joint, a.NodeShape);
-            Vector2[] trToEnd = b.GetClosestNodeEdge(joint, b.NodeShape);
-            float arrowSize = 8;
+            Vector2 dir = (b.NodeShape.center - a.NodeShape.center);
+            Vector2 joint = a.NodeShape.center + (dir.normalized * 0.5f * dir.magnitude);
+            Vector2[] trFromStart = a.GetClosestNodeEdge(b.NodeShape.center, a.NodeShape);
+            Vector2[] trToEnd = b.GetClosestNodeEdge(a.NodeShape.center, b.NodeShape);
+            float arrowSize = 2 * tickness;
             Vector2 staticEnd = (trToEnd[1] - trToEnd[0]).normalized * arrowSize;
             Vector2 perpendicularVector = Vector2.Perpendicular(trToEnd[0] - trToEnd[1]).normalized;
             Vector3[] arrowPoints = new Vector3[3];
@@ -3128,19 +3138,10 @@ namespace PulseEditor
             arrowPoints[2] = trToEnd[0];
             Vector2 middleArrowPt = (Vector2)arrowPoints[2] + staticEnd;
             Vector2 newNormal = middleArrowPt + staticEnd * 0.25f * (arrowPoints[0] - arrowPoints[1]).magnitude;
-            //var path = Handles.MakeBezierPoints(trFromStart[0], trToEnd[0], trFromStart[1], trToEnd[1], 50);
-            Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, Color.white, null, 4);
-            //int texLenght = 5;
-            //Texture2D tex = new Texture2D(texLenght, texLenght);
-            //for(int i = 0; i <= texLenght; i++)
-            //{
-            //    float t = Mathf.InverseLerp(0, texLenght, i);
-            //    Color segmentCol = Color.Lerp(Color.white, Color.blue, t);
-            //    tex.SetPixel(i, i, segmentCol);
-            //}
-            //tex.Apply();
-            //Handles.DrawAAPolyLine(tex, 3, path);
+            Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, c, null, tickness);
+            Handles.color = c;
             Handles.DrawAAConvexPolygon(arrowPoints);
+            Handles.color = Color.white;
         }
 
         #endregion

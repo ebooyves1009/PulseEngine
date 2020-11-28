@@ -481,7 +481,7 @@ namespace PulseEditor
             //obj select
             style_objSelect = new[] { GUILayout.Width(150), GUILayout.Height(150) };
             //Nodes
-            style_node = new GUIStyle();
+            style_node = new GUIStyle("Button");
             style_node.focused.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
             style_node.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node0.png") as Texture2D;
             style_node.normal.textColor = Color.white;
@@ -494,12 +494,12 @@ namespace PulseEditor
                 style_node.border = new RectOffset(border, border, border, border);
             }
             //Nodes special
-            style_nodeSpecials = new GUIStyle();
+            style_nodeSpecials = new GUIStyle("Button");
             style_nodeSpecials.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
             style_nodeSpecials.normal.textColor = Color.white;
             style_nodeSpecials.alignment = TextAnchor.MiddleCenter;
             {
-                int border = 8;
+                int border = 15;
                 style_nodeSpecials.border = new RectOffset(border, border, border, border);
             }
             //Grid
