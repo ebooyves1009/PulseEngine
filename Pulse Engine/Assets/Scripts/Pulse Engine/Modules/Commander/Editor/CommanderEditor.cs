@@ -346,7 +346,7 @@ namespace PulseEditor.Modules
                     {
                         if (data.specialCmds[index] == Command.NullCmd)
                             continue;
-                        NodeLink.Connect(data.specialCmds[index], a, data.GraphScale / 40, Color.green);
+                        NodeLink.Connect(data.specialCmds[index], a, data.GraphScale / 40, Color.green, null);
                     }
                 }
             }
@@ -360,14 +360,20 @@ namespace PulseEditor.Modules
                     index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
                     if (index >= 0)
                     {
-                        NodeLink.Connect(a, data.Sequence[index], data.GraphScale / 40, Color.white);
+                        NodeLink.Connect(a, data.Sequence[index], data.GraphScale / 40, Color.blue, ()=>
+                        {
+                            a.BreakConnection(data, data.Sequence[index].Path);
+                        });
                     }
                     else
                     {
                         index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
                         if (index >= 0)
                         {
-                            NodeLink.Connect(a, data.specialCmds[index], data.GraphScale / 40, Color.white);
+                            NodeLink.Connect(a, data.specialCmds[index], data.GraphScale / 40, Color.red, () =>
+                            {
+                                a.BreakConnection(data, data.specialCmds[index].Path);
+                            });
                         }
                     }
                 }

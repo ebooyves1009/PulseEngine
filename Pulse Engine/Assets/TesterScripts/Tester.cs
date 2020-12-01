@@ -20,7 +20,7 @@ public class Tester : MonoBehaviour, IMovable
     bool busy = false;
     CancellationTokenSource source = new CancellationTokenSource();
 
-    private async void OnGUI()
+    private void OnGUI()
     {
         if (busy)
             return;
@@ -30,22 +30,27 @@ public class Tester : MonoBehaviour, IMovable
                 Commander.virtualEmitter = this;
             PulseDebug.Log("virtual emitter is " + Commander.virtualEmitter);
             var ct = source.Token;
+            WaitSequenceExecution(ct);
             busy = true;
-            await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
-            busy = false;
         }
-        if (GUILayout.Button("Test sorting"))
-        {
-            List<string> database = new List<string>{ "John", "Michael", "Ambassa", "Mola incur", "Mola excur", "Zamina" };
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            var dt = database.AsParallel().OrderBy(s => s);
-            database = dt.ToList();
-            //database.Sort((x,y) => { return x.CompareTo(y); });
-            database.ForEach(s => { PulseDebug.Log(s); });
-            PulseDebug.Log($"Sorting took {sw.ElapsedMilliseconds} to complete");
-            sw.Stop();
-        }
+        //if (GUILayout.Button("Test sorting"))
+        //{
+        //    List<string> database = new List<string>{ "John", "Michael", "Ambassa", "Mola incur", "Mola excur", "Zamina" };
+        //    Stopwatch sw = new Stopwatch();
+        //    sw.Start();
+        //    var dt = database.AsParallel().OrderBy(s => s);
+        //    database = dt.ToList();
+        //    //database.Sort((x,y) => { return x.CompareTo(y); });
+        //    database.ForEach(s => { PulseDebug.Log(s); });
+        //    PulseDebug.Log($"Sorting took {sw.ElapsedMilliseconds} to complete");
+        //    sw.Stop();
+        //}
+    }
+
+    private async Task WaitSequenceExecution(CancellationToken ct)
+    {
+        await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
+        busy = false;
     }
 
     private void OnDisable()

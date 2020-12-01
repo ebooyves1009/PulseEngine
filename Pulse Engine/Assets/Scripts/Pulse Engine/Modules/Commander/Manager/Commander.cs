@@ -110,13 +110,25 @@ namespace PulseEngine.Modules.Commander
         /// </summary>
         /// <param name="cmd"></param>
         /// <returns></returns>
-        private static async Task<CommandPath> ExecuteEvent(CancellationToken ct, GameObject caster, Command cmd)
+        private static async Task<CommandPath> ExecuteEvent<T>(CancellationToken ct, T caster, Command cmd)
         {
-            StringBuilder logtext = new StringBuilder();
-            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred event ").Append(cmd.CodeEv));
-            logtext.Clear();
-            await Task.Delay(1500);
             CommandPath nextCommand = cmd.Outputs[0];
+            await Task.Delay(10);
+            switch (cmd.CodeEv)
+            {
+                case CmdEventCode.evaluateCondition:
+                    {
+                        IConditionnable cond = caster as IConditionnable;
+                        if (cond != null)
+                        {
+                            PulseDebug.Log("Evaluation launch for " + cond);
+                            nextCommand = cond.EvaluateCommandCondition(cmd);
+                        }
+                    }
+                    break;
+                case CmdEventCode.Affectstat:
+                    break;
+            }
             return nextCommand;
         }
 
@@ -128,20 +140,22 @@ namespace PulseEngine.Modules.Commander
         private static async Task<CommandPath> ExecuteAction<T>(CancellationToken ct, T caster, Command cmd)
         {
             CommandPath nextCommand = cmd.Outputs[0];
-            await Task.Delay(1000);
+            await Task.Delay(10);
             switch (cmd.CodeAc)
             {
                 case CmdActionCode.Idle:
                     break;
                 case CmdActionCode.MoveTo:
-                    IMovable actor = caster as IMovable;
-                    if(actor != null)
                     {
-                        PulseDebug.Log("Moving to, launh for " + actor);
-                        nextCommand = await actor.MoveCommand(cmd, ct);
+                        IMovable actor = caster as IMovable;
+                        if (actor != null)
+                        {
+                            PulseDebug.Log("Moving to, launh for " + actor);
+                            nextCommand = await actor.MoveCommand(cmd, ct);
+                        }
+                        else
+                            PulseDebug.Log("Moving to failed");
                     }
-                    else
-                        PulseDebug.Log("Moving to failed");
                     break;
                 case CmdActionCode.Jump:
                     break;

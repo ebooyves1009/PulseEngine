@@ -425,6 +425,34 @@ namespace PulseEngine
             return sides[0];
         }
 
+        /// <summary>
+        /// Evaluate a basic condition.
+        /// </summary>
+        /// <param name="rhValue"></param>
+        /// <param name="operators"></param>
+        /// <param name="lhValue"></param>
+        /// <returns></returns>
+        public static bool ConditionsEvaluator(float rhValue, ComparaisonOperators operators, float lhValue)
+        {
+            switch (operators)
+            {
+                case ComparaisonOperators.equals:
+                    return rhValue == lhValue;
+                case ComparaisonOperators.notEquals:
+                    return rhValue != lhValue;
+                case ComparaisonOperators.greaterThan:
+                    return rhValue > lhValue;
+                case ComparaisonOperators.lessThan:
+                    return rhValue < lhValue;
+                case ComparaisonOperators.greaterOrEquals:
+                    return rhValue >= lhValue;
+                case ComparaisonOperators.lessOrEquals:
+                    return rhValue <= lhValue;
+                default:
+                    return false;
+            }
+        }
+
         #endregion
 
         #region Extensions ###########################################################################
@@ -624,6 +652,31 @@ namespace PulseEngine
         free, selected, dragged, doubleClicked
     }
 
+    /// <summary>
+    /// Arithmetic operators , mainly for command execution.
+    /// </summary>
+    public enum ArithmeticOperator
+    {
+        addition,
+        substraction,
+        multiplication,
+        division,
+        modulo,
+    }
+
+    /// <summary>
+    /// Comparaison operators, mainly for conditions evaluation.
+    /// </summary>
+    public enum ComparaisonOperators
+    {
+        equals,
+        notEquals,
+        greaterThan,
+        lessThan,
+        greaterOrEquals,
+        lessOrEquals,
+    }
+
 
     #endregion
 
@@ -781,6 +834,7 @@ namespace PulseEngine
     /// </summary>
     public enum CmdEventCode
     {
+        evaluateCondition,
         Affectstat,
     }
 
@@ -901,6 +955,22 @@ namespace PulseEngine
         Upward,
         left,
         right
+    }
+
+    #endregion
+
+    #region Conditions Enums >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    /// <summary>
+    /// Le type de condition
+    /// </summary>
+    public enum TypeCondition
+    {
+        none,
+        realTime,
+        gameTime,
+        visibility,
+        state,//TODO: remove
     }
 
     #endregion
@@ -1418,10 +1488,57 @@ namespace PulseEngine
             var p = Path;
             //
             p.Label = EditorGUILayout.TextField("Label", p.Label);
+            Type = (CommandType)EditorGUILayout.EnumPopup("Type", Type);
+            if(Type == CommandType.execute)
+            {
+                ChildType = (CmdExecutableType)EditorGUILayout.EnumPopup("Sub-Type", ChildType);
+                switch (ChildType)
+                {
+                    case CmdExecutableType._event:
+                        {
+                            CodeEv = (CmdEventCode)EditorGUILayout.EnumPopup("Event type", CodeEv);
+                            switch (CodeEv)
+                            {
+                                case CmdEventCode.evaluateCondition:
+                                    ConditionCmdParams();
+                                    break;
+                                case CmdEventCode.Affectstat:
+                                    break;
+                            }
+                        }
+                        break;
+                    case CmdExecutableType._action:
+                        {
+                            CodeAc = (CmdActionCode)EditorGUILayout.EnumPopup("Action type", CodeAc);
+                            switch (CodeAc)
+                            {
+                                case CmdActionCode.Idle:
+                                    break;
+                                case CmdActionCode.MoveTo:
+                                    MoveCmdParams();
+                                    break;
+                                case CmdActionCode.Jump:
+                                    break;
+                            }
+                        }
+                        break;
+                    case CmdExecutableType._global:
+                        {
+
+                        }
+                        break;
+                    case CmdExecutableType._story:
+                        {
+
+                        }
+                        break;
+                }
+            }
             //
             Path = p;
             return this;
         }
+
 
         public void DrawNode(GUIStyle style)
         {
@@ -1557,14 +1674,30 @@ namespace PulseEngine
             return this;
         }
 
-        public void EndLink(IEditorNode parent)
+        private void MoveCmdParams()
         {
-            throw new NotImplementedException();
+            Vector3 destination = EditorGUILayout.Vector3Field("Destination", (Vector3)PrimaryParameters);
+            bool waitMoveEnd = EditorGUILayout.Toggle("Wait move end", PrimaryParameters.w > 0);
+            PrimaryParameters = new Vector4(destination.x, destination.y, destination.z, waitMoveEnd ? 1 : 0);
         }
-
-        public IEditorNode StartLink()
+        private void ConditionCmdParams()
         {
-            throw new NotImplementedException();
+            primaryParameters.x = (int)((TypeCondition)EditorGUILayout.EnumPopup("Type condition", (TypeCondition)PrimaryParameters.x));
+            primaryParameters.y = (int)((ComparaisonOperators)EditorGUILayout.EnumPopup("Comparaison", (ComparaisonOperators)PrimaryParameters.y));
+            switch ((TypeCondition)primaryParameters.x)
+            {
+                case TypeCondition.none:
+                    break;
+                case TypeCondition.realTime:
+                    break;
+                case TypeCondition.gameTime:
+                    break;
+                case TypeCondition.visibility:
+                    primaryParameters.y = Mathf.Clamp(primaryParameters.y, 0, 1);
+                    break;
+                case TypeCondition.state:
+                    break;
+            }
         }
 
 #endif
@@ -1745,8 +1878,6 @@ namespace PulseEngine
         Rect NodeShape { get; set; }
         NodeState NodeState { get; set; }
         GenericMenu ContextMenu { get; set; }
-        void EndLink(IEditorNode parent);
-        IEditorNode StartLink();
     }
 
     /// <summary>
@@ -1761,8 +1892,6 @@ namespace PulseEngine
         IEditorNode LinkRequester { get; set; }
         List<NodeLink> Links { get; set; }
         GenericMenu ContextMenu { get; set; }
-        void Drag();
-        void Zoom(float delta);
         void InitializeGraph();
     }
 
@@ -1775,6 +1904,12 @@ namespace PulseEngine
         void MoveTo(Vector3 position);
         event EventHandler OnArrival;
         void ArrivedAt();
+    }
+
+    public interface IConditionnable
+    {
+        bool EvaluateConditions(params object[] parameters);
+        CommandPath EvaluateCommandCondition(Command cmd);
     }
 
     #endregion
@@ -3023,16 +3158,6 @@ namespace PulseEngine.Datas
         public bool InitializedGraph { get; set; }
         public IEditorNode LinkRequester { get; set; }
 
-        public void Drag()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Zoom(float delta)
-        {
-            throw new NotImplementedException();
-        }
-
         public void InitializeGraph()
         {
             //Forcing base special commands.
@@ -3081,41 +3206,6 @@ namespace PulseEditor
     /// </summary>
     public class NodeLink
     {
-        #region Attributes ###########################################################
-
-        private Rect handlerShape;
-
-        #endregion
-        #region Properties ###########################################################
-
-        public NodeLink(IEditorNode a, IEditorNode b)
-        {
-            StartNode = a;
-            EndNode = b;
-        }
-
-        /// <summary>
-        /// The start node.
-        /// </summary>
-        public IEditorNode StartNode { get; private set; }
-
-        /// <summary>
-        /// The end node
-        /// </summary>
-        public IEditorNode EndNode { get; private set; }
-
-        #endregion
-        #region Methods ###########################################################
-
-        public void Draw()
-        {
-            if (StartNode == null || EndNode == null)
-                return;
-            Handles.DrawLine(StartNode.NodeShape.center, EndNode.NodeShape.center);
-        }
-
-        #endregion
-
         #region Methods ###########################################################
 
         /// <summary>
@@ -3123,7 +3213,7 @@ namespace PulseEditor
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
-        public static void Connect(IEditorNode a, IEditorNode b, float tickness, Color c)
+        public static void Connect(IEditorNode a, IEditorNode b, float tickness, Color c, Action onLinkDelete)
         {
             Vector2 dir = (b.NodeShape.center - a.NodeShape.center);
             Vector2 joint = a.NodeShape.center + (dir.normalized * 0.5f * dir.magnitude);
@@ -3138,9 +3228,26 @@ namespace PulseEditor
             arrowPoints[2] = trToEnd[0];
             Vector2 middleArrowPt = (Vector2)arrowPoints[2] + staticEnd;
             Vector2 newNormal = middleArrowPt + staticEnd * 0.25f * (arrowPoints[0] - arrowPoints[1]).magnitude;
-            Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, c, null, tickness);
+            //Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, c, null, tickness);
+            var ptsPath = Handles.MakeBezierPoints(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, 25);
+            Rect btnRect = new Rect(trFromStart[0], Vector2.one * 3 * tickness);
+            btnRect.center = ptsPath[ptsPath.Length / 2];
+            List<Vector3> tempPathPts = new List<Vector3>(ptsPath);
+            for(int i = ptsPath.Length - 1; i >= 0 ; i--)
+            {
+                Handles.color = Color.Lerp(Color.white, c, ((float)i / ptsPath.Length));
+                Handles.DrawAAPolyLine(tickness, tempPathPts.GetRange(0, i).ToArray());
+            }
+
             Handles.color = c;
             Handles.DrawAAConvexPolygon(arrowPoints);
+            if (onLinkDelete != null)
+            {
+                if (GUI.Button(btnRect, "X"))
+                {
+                    onLinkDelete.Invoke();
+                }
+            }
             Handles.color = Color.white;
         }
 
