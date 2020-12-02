@@ -45,7 +45,14 @@ Notes: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		- statics OpenEditor(), OpenSelector(Action<object, EditorEventArg>, params objects), OpenModifier(DataLocation, params)
 		- for all these above:
 			- check if RegisteredToRefresh, register Refresh() to OnRefresh event and active RegisteredToRefresh
-	- 5) Recommended usage:
+	- 5)	In OnQuit()
+            try
+            {
+                OnCacheRefresh -= RefreshCache;
+            }
+            catch { }
+
+	- 6) Recommended usage:
 		- Select(Data to store) : to call when selection is made.
 		- override OnInitialisation() : link selectAction to Select()
 		- override OnHeaderChange() : for actions that must occur on filter asset change.

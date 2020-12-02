@@ -1,11 +1,8 @@
 ﻿using PulseEngine;
-using PulseEditor;
-using PulseEngine.Datas;
 using PulseEngine.Modules.Commander;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
@@ -49,15 +46,15 @@ namespace PulseEditor.Modules
             {
                 foreach (var zn in Enum.GetValues(typeof(Zones)))
                 {
-                    if (CoreLibrary.Exist<CommandsLibrary>(AssetsPath, scp, zn))
+                    if (CoreLibrary.Exist<CommandSequence,CommandsLibrary>(AssetsPath, scp, zn))
                     {
-                        var load = CoreLibrary.Load<CommandsLibrary>(AssetsPath, scp, zn);
+                        var load = CoreLibrary.Load<CommandSequence, CommandsLibrary>(AssetsPath, scp, zn);
                         if (load != null)
                             allAsset.Add(load);
                     }
-                    else if (CoreLibrary.Save<CommandsLibrary>(AssetsPath, scp, zn))
+                    else if (CoreLibrary.Save<CommandSequence, CommandsLibrary>(AssetsPath, scp, zn))
                     {
-                        var load = CoreLibrary.Load<CommandsLibrary>(AssetsPath, scp, zn);
+                        var load = CoreLibrary.Load<CommandSequence, CommandsLibrary>(AssetsPath, scp, zn);
                         if (load != null)
                             allAsset.Add(load);
                     }
@@ -304,7 +301,7 @@ namespace PulseEditor.Modules
                 int k = i;
                 var cmd = data.Sequence[k];
                 GenericMenu spMenu = new GenericMenu();
-                spMenu.AddItem(new GUIContent("Delete"), false, () => { data.Sequence[k].UnLinkAll(data); data.Sequence.RemoveAt(k); });
+                spMenu.AddItem(new GUIContent("Delete"), false, () => { data.UnLinkAll(data.Sequence[k].CmdPath); data.Sequence.RemoveAt(k); });
                 cmd.ContextMenu = spMenu;
                 data.Sequence[k] = cmd;
             });
@@ -322,8 +319,6 @@ namespace PulseEditor.Modules
         {
             if (data == null)
                 return;
-            if (data.Links == null)
-                data.Links = new List<NodeLink>();
 
             //Force an enter links
 
@@ -331,7 +326,7 @@ namespace PulseEditor.Modules
             if(index < 0)
             {
                 if (data.Sequence.Count > 0)
-                    Command.Link(data, CommandPath.EntryPath, data.Sequence[0].Path);
+                    data.Link(CommandPath.EntryPath, data.Sequence[0].CmdPath);
             }
             //
             for (int i = 0; i < data.Sequence.Count; i++)
@@ -341,12 +336,12 @@ namespace PulseEditor.Modules
                 {
                     if (a.Inputs[j] != CommandPath.EntryPath)
                         continue;
-                    index = data.specialCmds.FindIndex(t => { return t.Path == a.Inputs[j]; });
+                    index = data.specialCmds.FindIndex(t => { return t.CmdPath == a.Inputs[j]; });
                     if (index >= 0)
                     {
                         if (data.specialCmds[index] == Command.NullCmd)
                             continue;
-                        NodeLink.Connect(data.specialCmds[index], a, data.GraphScale / 40, Color.green, null);
+                        ConnectNodes(data.specialCmds[index], a, data.GraphScale / 40, Color.green, null);
                     }
                 }
             }
@@ -357,22 +352,22 @@ namespace PulseEditor.Modules
                 {
                     if (a.Outputs[j] == CommandPath.NullPath)
                         continue;
-                    index = data.Sequence.FindIndex(t => { return t.Path == a.Outputs[j]; });
+                    index = data.Sequence.FindIndex(t => { return t.CmdPath == a.Outputs[j]; });
                     if (index >= 0)
                     {
-                        NodeLink.Connect(a, data.Sequence[index], data.GraphScale / 40, Color.blue, ()=>
+                        ConnectNodes(a, data.Sequence[index], data.GraphScale / 40, Color.blue, ()=>
                         {
-                            a.BreakConnection(data, data.Sequence[index].Path);
+                            data.BreakConnection(a.CmdPath, data.Sequence[index].CmdPath);
                         });
                     }
                     else
                     {
-                        index = data.specialCmds.FindIndex(t => { return t.Path == a.Outputs[j]; });
+                        index = data.specialCmds.FindIndex(t => { return t.CmdPath == a.Outputs[j]; });
                         if (index >= 0)
                         {
-                            NodeLink.Connect(a, data.specialCmds[index], data.GraphScale / 40, Color.red, () =>
+                            ConnectNodes(a, data.specialCmds[index], data.GraphScale / 40, Color.red, () =>
                             {
-                                a.BreakConnection(data, data.specialCmds[index].Path);
+                                data.BreakConnection(a.CmdPath, data.specialCmds[index].CmdPath);
                             });
                         }
                     }
@@ -554,10 +549,10 @@ namespace PulseEditor.Modules
             if (data == null)
                 return;
             var sq = data.Sequence;
-            var cmd = new Command { Path = new CommandPath(DateTime.Now), NodeShape = new Rect(mousePosition, data.specialCmds[0].NodeShape.size) };
-            var p = cmd.Path;
+            var cmd = new Command { CmdPath = new CommandPath(DateTime.Now), NodeShape = new Rect(mousePosition, data.specialCmds[0].NodeShape.size) };
+            var p = cmd.CmdPath;
             p.Label = "Command "+(sq.Count + 1);
-            cmd.Path = p;
+            cmd.CmdPath = p;
             sq.Add(cmd);
             data.Sequence = sq;
         }
@@ -573,7 +568,7 @@ namespace PulseEditor.Modules
                 return;
             var sq = data.specialCmds;
             var cmd = new Command { NodeShape = new Rect(mousePosition, new Vector2(200, 80)) };
-            var p = cmd.Path;
+            var p = cmd.CmdPath;
             switch (commandType)
             {
                 default:
@@ -585,7 +580,7 @@ namespace PulseEditor.Modules
                     p = CommandPath.BreakPath;
                     break;
             }
-            cmd.Path = p;
+            cmd.CmdPath = p;
             sq.Add(cmd);
             data.specialCmds = sq;
         }
@@ -622,6 +617,15 @@ namespace PulseEditor.Modules
             CommandDetails((CommandSequence)data);
         }
 
+        protected override void OnQuit()
+        {
+            try
+            {
+                OnCacheRefresh -= RefreshCache;
+            }
+            catch { }
+        }
+
         #endregion
 
         /// <Summary>
@@ -638,10 +642,10 @@ namespace PulseEditor.Modules
         {
             if (inputLibrary == null)
                 inputLibrary = new List<CommandsLibrary>();
-            if (CoreLibrary.Exist<CommandsLibrary>(AssetsPath, _scope, _zone))
-                inputLibrary.Add(CoreLibrary.Load<CommandsLibrary>(AssetsPath, _scope, _zone));
-            else if (CoreLibrary.Save<CommandsLibrary>(AssetsPath, _scope, _zone))
-                inputLibrary.Add(CoreLibrary.Load<CommandsLibrary>(AssetsPath, _scope, _zone));
+            if (CoreLibrary.Exist<CommandSequence,CommandsLibrary>(AssetsPath, _scope, _zone))
+                inputLibrary.Add(CoreLibrary.Load<CommandSequence, CommandsLibrary>(AssetsPath, _scope, _zone));
+            else if (CoreLibrary.Save<CommandSequence, CommandsLibrary>(AssetsPath, _scope, _zone))
+                inputLibrary.Add(CoreLibrary.Load<CommandSequence, CommandsLibrary>(AssetsPath, _scope, _zone));
             return inputLibrary;
         }
 

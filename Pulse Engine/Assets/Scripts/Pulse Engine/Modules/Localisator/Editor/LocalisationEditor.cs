@@ -1,15 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
 using System.Linq;
 using PulseEngine;
-using PulseEngine.Datas;
 using PulseEngine.Modules.Localisator;
 using UILayout = UnityEngine.GUILayout;
-using EILayout = UnityEditor.EditorGUILayout;
-using System.Threading.Tasks;
 
 
 //TODO: implementer les details de la data.
@@ -52,15 +48,15 @@ namespace PulseEditor.Modules
             {
                 foreach (TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
                 {
-                    if (CoreLibrary.Exist<LocalisationLibrary>(AssetsPath, langue, type))
+                    if (CoreLibrary.Exist<Localisationdata,LocalisationLibrary>(AssetsPath, langue, type))
                     {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
+                        var load = CoreLibrary.Load<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type);
                         if (load != null)
                             allAsset.Add(load);
                     }
-                    else if (CoreLibrary.Save<LocalisationLibrary>(AssetsPath, langue, type))
+                    else if (CoreLibrary.Save<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type))
                     {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
+                        var load = CoreLibrary.Load<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type);
                         if (load != null)
                             allAsset.Add(load);
                     }
@@ -414,15 +410,15 @@ namespace PulseEditor.Modules
             {
                 foreach (TradDataTypes type in Enum.GetValues(typeof(TradDataTypes)))
                 {
-                    if (CoreLibrary.Exist<LocalisationLibrary>(AssetsPath, langue, type))
+                    if (CoreLibrary.Exist<Localisationdata,LocalisationLibrary>(AssetsPath, langue, type))
                     {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
+                        var load = CoreLibrary.Load<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type);
                         if (load != null)
                             allAssets.Add(load);
                     }
-                    else if (CoreLibrary.Save<LocalisationLibrary>(AssetsPath, langue, type))
+                    else if (CoreLibrary.Save<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type))
                     {
-                        var load = CoreLibrary.Load<LocalisationLibrary>(AssetsPath, langue, type);
+                        var load = CoreLibrary.Load<Localisationdata, LocalisationLibrary>(AssetsPath, langue, type);
                         if (load != null)
                             allAssets.Add(load);
                     }
@@ -562,6 +558,11 @@ namespace PulseEditor.Modules
 
         protected override void OnQuit()
         {
+            try
+            {
+                OnCacheRefresh -= RefreshCache;
+            }
+            catch { }
         }
 
         #endregion

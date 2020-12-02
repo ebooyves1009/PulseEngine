@@ -1,8 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using System;
-using PulseEngine.Datas;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
@@ -38,7 +35,7 @@ namespace PulseEngine.Modules.Commander
         /// <returns></returns>
         public static async Task PlayCommandSequence(CancellationToken ct, DataLocation sequenceLocation, bool avoidResume = false)
         {
-            CommandSequence sequence = await CoreData.GetData<CommandSequence, CommandsLibrary>(sequenceLocation, ct);
+            CommandSequence sequence = await CoreLibrary.GetData<CommandSequence>(sequenceLocation, ct);
             if (sequence == null || sequence.Sequence == null || sequence.Sequence.Count <= 0)
                 return;
 
@@ -47,7 +44,7 @@ namespace PulseEngine.Modules.Commander
             Command currentCommand = sequence.DefaultCommand;
             if(ResumablesSequences.ContainsKey(sequenceLocation) && !avoidResume)
             {
-                int indx = sequence.Sequence.FindIndex(cmd => { return cmd.Path == ResumablesSequences[sequenceLocation]; });
+                int indx = sequence.Sequence.FindIndex(cmd => { return cmd.CmdPath == ResumablesSequences[sequenceLocation]; });
                 currentCommand = indx >= 0 ? sequence.Sequence[indx] : sequence.DefaultCommand;
                 ResumablesSequences.Remove(sequenceLocation);
             }
@@ -60,12 +57,12 @@ namespace PulseEngine.Modules.Commander
                 if(nextCmd == CommandPath.BreakPath)
                 {
                     if(!avoidResume)
-                        ResumablesSequences.Add(sequenceLocation, currentCommand.Path);
+                        ResumablesSequences.Add(sequenceLocation, currentCommand.CmdPath);
                     break;
                 }
                 if (nextCmd == CommandPath.EntryPath)
                     break;
-                int index = sequence.Sequence.FindIndex(cmd => { return cmd.Path == nextCmd; });
+                int index = sequence.Sequence.FindIndex(cmd => { return cmd.CmdPath == nextCmd; });
                 if (index < 0)
                     break;
                 currentCommand = sequence.Sequence[index];
@@ -84,24 +81,8 @@ namespace PulseEngine.Modules.Commander
         /// <param name="_actionCmd"></param>
         public static async Task<CommandPath> ExecuteCommand(CancellationToken ct, GameObject emitter, Command _Cmd)
         {
-            if (_Cmd.Type != CommandType.execute)
-                return CommandPath.NullPath;
             CommandPath nextCommandPath = CommandPath.NullPath;
-            switch (_Cmd.ChildType)
-            {
-                case CmdExecutableType._event:
-                    nextCommandPath = await ExecuteEvent(ct, emitter, _Cmd);
-                    break;
-                case CmdExecutableType._action:
-                    nextCommandPath = await ExecuteAction(ct, virtualEmitter, _Cmd);
-                    break;
-                case CmdExecutableType._global:
-                    nextCommandPath = await ExecuteGlobal(ct, emitter, _Cmd);
-                    break;
-                case CmdExecutableType._story:
-                    nextCommandPath = await ExecuteStory(ct, emitter, _Cmd);
-                    break;
-            }
+            await Task.Delay(10);
             return nextCommandPath;
         }
 
@@ -114,21 +95,6 @@ namespace PulseEngine.Modules.Commander
         {
             CommandPath nextCommand = cmd.Outputs[0];
             await Task.Delay(10);
-            switch (cmd.CodeEv)
-            {
-                case CmdEventCode.evaluateCondition:
-                    {
-                        IConditionnable cond = caster as IConditionnable;
-                        if (cond != null)
-                        {
-                            PulseDebug.Log("Evaluation launch for " + cond);
-                            nextCommand = cond.EvaluateCommandCondition(cmd);
-                        }
-                    }
-                    break;
-                case CmdEventCode.Affectstat:
-                    break;
-            }
             return nextCommand;
         }
 
@@ -141,25 +107,6 @@ namespace PulseEngine.Modules.Commander
         {
             CommandPath nextCommand = cmd.Outputs[0];
             await Task.Delay(10);
-            switch (cmd.CodeAc)
-            {
-                case CmdActionCode.Idle:
-                    break;
-                case CmdActionCode.MoveTo:
-                    {
-                        IMovable actor = caster as IMovable;
-                        if (actor != null)
-                        {
-                            PulseDebug.Log("Moving to, launh for " + actor);
-                            nextCommand = await actor.MoveCommand(cmd, ct);
-                        }
-                        else
-                            PulseDebug.Log("Moving to failed");
-                    }
-                    break;
-                case CmdActionCode.Jump:
-                    break;
-            }
             return nextCommand;
         }
 
@@ -171,7 +118,7 @@ namespace PulseEngine.Modules.Commander
         private static async Task<CommandPath> ExecuteGlobal(CancellationToken ct, GameObject caster, Command cmd)
         {
             StringBuilder logtext = new StringBuilder();
-            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred Global event ").Append(cmd.CodeGl));
+            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred Global event "));
             logtext.Clear();
             await Task.Delay(2000);
             CommandPath nextCommand = cmd.Outputs[0];
@@ -186,7 +133,7 @@ namespace PulseEngine.Modules.Commander
         private static async Task<CommandPath> ExecuteStory(CancellationToken ct, GameObject caster, Command cmd)
         {
             StringBuilder logtext = new StringBuilder();
-            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred Narrative ").Append(cmd.CodeSt));
+            PulseDebug.Log(logtext.Append(caster?.name).Append(" Trigerred Narrative "));
             logtext.Clear();
             await Task.Delay(100);
             CommandPath nextCommand = cmd.Outputs[0];

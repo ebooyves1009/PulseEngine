@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using PulseEngine.Datas;
 
 
 
@@ -15,7 +13,7 @@ namespace PulseEngine.Modules.Components
     public class AnimaStateMachine : StateMachineBehaviour
     {
         #region Attributs #########################################################
-
+        [SerializeField]
         private string m_currentClipName;
         private AnimatorOverrideController m_controller;
         private AnimaData m_animationData;
@@ -51,8 +49,7 @@ namespace PulseEngine.Modules.Components
                     m_controller = new AnimatorOverrideController(_animator.runtimeAnimatorController);
                 _animator.runtimeAnimatorController = m_controller;
                 m_controller[m_currentClipName] = _clip;
-                if (PulseEngine.Core.DebugMode)
-                    Debug.Log("Overriding state " + m_currentClipName + " of " + _animator.name + " with " + _clip.name);
+                PulseDebug.Log("Overriding state " + m_currentClipName + " of " + _animator.name + " with " + _clip.name);
             }
         }
 
@@ -87,7 +84,10 @@ namespace PulseEngine.Modules.Components
         /// </summary>
         public void TriggerEvent(GameObject _eventEmitter, AnimeCommand _event)
         {
-            var executeTask = Core.ManagerAsyncMethod(ModulesManagers.Commander, "ExecuteCommand", _eventEmitter, _event.command);
+            if (!_eventEmitter)
+                return;
+            PulseDebug.Draw2dPolygon(_eventEmitter.transform.position, 3, _eventEmitter.transform.up, Color.red);
+            //var executeTask = Core.ManagerAsyncMethod(ModulesManagers.Commander, "ExecuteCommand", _eventEmitter, _event.command);
         }
 
         /// <summary>

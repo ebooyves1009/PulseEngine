@@ -1,11 +1,8 @@
-﻿using PulseEngine.Datas;
-using PulseEngine.Modules.Components;
-using System.Collections;
+﻿using PulseEngine.Modules.Components;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 
 namespace PulseEngine.Modules.CharacterCreator
 {
@@ -58,7 +55,7 @@ namespace PulseEngine.Modules.CharacterCreator
         /// <param name="parent"></param>
         public static async Task SpawnCharacter(DataLocation _charDataLoc, CancellationToken ct,  Vector3 position = default, Quaternion rotation = default, Transform parent = null)
         {
-            CharacterData data = await CoreData.GetData<CharacterData, CharactersLibrary>(_charDataLoc, ct);
+            CharacterData data = await CoreLibrary.GetData<CharacterData>(_charDataLoc, ct);
             if (data == null)
                 return;
             if (CharactersPool == null)

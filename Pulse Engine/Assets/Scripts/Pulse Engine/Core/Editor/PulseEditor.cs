@@ -7,7 +7,6 @@ using UnityEngine.Rendering;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using PulseEngine.Datas;
 
 
 //TODO: Continuer d'implementer en fonction des besoins recurents des fenetre qui en dependent
@@ -54,12 +53,14 @@ namespace PulseEditor
     public delegate void PulseEditorEvent(object _data, EditorEventArgs dataArgs);
 
     #endregion
-       
+
     #region Class #################################################################################
 
     /// <summary>
     /// La classe de base pour tous les editeurs du Moteur.
     /// </summary>
+
+   [InitializeOnLoad]
     public class PulseEditorMgr : EditorWindow
     {
         #region Constants #################################################################
@@ -1155,6 +1156,7 @@ namespace PulseEditor
             //}
             //RefreshCache(editorDataType);
             OnQuit();
+            //OnCacheRefresh = delegate { };
             //CloseWindow();
         }
 
@@ -1271,6 +1273,49 @@ namespace PulseEditor
             }
         }
 
+        /// <summary>
+        /// Connect Two Nodes with bezier.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        public static void ConnectNodes(IEditorNode a, IEditorNode b, float tickness, Color c, Action onLinkDelete)
+        {
+            Vector2 dir = (b.NodeShape.center - a.NodeShape.center);
+            Vector2 joint = a.NodeShape.center + (dir.normalized * 0.5f * dir.magnitude);
+            Vector2[] trFromStart = a.GetClosestNodeEdge(b.NodeShape.center, a.NodeShape);
+            Vector2[] trToEnd = b.GetClosestNodeEdge(a.NodeShape.center, b.NodeShape);
+            float arrowSize = 2 * tickness;
+            Vector2 staticEnd = (trToEnd[1] - trToEnd[0]).normalized * arrowSize;
+            Vector2 perpendicularVector = Vector2.Perpendicular(trToEnd[0] - trToEnd[1]).normalized;
+            Vector3[] arrowPoints = new Vector3[3];
+            arrowPoints[0] = trToEnd[0] + (staticEnd + perpendicularVector * arrowSize);
+            arrowPoints[1] = trToEnd[0] + (staticEnd - perpendicularVector * arrowSize);
+            arrowPoints[2] = trToEnd[0];
+            Vector2 middleArrowPt = (Vector2)arrowPoints[2] + staticEnd;
+            Vector2 newNormal = middleArrowPt + staticEnd * 0.25f * (arrowPoints[0] - arrowPoints[1]).magnitude;
+            //Handles.DrawBezier(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, c, null, tickness);
+            var ptsPath = Handles.MakeBezierPoints(trFromStart[0], middleArrowPt, trFromStart[1], newNormal, 25);
+            Rect btnRect = new Rect(trFromStart[0], Vector2.one * 3 * tickness);
+            btnRect.center = ptsPath[ptsPath.Length / 2];
+            List<Vector3> tempPathPts = new List<Vector3>(ptsPath);
+            for (int i = ptsPath.Length - 1; i >= 0; i--)
+            {
+                Handles.color = Color.Lerp(Color.white, c, ((float)i / ptsPath.Length));
+                Handles.DrawAAPolyLine(tickness, tempPathPts.GetRange(0, i).ToArray());
+            }
+
+            Handles.color = c;
+            Handles.DrawAAConvexPolygon(arrowPoints);
+            if (onLinkDelete != null)
+            {
+                if (GUI.Button(btnRect, "X"))
+                {
+                    onLinkDelete.Invoke();
+                }
+            }
+            Handles.color = Color.white;
+        }
+
 #if UNITY_EDITOR //<><><><><><><><><><>>><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 
@@ -1297,6 +1342,12 @@ namespace PulseEditor
         /// <returns></returns>
         public static IData GetCachedData(DataLocation _location)
         {
+            if(OnCacheRefresh != null)
+            {
+                var calls = OnCacheRefresh.GetInvocationList().Length;
+                PulseDebug.Log($"on cache subscribers: {calls}");
+            }
+            //return default;
             if (_location.dType == DataTypes.none)
                 return default;
             //if the static cache doesnt exist
@@ -1311,8 +1362,14 @@ namespace PulseEditor
                 //if the location exist in the datatype's dictionnary
                 if (StaticCache[_location.dType].ContainsKey(_location))
                 {
-                    if (StaticCache[_location.dType][_location] == default || StaticCache[_location.dType][_location] == null)
+                    try
+                    {
+                        var t = StaticCache[_location.dType][_location].Location;
+                    }
+                    catch
+                    {
                         RefreshCache(_location.dType);
+                    }
                     return StaticCache[_location.dType][_location];
                 }
                 else
@@ -1339,14 +1396,10 @@ namespace PulseEditor
             RefreshingCache = true;
             if (OnCacheRefresh != null && StaticCache != null && StaticCache.ContainsKey(_dtype))
             {
-                //PulseDebug.Log("trying to refresh " + _dtype.ToString() + " library");
+                PulseDebug.Log("trying to refresh " + _dtype.ToString() + " library");
                 OnCacheRefresh.Invoke(StaticCache[_dtype], _dtype);
-            }
-            //we can only request cache refreshes every second
-            Task.Factory.StartNew(async () => {
-                await Task.Delay(1000);
                 RefreshingCache = false;
-            });
+            }
         }
 
         /// <summary>

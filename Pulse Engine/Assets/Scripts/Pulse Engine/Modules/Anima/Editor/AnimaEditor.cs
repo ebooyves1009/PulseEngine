@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEditor.Animations;
 using System.Linq;
 using PulseEngine;
-using PulseEngine.Datas;
 using PulseEngine.Modules.Components;
 
 namespace PulseEditor.Modules
@@ -49,15 +48,15 @@ namespace PulseEditor.Modules
             {
                 foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
                 {
-                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
+                    if (CoreLibrary.Exist<AnimaData, AnimaLibrary>(AssetsPath, scope, type))
                     {
-                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        var load = CoreLibrary.Load<AnimaData, AnimaLibrary>(AssetsPath, scope, type);
                         if (load != null)
                             allAsset.Add(load);
                     }
-                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
+                    else if (CoreLibrary.Save<AnimaData,AnimaLibrary>(AssetsPath, scope, type))
                     {
-                        var load = CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type);
+                        var load = CoreLibrary.Load<AnimaData,AnimaLibrary>(AssetsPath, scope, type);
                         if (load != null)
                             allAsset.Add(load);
                     }
@@ -439,10 +438,10 @@ namespace PulseEditor.Modules
                     var tmpEvents = data.EventList;
                     tmpEvents.Add(new AnimeCommand
                     {
-                        command = new Command { Type = CommandType.execute, ChildType = CmdExecutableType._action},
+                        command = new Command(),
                         timeStamp = new TimeStamp { time = timeInCurrentAnimation, duration = data.Motion ? (1 / data.Motion.frameRate) : 0 },
                         isOneTimeAction = true
-                    });
+                    }) ;
                     data.EventList = tmpEvents;
                 }
                 if (indexEvent >= 0)
@@ -495,7 +494,7 @@ namespace PulseEditor.Modules
                         var timeStamp = evEnt.timeStamp;
 
                         GUILayout.BeginVertical("HELPBOX");
-                        EditorGUILayout.LabelField("Event No: " + (k + 1) + (k < data.EventList.Count && k >= 0 ? " : " + data.EventList[k].command.CodeAc : " at " + timeInCurrentAnimation), EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField("Event No: " + (k + 1) + (k < data.EventList.Count && k >= 0 ? " : " + data.EventList[k].command.Code : " at " + timeInCurrentAnimation), EditorStyles.boldLabel);
                         GUILayout.Space(10);
                         GUILayout.BeginHorizontal();
                         try
@@ -571,10 +570,10 @@ namespace PulseEditor.Modules
             {
                 foreach (AnimaType type in Enum.GetValues(typeof(AnimaType)))
                 {
-                    if (CoreLibrary.Exist<AnimaLibrary>(AssetsPath, scope, type))
-                        allAssets.Add(CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type));
-                    else if (CoreLibrary.Save<AnimaLibrary>(AssetsPath, scope, type))
-                        allAssets.Add(CoreLibrary.Load<AnimaLibrary>(AssetsPath, scope, type));
+                    if (CoreLibrary.Exist<AnimaData,AnimaLibrary>(AssetsPath, scope, type))
+                        allAssets.Add(CoreLibrary.Load<AnimaData, AnimaLibrary>(AssetsPath, scope, type));
+                    else if (CoreLibrary.Save<AnimaData, AnimaLibrary>(AssetsPath, scope, type))
+                        allAssets.Add(CoreLibrary.Load<AnimaData, AnimaLibrary>(AssetsPath, scope, type));
                 }
             }
             originalAsset = allAssets.Find(ass => { return ((AnimaLibrary)ass).Scope == (Scopes)assetMainFilter && ((AnimaLibrary)ass).AnimType == selectedType; });
@@ -629,6 +628,11 @@ namespace PulseEditor.Modules
         {
             if (animPreview != null)
                 animPreview.Destroy();
+            try
+            {
+                OnCacheRefresh -= RefreshCache;
+            }
+            catch { }
         }
 
 

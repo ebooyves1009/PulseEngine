@@ -5,7 +5,6 @@ using System;
 using UnityEditor;
 using System.Linq;
 using PulseEngine;
-using PulseEngine.Datas;
 
 namespace PulseEditor.Modules
 {
@@ -42,14 +41,14 @@ namespace PulseEditor.Modules
 
             var allAsset = new List<WeaponLibrary>();
             foreach(var scp in Enum.GetValues(typeof(Scopes))){
-                if(CoreLibrary.Exist<WeaponLibrary>(AssetsPath, scp))
+                if(CoreLibrary.Exist<WeaponData,WeaponLibrary>(AssetsPath, scp))
                 {
-                    var load = CoreLibrary.Load<WeaponLibrary>(AssetsPath, scp);
+                    var load = CoreLibrary.Load<WeaponData, WeaponLibrary>(AssetsPath, scp);
                     if (load != null)
                         allAsset.Add(load);
-                }else if (CoreLibrary.Save<WeaponLibrary>(AssetsPath, scp))
+                }else if (CoreLibrary.Save<WeaponData, WeaponLibrary>(AssetsPath, scp))
                 {
-                    var load = CoreLibrary.Load<WeaponLibrary>(AssetsPath, scp);
+                    var load = CoreLibrary.Load<WeaponData, WeaponLibrary>(AssetsPath, scp);
                     if (load != null)
                         allAsset.Add(load);
                 }
@@ -227,34 +226,6 @@ namespace PulseEditor.Modules
                 GroupGUInoStyle(() =>
                 {
                     weaponPartsScroll = GUILayout.BeginScrollView(weaponPartsScroll);
-                    GUILayout.BeginHorizontal();
-                    for (int i = 0; i < data.ComponentParts.Count; i++)
-                    {
-                        GroupGUI(() =>
-                        {
-                            var obj = EditorGUILayout.ObjectField(data.ComponentParts[i], typeof(GameObject), false) as GameObject;
-                            if (obj != data.ComponentParts[i])
-                                OnListChange();
-                            data.ComponentParts[i] = obj;
-                            if (data.ComponentParts[i] == null)
-                            {
-                                // if (weaponPartsEditors.ContainsKey(null))
-                                // weaponPartsEditors.Remove(null);
-                                GUILayout.BeginArea(GUILayoutUtility.GetRect(100, 100));
-                                GUILayout.EndArea();
-                            }
-                            else
-                            {
-                                if (!weaponPartsEditors.ContainsKey(data.ComponentParts[i]))
-                                    weaponPartsEditors.Add(data.ComponentParts[i], Editor.CreateEditor(data.ComponentParts[i]));
-                                if (weaponPartsEditors[data.ComponentParts[i]] == null || weaponPartsEditors[data.ComponentParts[i]].target == null)
-                                    weaponPartsEditors[data.ComponentParts[i]] = Editor.CreateEditor(data.ComponentParts[i]);
-                                weaponPartsEditors[data.ComponentParts[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(100, 100), null);
-                            }
-
-                        }, 180);
-                    }
-                    GUILayout.EndHorizontal();
                     GUILayout.EndScrollView();
                 });
                 return;
@@ -363,35 +334,6 @@ namespace PulseEditor.Modules
                 GUILayout.EndHorizontal();
                 //Weapon game objects
                 EditorGUILayout.LabelField("Weapon Parts:");
-                GUILayout.BeginHorizontal();
-                if (data.ComponentParts.Count > 0 && GUILayout.Button("-"))
-                {
-                    data.ComponentParts.RemoveAt(data.ComponentParts.Count - 1);
-                    if (data.Materiaux.Count > 0)
-                    {
-                        var d = data.Materiaux;
-                        d.RemoveAt(data.Materiaux.Count - 1);
-                        data.Materiaux = d;
-                    }
-                    if (data.RestPlaces.Count > 0)
-                        data.RestPlaces.RemoveAt(data.RestPlaces.Count - 1);
-                    if (data.CarryPlaces.Count > 0)
-                        data.CarryPlaces.RemoveAt(data.CarryPlaces.Count - 1);
-                    if (data.ProjectilesOutPoints.Count > 0)
-                        data.ProjectilesOutPoints.RemoveAt(data.ProjectilesOutPoints.Count - 1);
-                }
-                GUILayout.Label("Count: " + data.ComponentParts.Count);
-                if (data.ComponentParts.Count < 4 && GUILayout.Button("+"))
-                {
-                    data.ComponentParts.Add(new GameObject());
-                    var d = data.Materiaux;
-                    d.Add(PhysicMaterials.none);
-                    data.Materiaux = d;
-                    data.RestPlaces.Add(new WeaponPlace());
-                    data.CarryPlaces.Add(new WeaponPlace());
-                    data.ProjectilesOutPoints.Add(new Vector3());
-                }
-                GUILayout.EndHorizontal();
 
             }, "Common Parameters");
             //preview.
@@ -412,16 +354,8 @@ namespace PulseEditor.Modules
                 {
                     GUILayout.BeginVertical();
                     showRestPosition = EditorGUILayout.Toggle("At rest places", showRestPosition);
-                    List<(GameObject, HumanBodyBones, Vector3, Vector3)> weaponInfos = new List<(GameObject, HumanBodyBones, Vector3, Vector3)>();
-                    for (int i = 0; i < data.ComponentParts.Count; i++)
-                    {
-                        if (showRestPosition)
-                            weaponInfos.Add((data.ComponentParts[i], data.RestPlaces[i].ParentBone, data.RestPlaces[i].positionOffset, data.RestPlaces[i].rotationOffset));
-                        else
-                            weaponInfos.Add((data.ComponentParts[i], data.CarryPlaces[i].ParentBone, data.CarryPlaces[i].positionOffset, data.CarryPlaces[i].rotationOffset));
-                    }
                     if (preview != null)
-                        preview.Previsualize(previewClip, 18 / 9, null, weaponInfos.ToArray());
+                        preview.Previsualize(previewClip, 18 / 9, null);
                     GUILayout.EndVertical();
                 }, "Preview");
             }
@@ -430,60 +364,6 @@ namespace PulseEditor.Modules
             GroupGUInoStyle(() =>
             {
                 weaponPartsScroll = GUILayout.BeginScrollView(weaponPartsScroll);
-                GUILayout.BeginHorizontal();
-                for (int i = 0; i < data.ComponentParts.Count; i++)
-                {
-                    GroupGUI(() =>
-                    {
-                        var obj = EditorGUILayout.ObjectField(data.ComponentParts[i], typeof(GameObject), false) as GameObject;
-                        if (obj != data.ComponentParts[i])
-                            OnListChange();
-                        data.ComponentParts[i] = obj;
-                        if (data.ComponentParts[i] == null)
-                        {
-                            // if (weaponPartsEditors.ContainsKey(null))
-                            // weaponPartsEditors.Remove(null);
-                            GUILayout.BeginArea(GUILayoutUtility.GetRect(100, 100));
-                            GUILayout.EndArea();
-                        }
-                        else
-                        {
-                            if (!weaponPartsEditors.ContainsKey(data.ComponentParts[i]))
-                                weaponPartsEditors.Add(data.ComponentParts[i], Editor.CreateEditor(data.ComponentParts[i]));
-                            if (weaponPartsEditors[data.ComponentParts[i]] == null || weaponPartsEditors[data.ComponentParts[i]].target == null)
-                                weaponPartsEditors[data.ComponentParts[i]] = Editor.CreateEditor(data.ComponentParts[i]);
-                            weaponPartsEditors[data.ComponentParts[i]].OnInteractivePreviewGUI(GUILayoutUtility.GetRect(100, 100), null);
-                        }
-                        //Materiau
-                        var d = data.Materiaux;
-                        var mat = d[i];
-                        mat = (PhysicMaterials)EditorGUILayout.EnumPopup("Materiau: ", mat);
-                        d[i] = mat;
-                        if (mat != data.Materiaux[i])
-                        {
-                            data.Materiaux = d;
-                        }
-                        //Emplacement repos
-                        EditorGUILayout.LabelField("Rest Place", EditorStyles.boldLabel);
-                        var restPlace = data.RestPlaces[i];
-                        restPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.RestPlaces[i].ParentBone);
-                        restPlace.positionOffset = EditorGUILayout.Vector3Field("position offset: ", data.RestPlaces[i].positionOffset);
-                        restPlace.rotationOffset = EditorGUILayout.Vector3Field("rotation offset: ", data.RestPlaces[i].rotationOffset);
-                        data.RestPlaces[i] = restPlace;
-                        //Emplacement armee
-                        EditorGUILayout.LabelField("Carry Place", EditorStyles.boldLabel);
-                        var carryPlace = data.CarryPlaces[i];
-                        carryPlace.ParentBone = (HumanBodyBones)EditorGUILayout.EnumPopup("Parent Bone", data.CarryPlaces[i].ParentBone);
-                        carryPlace.positionOffset = EditorGUILayout.Vector3Field("position offset: ", data.CarryPlaces[i].positionOffset);
-                        carryPlace.rotationOffset = EditorGUILayout.Vector3Field("rotation offset: ", data.CarryPlaces[i].rotationOffset);
-                        data.CarryPlaces[i] = carryPlace;
-                        //point sortie projectile
-                        EditorGUILayout.LabelField("Projectile", EditorStyles.boldLabel);
-                        data.ProjectilesOutPoints[i] = EditorGUILayout.Vector3Field("Projectile out Pt: ", data.ProjectilesOutPoints[i]);
-
-                    }, 180);
-                }
-                GUILayout.EndHorizontal();
                 GUILayout.EndScrollView();
             });
             GUILayout.EndHorizontal();
@@ -565,6 +445,15 @@ namespace PulseEditor.Modules
             WeaponDetails((WeaponData)data);
         }
 
+        protected override void OnQuit()
+        {
+            try
+            {
+                OnCacheRefresh -= RefreshCache;
+            }
+            catch { }
+        }
+
         #endregion
 
         /// <Summary>
@@ -581,10 +470,10 @@ namespace PulseEditor.Modules
         {
             if (inputLibrary == null)
                 inputLibrary = new List<WeaponLibrary>();
-            if (CoreLibrary.Exist<WeaponLibrary>(AssetsPath, _scope))
-                inputLibrary.Add(CoreLibrary.Load<WeaponLibrary>(AssetsPath, _scope));
-            else if (CoreLibrary.Save<WeaponLibrary>(AssetsPath, _scope))
-                inputLibrary.Add(CoreLibrary.Load<WeaponLibrary>(AssetsPath, _scope));
+            if (CoreLibrary.Exist<WeaponData,WeaponLibrary>(AssetsPath, _scope))
+                inputLibrary.Add(CoreLibrary.Load<WeaponData, WeaponLibrary>(AssetsPath, _scope));
+            else if (CoreLibrary.Save<WeaponData, WeaponLibrary>(AssetsPath, _scope))
+                inputLibrary.Add(CoreLibrary.Load<WeaponData, WeaponLibrary>(AssetsPath, _scope));
             return inputLibrary;
         }
 

@@ -1,38 +1,40 @@
-﻿using PulseEngine.Datas;
-using PulseEngine;
-using System.Collections;
+﻿using PulseEngine;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
 using PulseEngine.Modules.Localisator;
-using PulseEngine.Modules.CharacterCreator;
 using System.Threading.Tasks;
 using PulseEngine.Modules.Commander;
 using System.Threading;
 using Unity.Collections;
 using Unity.Jobs;
-using System.Diagnostics;
-using System.Collections.Concurrent;
-using System.Linq;
+using PulseEngine.Modules.Components;
 
 public class Tester : MonoBehaviour, IMovable
 {
     bool busy = false;
     CancellationTokenSource source = new CancellationTokenSource();
+    string title;
+    string description;
+    public Animator characterAnim;
+
 
     private void OnGUI()
     {
         if (busy)
             return;
-        if (GUILayout.Button("Execute first sequence"))
+        if (GUILayout.Button("Execute Kick"))
         {
-            if (Commander.virtualEmitter != this)
-                Commander.virtualEmitter = this;
-            PulseDebug.Log("virtual emitter is " + Commander.virtualEmitter);
-            var ct = source.Token;
-            WaitSequenceExecution(ct);
-            busy = true;
+            AnimData();
+            //if (Commander.virtualEmitter != this)
+            //    Commander.virtualEmitter = this;
+            //PulseDebug.Log("virtual emitter is " + Commander.virtualEmitter);
+            //var ct = source.Token;
+            ////WaitSequenceExecution(ct);
+            //busy = true;
         }
+        GUILayout.Button(title);
+        GUILayout.Button(description);
         //if (GUILayout.Button("Test sorting"))
         //{
         //    List<string> database = new List<string>{ "John", "Michael", "Ambassa", "Mola incur", "Mola excur", "Zamina" };
@@ -49,7 +51,7 @@ public class Tester : MonoBehaviour, IMovable
 
     private async Task WaitSequenceExecution(CancellationToken ct)
     {
-        await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
+        //await Core.ManagerAsyncMethod(ModulesManagers.Commander, "PlayCommandSequence", new object[] { ct, new DataLocation { id = 1 }, false });
         busy = false;
     }
 
@@ -107,22 +109,34 @@ public class Tester : MonoBehaviour, IMovable
     //    //await CharacterCreator.SpawnCharacter(new DataLocation { id = spawnCount, globalLocation = 0, localLocation = 0 }, position);
     //}
 
-    private async void LocData()
+    private async Task LocData()
     {
         using (var source = new CancellationTokenSource())
         {
             CancellationToken ct = source.Token;
-            string t = await Localisator.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.title, ct, true);
-            string d = await Localisator.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.description, ct, true);
+            title = await Localisationdata.TextData(new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }, DatalocationField.title, ct, new[] { Color.red, Color.green, Color.blue});
+            description = await Localisationdata.TextData(new DataLocation { id = 2, globalLocation = 0, localLocation = 0 }, DatalocationField.description, ct, new[] { Color.red, Color.green, Color.blue });
         }
-        //text = t.Italic() + " \n " + d;
-        //string w = await CoreData.ManagerAsyncMethod<string>(ModulesManagers.Localisator, "TextData", new object[] { (object)new DataLocation { id = 1, globalLocation = 0, localLocation = 0 }
-        //    , (object)DatalocationField.title,
-        //    (object)false });
-        //Debug.Log("C");
-        //text = w;
     }
 
+    private async Task AnimData()
+    {
+        if (!characterAnim)
+            return;
+        var data = await CoreLibrary.GetData<AnimaData>(new DataLocation { id = 1, dType = DataTypes.Anima, globalLocation = 0, localLocation = 0 }, source.Token);
+        if (data == null)
+            return;
+        if (data.Motion == null)
+            return;
+        //characterAnim.Play("State", 0);
+        var component = characterAnim.GetBehaviour<AnimaStateMachine>();
+        if (!component)
+            return;
+        component.AnimationData = data;
+        component.OverrideAnimation(data.Motion, characterAnim);
+        PulseDebug.Log(component.name);
+        characterAnim.Play("State", 0);
+    }
     private static dynamic PlayGround()
     {
         return 1 + 1;

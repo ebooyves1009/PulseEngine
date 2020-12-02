@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using PulseEngine.Datas;
 
 namespace PulseEngine.Modules.MessageSystem
 {

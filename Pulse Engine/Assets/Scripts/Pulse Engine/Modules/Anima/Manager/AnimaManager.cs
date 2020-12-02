@@ -1,9 +1,4 @@
-﻿using PulseEngine.Datas;
-using System.Collections.Generic;
-using UnityEngine.AddressableAssets;
-using System.Threading.Tasks;
-
-namespace PulseEngine.Modules.Anima
+﻿namespace PulseEngine.Modules.Anima
 {
     /// <summary>
     /// Le manager du module Anima

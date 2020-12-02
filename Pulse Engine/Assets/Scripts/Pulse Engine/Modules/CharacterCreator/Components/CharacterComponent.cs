@@ -1,9 +1,5 @@
-﻿using PulseEngine.Datas;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 
 namespace PulseEngine.Modules.Components
 {
@@ -23,7 +19,7 @@ namespace PulseEngine.Modules.Components
             data = _data;
             Task namingTask = new Task(async () =>
             {
-                characterName = await Core.ManagerAsyncMethod<string>(ModulesManagers.Localisator, "TextData", new object[] { (object)data.TradLocation, (object)DatalocationField.title, (object)false });
+                //characterName = await Core.ManagerAsyncMethod<string>(ModulesManagers.Localisator, "TextData", new object[] { (object)data.TradLocation, (object)DatalocationField.title, (object)false });
                 if (!string.IsNullOrEmpty(characterName))
                 {
                     gameObject.name = characterName;
@@ -39,15 +35,6 @@ namespace PulseEngine.Modules.Components
             {
                 Destroy(animator.gameObject);
             }
-            GameObject body = Instantiate(data.Character);
-            body.transform.SetParent(transform);
-            body.transform.localPosition = Vector3.zero;
-            body.transform.localRotation = Quaternion.identity;
-            animator = body.GetComponent<Animator>();
-            if (animator == null)
-                animator = body.AddComponent<Animator>();
-            animator.avatar = data.AnimatorAvatar;
-            animator.runtimeAnimatorController = data.AnimatorController;
             //animator.applyRootMotion = false;
             if (!gameObject.activeSelf)
                 gameObject.SetActive(true);
