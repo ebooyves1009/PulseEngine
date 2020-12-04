@@ -243,22 +243,22 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 5968e3bf8d836b940b4f8c9f726bea35,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5968e3bf8d836b940b4f8c9f726bea35,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 0.5222689
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5968e3bf8d836b940b4f8c9f726bea35,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5968e3bf8d836b940b4f8c9f726bea35,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.8527809
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5968e3bf8d836b940b4f8c9f726bea35,
         type: 3}
@@ -574,7 +574,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterAnim: {fileID: 160906159}
-  movingPlace: {x: 0, y: 0, z: 0}
+  character: {fileID: 919132149155446097, guid: 05e90f6eb030efb41bd751945e8b53f6,
+    type: 3}
+  worldPoint: {x: 0, y: 0, z: 0}
+  currentCam: {fileID: 1899668218}
+  movingPlace: {x: -Infinity, y: -Infinity, z: -Infinity}
   speed: 5
   reachDist: 1
   chkDist: 2
@@ -879,8 +883,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1913076175}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.57, y: 0.5, z: -1.75}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.1752, y: 0.5, z: -2.5727}
+  m_LocalScale: {x: 1.7896843, y: 0.9999998, z: 2.6454892}
   m_Children: []
   m_Father: {fileID: 701379878}
   m_RootOrder: 1
@@ -1229,6 +1233,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2027403340}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2115205271 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 5968e3bf8d836b940b4f8c9f726bea35,
+    type: 3}
+  m_PrefabInstance: {fileID: 160906157}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2115205272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2115205271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c4f69edc78ada84b84b02b95a7bd1e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movingPlace: {x: 2.5, y: 0, z: -0.5}
+  speed: 5
+  reachDist: 1
 --- !u!1 &2130787470
 GameObject:
   m_ObjectHideFlags: 0

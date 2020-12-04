@@ -26,11 +26,11 @@ MonoBehaviour:
       localLocation: 0
       dType: 4
     stats:
-      intelligence: 0
+      intelligence: 25
       experience: 0
       dexterity: 0
       sociability: 0
-      determination: 0
+      determination: 1
       madness: 0
       body_stat:
         strenght: 0
@@ -38,7 +38,7 @@ MonoBehaviour:
         enduranceMax: 0
         souffle: 0
         souffleMax: 0
-        speed: 0
+        speed: 1
         vital_stat:
           health: 0
           longevity: 0
@@ -46,10 +46,10 @@ MonoBehaviour:
           karma: 0
           phycics_stats:
             volume: 0
-            density: 0
+            density: 1
             mass: 0
             inflammability: 0
             frozability: 0
-            resistance: 0
+            resistance: 1
             elasticity: 0
             roughness: 0

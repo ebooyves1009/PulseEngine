@@ -1345,7 +1345,6 @@ namespace PulseEditor
             if(OnCacheRefresh != null)
             {
                 var calls = OnCacheRefresh.GetInvocationList().Length;
-                PulseDebug.Log($"on cache subscribers: {calls}");
             }
             //return default;
             if (_location.dType == DataTypes.none)
@@ -1396,7 +1395,7 @@ namespace PulseEditor
             RefreshingCache = true;
             if (OnCacheRefresh != null && StaticCache != null && StaticCache.ContainsKey(_dtype))
             {
-                PulseDebug.Log("trying to refresh " + _dtype.ToString() + " library");
+                //PulseDebug.Log("trying to refresh " + _dtype.ToString() + " library");
                 OnCacheRefresh.Invoke(StaticCache[_dtype], _dtype);
                 RefreshingCache = false;
             }

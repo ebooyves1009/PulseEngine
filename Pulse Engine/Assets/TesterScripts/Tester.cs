@@ -9,6 +9,10 @@ using System.Threading;
 using Unity.Collections;
 using Unity.Jobs;
 using PulseEngine.Modules.Components;
+using UnityEngine.InputSystem;
+using Unity.Mathematics;
+using System.Linq;
+using UnityEditor;
 
 public class Tester : MonoBehaviour, IMovable
 {
@@ -17,36 +21,20 @@ public class Tester : MonoBehaviour, IMovable
     string title;
     string description;
     public Animator characterAnim;
-
+    public GameObject character;
+    [SerializeField]
+    private Vector3 worldPoint;
+    [SerializeField]
+    private Camera currentCam;
 
     private void OnGUI()
     {
         if (busy)
             return;
-        if (GUILayout.Button("Execute Kick"))
+        if (GUILayout.Button("Execute Spawn"))
         {
-            AnimData();
-            //if (Commander.virtualEmitter != this)
-            //    Commander.virtualEmitter = this;
-            //PulseDebug.Log("virtual emitter is " + Commander.virtualEmitter);
-            //var ct = source.Token;
-            ////WaitSequenceExecution(ct);
-            //busy = true;
+            CharacterData(Vector3.zero, Quaternion.identity);
         }
-        GUILayout.Button(title);
-        GUILayout.Button(description);
-        //if (GUILayout.Button("Test sorting"))
-        //{
-        //    List<string> database = new List<string>{ "John", "Michael", "Ambassa", "Mola incur", "Mola excur", "Zamina" };
-        //    Stopwatch sw = new Stopwatch();
-        //    sw.Start();
-        //    var dt = database.AsParallel().OrderBy(s => s);
-        //    database = dt.ToList();
-        //    //database.Sort((x,y) => { return x.CompareTo(y); });
-        //    database.ForEach(s => { PulseDebug.Log(s); });
-        //    PulseDebug.Log($"Sorting took {sw.ElapsedMilliseconds} to complete");
-        //    sw.Stop();
-        //}
     }
 
     private async Task WaitSequenceExecution(CancellationToken ct)
@@ -78,15 +66,17 @@ public class Tester : MonoBehaviour, IMovable
 
     private void OnDrawGizmos()
     {
-        //Gizmos.DrawCube(representation[0].position, Vector3.one * 0.5f);
-        //for (int i = 1; i < representation.Count; i++)
-        //{
-        //    var color = palette[i % palette.Length];
-        //    Gizmos.color = color;
-        //    Gizmos.DrawCube(representation[i].position, Vector3.one * 0.5f);
-        //    Gizmos.color = color;
-        //    Gizmos.DrawLine(representation[i].position, representation[i].parentPos);
-        //}
+        for(int i = 0; i < path.Count - 1; i++)
+        {
+            Color c = Color.Lerp(Color.red, Color.green, Mathf.InverseLerp(0, path.Count - 1, i));
+            Handles.color = c;
+            Handles.DrawLine(path[i], path[i + 1]);
+        }
+        openList.ForEach(node =>
+        {
+            Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+            Handles.Label(new Vector3(node.WorldPosition.x, 0, pos.z), $"G:{node.GCost}; H:{node.HCost}; F:{node.FCost}");
+        });
     }
 
 
@@ -137,9 +127,15 @@ public class Tester : MonoBehaviour, IMovable
         PulseDebug.Log(component.name);
         characterAnim.Play("State", 0);
     }
-    private static dynamic PlayGround()
+    private async Task CharacterData(Vector3 position, Quaternion rotation)
     {
-        return 1 + 1;
+        if (!character)
+            return;
+        var data = await CoreLibrary.GetData<CharacterData>(new DataLocation { dType = DataTypes.Character, id = 1, globalLocation = 0, localLocation = 0 }, source.Token);
+        if (data == null)
+            return;
+        var Char = GameObject.Instantiate(character, position, rotation);
+        Char.name = await Localisationdata.TextData(data.TradLocation, DatalocationField.title, source.Token);
     }
 
     public event EventHandler OnArrival;
@@ -186,37 +182,291 @@ public class Tester : MonoBehaviour, IMovable
     }
 
 
-    public Vector3 movingPlace;
+    public Vector3 movingPlace = Vector3.negativeInfinity;
     public float speed = 5;
     public float reachDist = 1;
     public float chkDist = 2;
+    private float cell_Size = 1f;
+
+
+    public struct CheckNodeJob : IJobParallelFor
+    {
+        [ReadOnly]
+        public NativeArray<PathNode> grid;
+        [ReadOnly]
+        public float cellSize;
+        [ReadOnly]
+        public NativeArray<float3> posittions;
+        [WriteOnly]
+        public NativeArray<int> checkedTrue;
+
+        public void Execute(int index)
+        {
+            PathNode n = grid[index];
+            bool chk = false;
+            for (int i = 0; i < posittions.Length; i++)
+            {
+                if (n.CheckPositionOverlap(cellSize, posittions[i]))
+                {
+                    checkedTrue[index] = index;
+                    chk = true;
+                    break;
+                }
+                else
+                {
+                    checkedTrue[index] = -1;
+                }
+            }
+            //Vector3 pos = new Vector3(n.NodeCenter(cellSize).x, 0, n.NodeCenter(cellSize).y);
+            //PulseDebug.Draw2dPolygon(pos, cellSize * 0.5f, Vector3.up, chk ? Color.blue : Color.yellow, 15);
+        }
+    }
+
 
     private void Update()
     {
-        if (movingPlace != Vector3.zero)
+        if (currentCam)
+        {
+            var ray = currentCam.ScreenPointToRay(new Vector3(Mouse.current.position.x.ReadValue(), Mouse.current.position.y.ReadValue()));
+            RaycastHit hit;
+            if(Physics.Raycast(ray, out hit))
+            {
+                PulseDebug.Draw2dPolygon(hit.point, 1, hit.normal, Color.green);
+                worldPoint = hit.point;
+
+
+                Vector3 k = hit.normal;
+                Vector3 i = Vector3.zero;
+                Vector3 j = Vector3.zero;
+                Vector3.OrthoNormalize(ref k, ref i, ref j);
+                PulseDebug.DrawRLine(hit.point, hit.point + i, Color.red);
+                PulseDebug.DrawRLine(hit.point, hit.point + j, Color.blue);
+                PulseDebug.DrawRLine(hit.point, hit.point + k, Color.green);
+
+                if (Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    //CharacterData(worldPoint, Quaternion.LookRotation(j, k));
+                    if(characterAnim)
+                        SearchPath(characterAnim.transform.position, worldPoint);
+                }
+            }
+        }
+        if (movingPlace.x != Vector3.negativeInfinity.x)
         {
             transform.Translate((movingPlace - transform.position).normalized * speed * Time.deltaTime, Space.Self);
             if((movingPlace - transform.position).sqrMagnitude <= Mathf.Pow(reachDist, 2))
             {
-                movingPlace = Vector3.zero;
+                movingPlace = Vector3.negativeInfinity;
                 IMovable mover = this;
                 mover.ArrivedAt();
+            }
+        }
+        //Display path grid
+        {
+            if (!characterAnim)
+                return;
+            NativeArray<PathNode> _grid = new NativeArray<PathNode>(grid.ToArray(), Allocator.TempJob);
+            NativeArray<int> chkTrue = new NativeArray<int>(grid.Count, Allocator.TempJob);
+            NativeArray<float3> posArray = new NativeArray<float3>(new[] { (float3)worldPoint, (float3)characterAnim.transform.position }, Allocator.TempJob);
+            try
+            {
+                var job = new CheckNodeJob { grid = _grid, cellSize = cell_Size, checkedTrue = chkTrue, posittions = posArray }.Schedule(_grid.Length, 4);
+                job.Complete();
+                var ckhArray = chkTrue.ToArray();
+                Parallel.For(0, ckhArray.Length, i =>
+                {
+                    ////if (ckhArray[i] < 0)
+                    ////    return;
+                    //var node = grid[i];
+                    //Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+                    //if (node == startNode || node == endNode)
+                    //{
+                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.cyan, 60);
+                    //}
+                    //else if (closedList.Contains(node))
+                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.green, 60);
+                    //else if (openList.Contains(node))
+                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.red, 60);
+                    //else
+                    //{
+                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : Color.yellow, 60);
+                    //    //PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.yellow, 60);
+                    //}
+                });
+                for(int i = 0; i < ckhArray.Length; i++)
+                {
+                    //if (ckhArray[i] < 0)
+                    //    return;
+                    var node = grid[i];
+                    Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+                    if (node == startNode || node == endNode)
+                    {
+                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.cyan, 60);
+                    }
+                    else if (closedList.Contains(node))
+                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.red, 60);
+                    else if (openList.Contains(node))
+                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.green, 60);
+                    else
+                    {
+                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : (node.Walkable? Color.yellow : Color.black), 60);
+                        //PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.yellow, 60);
+                    }
+                }
+            }
+            finally
+            {
+                _grid.Dispose();
+                chkTrue.Dispose();
+                posArray.Dispose();
+            }
+        }
+        //grid.ForEach(node =>
+        //{
+        //    Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+        //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, node.CheckPositionOverlap(cell_Size, worldPoint) ? Color.blue : Color.yellow, 60);
+        //});
+    }
+
+
+    List<PathNode> grid = new List<PathNode>();
+    List<PathNode> openList = new List<PathNode>();
+    List<PathNode> closedList = new List<PathNode>();
+    List<Vector3> path = new List<Vector3>();
+    PathNode currentNode = PathNode.NullNode;
+    PathNode startNode = PathNode.NullNode;
+    PathNode endNode = PathNode.NullNode;
+    bool searching = false;
+
+    public async Task SearchPath(Vector3 start, Vector3 end)
+    {
+        if (searching)
+            return;
+        searching = true;
+        try
+        {
+            //Inits checks
+            {
+                startNode = grid.AsParallel().Where(n =>
+                {
+                    return n.CheckPositionOverlap(cell_Size, start);
+                }).FirstOrDefault();
+                if (startNode == PathNode.NullNode)
+                    return;
+                endNode = grid.AsParallel().Where(n =>
+                {
+                    return n.CheckPositionOverlap(cell_Size, end);
+                }).FirstOrDefault();
+                if (endNode == PathNode.NullNode)
+                    return;
+            }
+            //Algorithm start
+            {
+                path.Clear();
+                openList.Clear();
+                closedList.Clear();
+                currentNode = startNode;
+                openList.Add(currentNode);
+                for (int i = 0; i < 7; i++)
+                {
+                    currentNode = openList[0];
+                    PulseDebug.Log($"current node: F:{currentNode.FCost}, G:{currentNode.GCost}, H:{currentNode.HCost}");
+                    closedList.Add(currentNode);
+                    openList.Remove(currentNode);
+                    if(currentNode == endNode)
+                    {
+                        PulseDebug.Log($"Reached end...");
+                        break;
+                    }
+                    var ngb = currentNode.GetNeithbors(cell_Size, startNode, endNode).CheckWalkability(cell_Size, physicMask, 2);
+                    bool breakMade = false;
+                    for(int j = 0; j < ngb.Length; j++)
+                    {
+                        var node = ngb[j];
+                        if (!grid.Contains(node))
+                            continue;
+                        if (closedList.Contains(node))
+                            continue;
+                        if (!node.Walkable)
+                            continue;
+                        var newNode = node.CalculateCost(startNode, endNode, cell_Size);
+                        newNode.Parent = currentNode.NodeWorldCenter(cell_Size);
+                        if (node == endNode)
+                        {
+                            closedList.Add(newNode);
+                            PulseDebug.Log($"Reached end...");
+                            breakMade = true;
+                            break;
+                        }
+                        if (openList.Contains(node))
+                        {
+                            int nodeIndex = openList.FindIndex(n => { return n == node; });
+                            if (newNode.FCost < node.FCost) {
+                                openList[nodeIndex] = newNode;
+                            }
+                        }
+                        else
+                        {
+                            openList.Add(newNode);
+                        }
+                    }
+                    if (breakMade)
+                        break;
+                    openList.Sort();
+                    await Task.Delay(500);
+                }
+            }
+        }
+        finally
+        {
+            path = closedList.Select(n => { return new Vector3(n.NodeCenter(cell_Size).x, 0, n.NodeCenter(cell_Size).y); }).ToList();
+            searching = false;
+            TestAsset target = null;
+            if (characterAnim && characterAnim.TryGetComponent<TestAsset>(out target))
+            {
+                await Task.Delay(1000);
+                var cpyPath = new List<PathNode>(closedList);
+                var mover = ((IMovable)target);
+                characterAnim.Play("Walk", 0);
+                do
+                {
+                    var pos = new Vector3(cpyPath[0].NodeCenter(cell_Size).x, 0, cpyPath[0].NodeCenter(cell_Size).y);
+                    mover.MoveTo(pos);
+                    characterAnim.transform.rotation = Quaternion.LookRotation(pos - characterAnim.transform.position);
+                    await Core.WaitPredicate(() => { return cpyPath[0].CheckPositionOverlap(cell_Size, characterAnim.transform.position); }, source.Token);
+                    cpyPath.RemoveAt(0);
+                } while (cpyPath.Count > 0);
+                characterAnim.Play("Idle", 0);
+                PulseDebug.Log($"Walked end of path...");
             }
         }
     }
 
     private void Start()
     {
+        {
+            int gridSize = 10;
+            float2 cellSize = new float2(1, 1) * cell_Size;
+            float gridSizeX = gridSize / cellSize.x;
+            float gridSizeY = gridSize / cellSize.y;
+            for(float i = 0; i < gridSizeX; i+= cellSize.x)
+            {
+                for (float j = 0; j < gridSizeY; j+= cellSize.y)
+                {
+                    grid.Add(new PathNode { GridPosition = new float2(i, j), WorldPosition = new float2(i - (gridSizeX * 0.5f), j - (gridSizeY * 0.5f)) });
+                }
+            }
+        }
         //var rootGameO = gameObject.scene.GetRootGameObjects();
         //for(int i = 0; i < rootGameO.Length; i++)
         //{
         //    //CombineMeshes(rootGameO[i]);
         //}
-        physicsCheckCenters = new[]
-        {
-            transform.position,
-        };
-        Task physicLoop = PhysicUpdate(source.Token);
+        //physicsCheckCenters = new[]
+        //{
+        //    transform.position,
+        //};
+        //Task physicLoop = PhysicUpdate(source.Token);
     }
 
     private void CombineMeshes(GameObject staticObj)
@@ -347,6 +597,157 @@ public class Tester : MonoBehaviour, IMovable
             if (hit.transform)
                 PulseDebug.Draw2dPolygon(hit.point, rayLenght * 0.2f, hit.normal, c);
         }
+    }
+
+
+}
+
+public static class Extensions
+{
+    public static PathNode CalculateCost(this PathNode n, PathNode from, PathNode to, float nodeSize)
+    {
+        n.HCost = Mathf.RoundToInt(Mathf.Abs(to.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(to.GridPosition.y - n.GridPosition.y) / nodeSize) * 10;
+        //n.GCost = from.GCost + Mathf.RoundToInt((new Vector2(Mathf.Abs(from.GridPosition.x - n.GridPosition.x), Mathf.Abs(from.GridPosition.y - n.GridPosition.y)).magnitude / nodeSize) * 10);
+        //n.HCost = -n.GCost + Mathf.RoundToInt((new Vector2(Mathf.Abs(to.GridPosition.x - n.GridPosition.x), Mathf.Abs(to.GridPosition.y - n.GridPosition.y)).magnitude / nodeSize) * 10);
+        n.GCost = Mathf.RoundToInt(Mathf.Abs(from.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(from.GridPosition.y - n.GridPosition.y) / nodeSize) * 10;
+        return n;
+    }
+
+    public static PathNode[] GetNeithbors(this PathNode n, float nodeSize, PathNode from, PathNode to)
+    {
+        PathNode[] surroundings = new PathNode[] {
+            new PathNode{GridPosition = new float2(n.GridPosition.x, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x, n.WorldPosition.y + nodeSize)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x, n.WorldPosition.y - nodeSize)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y + nodeSize)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y - nodeSize)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y + nodeSize)},
+            new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y - nodeSize)},
+        };
+        //for (int i = 0; i < surroundings.Length; i++)
+        //    surroundings[i] = surroundings[i].CalculateCost(from, to, nodeSize);
+        return surroundings;
+    }
+
+    public static PathNode[] CheckWalkability(this PathNode[] collection, float nodeSize, LayerMask mask, float checkDist = 1, JobHandle handle = default)
+    {
+        PathNode[] retCol = new PathNode[collection.Length];
+        collection.CopyTo(retCol, 0);
+        //Create buffers
+        NativeArray<RaycastCommand> commands = new NativeArray<RaycastCommand>(collection.Length, Allocator.TempJob);
+        NativeArray<RaycastHit> resultsRaycasts = new NativeArray<RaycastHit>(commands.Length, Allocator.TempJob);
+        RaycastHit[] envHits;
+        try
+        {
+            //Fill the command buffer
+            for (int i = 0; i < commands.Length; i++)
+            {
+                int k = i;
+                commands[i] = new RaycastCommand(collection[i].NodeWorldCenter(nodeSize) - Vector3.up * nodeSize, Vector3.up, checkDist, mask);
+            }
+            //Schedule job
+            JobHandle rayCastJob = RaycastCommand.ScheduleBatch(commands, resultsRaycasts, 1, handle);
+            rayCastJob.Complete();
+            envHits = resultsRaycasts.ToArray();
+            for(int i = 0; i< collection.Length; i++)
+            {
+                var n = collection[i];
+                n.Walkable = envHits[i].collider == null;
+                //Debug.DrawRay(collection[i].NodeWorldCenter(nodeSize) - Vector3.up * nodeSize, Vector3.up * checkDist, envHits[i].collider ? Color.black : Color.white, 10000);
+                retCol[i] = n;
+            }
+        }
+        catch (Exception e)
+        {
+            PulseDebug.LogError("CheckWalkability Raycasts fail, cause : \n" + e);
+            envHits = new RaycastHit[0];
+        }
+        finally
+        {
+            //dispose
+            commands.Dispose();
+            resultsRaycasts.Dispose();
+        }
+        return retCol;
+    }
+}
+
+
+public struct PathNode : IEquatable<PathNode>, IComparable<PathNode>
+{
+    float2 worldPosition;
+    float2 gridPosition;
+    float3 parent;
+    bool walkable;
+    int gCost;
+    int hCost;
+
+    public float2 WorldPosition { get => worldPosition; set => worldPosition = value; }
+    public float2 GridPosition { get => gridPosition; set => gridPosition = value; }
+    public float3 Parent { get => parent; set => parent = value; }
+    public int GCost { get => gCost; set => gCost = value; }
+    public int HCost { get => hCost; set => hCost = value; }
+    public int FCost { get => hCost + gCost; }
+    public bool Walkable { get => walkable; set => walkable = value; }
+
+    public float2 NodeCenter(float nodeSize)
+    {
+        return worldPosition + new float2(1, 1) * 0.5f * nodeSize;
+    }
+    public Vector3 NodeWorldCenter(float nodeSize)
+    {
+        var grPos = worldPosition + new float2(1, 1) * 0.5f * nodeSize;
+        return new Vector3(grPos.x, 0, grPos.y);
+    }
+
+    public bool CheckPositionOverlap(float nodeSize, Vector3 point)
+    {
+        bool rangeX = point.x >= worldPosition.x && point.x < worldPosition.x + nodeSize;
+        bool rangeY = point.z >= worldPosition.y && point.z < worldPosition.y + nodeSize;
+        return rangeX && rangeY;
+    }
+
+    public int CompareTo(PathNode other)
+    {
+        bool fcostChk = FCost.CompareTo(other.FCost) == 0;
+        if (fcostChk)
+            return HCost.CompareTo(other.HCost);
+        return FCost.CompareTo(other.FCost);
+    }
+
+    public bool Equals(PathNode other)
+    {
+        return gridPosition.Equals(other.gridPosition);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return base.Equals(obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+
+    public override string ToString()
+    {
+        return base.ToString();
+    }
+
+    public static bool operator==(PathNode a, PathNode b)
+    {
+        return a.Equals(b);
+    }
+    public static bool operator!=(PathNode a, PathNode b)
+    {
+        return !a.Equals(b);
+    }
+
+    public static PathNode NullNode
+    {
+        get => new PathNode { gridPosition = new int2(-1, -1) };
     }
 }
 
