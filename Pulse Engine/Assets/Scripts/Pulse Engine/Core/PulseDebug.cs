@@ -77,6 +77,8 @@ namespace PulseEngine
         /// </summary>
         public static void Draw2dPolygon(Vector3 A, float R, Vector3 N, Color color = default, int tickness = 30)
         {
+            if (!Core.DebugMode)
+                return;
             int step = 360 / tickness;
             Vector3[] points = new Vector3[step];
             for (int i = 0, len = points.Length; i < len; i++)

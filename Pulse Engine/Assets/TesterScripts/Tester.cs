@@ -13,6 +13,7 @@ using UnityEngine.InputSystem;
 using Unity.Mathematics;
 using System.Linq;
 using UnityEditor;
+using UnityEngine.AddressableAssets;
 
 public class Tester : MonoBehaviour, IMovable
 {
@@ -31,10 +32,57 @@ public class Tester : MonoBehaviour, IMovable
     {
         if (busy)
             return;
-        if (GUILayout.Button("Execute Spawn"))
+        //if (GUILayout.Button("Execute Spawn"))
+        //{
+        //    CharacterData(Vector3.zero, Quaternion.identity);
+        //}
+        if (GUILayout.Button("Experimentation: Adressable sync"))
         {
-            CharacterData(Vector3.zero, Quaternion.identity);
+            //Thread t = new Thread(new ThreadStart(() =>
+            //{
+            //    TestPlayGround();
+            //}));
+            //t.Start();
+            TestPlayGround();
         }
+    }
+
+    private static void TestPlayGround()
+    {
+        Addressables.LoadAssetAsync<CoreLibrary>("CharacterData_0_3").Completed += h =>
+        {
+            PulseDebug.Log($"Load done on Main thread#{Thread.CurrentThread.ManagedThreadId}");
+            Thread.Sleep(1000);
+            int taskDone = 0;
+            AutoResetEvent taskWaiter = new AutoResetEvent(false);
+            for (int i = 0; i < 10; i++)
+                ThreadPool.QueueUserWorkItem(o =>
+                {
+                    try
+                    {
+                        //Addressables.LoadAssetAsync<CoreLibrary>("CharacterData_0_3").Completed += hdl =>
+                        //{
+                        //    PulseDebug.Log($"Load done on thread#{Thread.CurrentThread.ManagedThreadId}");
+                        //    if (Interlocked.Increment(ref taskDone) >= 9)
+                        //        taskWaiter.Set();
+                        //};
+                        if (SynchronizationContext.Current != null)
+                        {
+                            Addressables.LoadAsset<CoreLibrary>("CharacterData_0_3");
+                        }
+                        if (Interlocked.Increment(ref taskDone) >= 9)
+                            taskWaiter.Set();
+                    }
+                    catch (Exception e)
+                    {
+                        PulseDebug.LogError($"Error happenned on thread #{Thread.CurrentThread.ManagedThreadId} : {e.Message}");
+                        if (Interlocked.Increment(ref taskDone) >= 9)
+                            taskWaiter.Set();
+                    }
+                });
+            taskWaiter.WaitOne();
+            PulseDebug.Log("All done on bacground threads");
+        };
     }
 
     private async Task WaitSequenceExecution(CancellationToken ct)
@@ -186,7 +234,7 @@ public class Tester : MonoBehaviour, IMovable
     public float speed = 5;
     public float reachDist = 1;
     public float chkDist = 2;
-    private float cell_Size = 1f;
+    private float cell_Size = 0.5f;
 
 
     public struct CheckNodeJob : IJobParallelFor
@@ -265,39 +313,41 @@ public class Tester : MonoBehaviour, IMovable
         {
             if (!characterAnim)
                 return;
-            NativeArray<PathNode> _grid = new NativeArray<PathNode>(grid.ToArray(), Allocator.TempJob);
-            NativeArray<int> chkTrue = new NativeArray<int>(grid.Count, Allocator.TempJob);
+            NativeArray<PathNode> _grid = new NativeArray<PathNode>(grid.NodeList.ToArray(), Allocator.TempJob);
+            NativeArray<int> chkTrue = new NativeArray<int>(grid.NodeList.Count, Allocator.TempJob);
             NativeArray<float3> posArray = new NativeArray<float3>(new[] { (float3)worldPoint, (float3)characterAnim.transform.position }, Allocator.TempJob);
             try
             {
                 var job = new CheckNodeJob { grid = _grid, cellSize = cell_Size, checkedTrue = chkTrue, posittions = posArray }.Schedule(_grid.Length, 4);
+                grid.NodeList = grid.NodeList.ToArray().CheckWalkability(cell_Size, physicMask, 2, job).ToList();
                 job.Complete();
                 var ckhArray = chkTrue.ToArray();
-                Parallel.For(0, ckhArray.Length, i =>
-                {
-                    ////if (ckhArray[i] < 0)
-                    ////    return;
-                    //var node = grid[i];
-                    //Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
-                    //if (node == startNode || node == endNode)
-                    //{
-                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.cyan, 60);
-                    //}
-                    //else if (closedList.Contains(node))
-                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.green, 60);
-                    //else if (openList.Contains(node))
-                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.red, 60);
-                    //else
-                    //{
-                    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : Color.yellow, 60);
-                    //    //PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.yellow, 60);
-                    //}
-                });
-                for(int i = 0; i < ckhArray.Length; i++)
+                //Parallel.For(0, ckhArray.Length, i =>
+                //{
+                //    ////if (ckhArray[i] < 0)
+                //    ////    return;
+                //    //var node = grid[i];
+                //    //Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+                //    //if (node == startNode || node == endNode)
+                //    //{
+                //    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.cyan, 60);
+                //    //}
+                //    //else if (closedList.Contains(node))
+                //    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.green, 60);
+                //    //else if (openList.Contains(node))
+                //    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.red, 60);
+                //    //else
+                //    //{
+                //    //    PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : Color.yellow, 60);
+                //    //    //PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.yellow, 60);
+                //    //}
+                //});
+                //PulseDebug.Draw2dPolygon(grid.ClosestNode(characterAnim.transform.position, true, physicMask, 2).NodeWorldCenter(cell_Size), cell_Size * 0.5f, Vector3.up, Color.blue, 60);
+                for (int i = 0; i < ckhArray.Length; i++)
                 {
                     //if (ckhArray[i] < 0)
                     //    return;
-                    var node = grid[i];
+                    var node = grid.NodeList[i];
                     Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
                     if (node == startNode || node == endNode)
                     {
@@ -309,7 +359,7 @@ public class Tester : MonoBehaviour, IMovable
                         PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.green, 60);
                     else
                     {
-                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : (node.Walkable? Color.yellow : Color.black), 60);
+                        PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, ckhArray[i] >= 0 ? Color.blue : (node.Walkable ? Color.yellow : Color.black), 60);
                         //PulseDebug.Draw2dPolygon(pos, cell_Size * 0.5f, Vector3.up, Color.yellow, 60);
                     }
                 }
@@ -329,7 +379,7 @@ public class Tester : MonoBehaviour, IMovable
     }
 
 
-    List<PathNode> grid = new List<PathNode>();
+    PathGrid grid = new PathGrid();
     List<PathNode> openList = new List<PathNode>();
     List<PathNode> closedList = new List<PathNode>();
     List<Vector3> path = new List<Vector3>();
@@ -347,57 +397,55 @@ public class Tester : MonoBehaviour, IMovable
         {
             //Inits checks
             {
-                startNode = grid.AsParallel().Where(n =>
-                {
-                    return n.CheckPositionOverlap(cell_Size, start);
-                }).FirstOrDefault();
+                startNode = grid.WorldToNode(start);
                 if (startNode == PathNode.NullNode)
                     return;
-                endNode = grid.AsParallel().Where(n =>
-                {
-                    return n.CheckPositionOverlap(cell_Size, end);
-                }).FirstOrDefault();
+                endNode = grid.ClosestNode(end, true, physicMask, 2);
                 if (endNode == PathNode.NullNode)
                     return;
             }
             //Algorithm start
             {
+                characterAnim.Play("Search", 0);
                 path.Clear();
                 openList.Clear();
                 closedList.Clear();
                 currentNode = startNode;
+                currentNode.Parent = new float2(float.NaN, float.NaN);
                 openList.Add(currentNode);
-                for (int i = 0; i < 7; i++)
+                for (int i = 0; i < 500; i++)
                 {
                     currentNode = openList[0];
-                    PulseDebug.Log($"current node: F:{currentNode.FCost}, G:{currentNode.GCost}, H:{currentNode.HCost}");
+                    //PulseDebug.Log($"current node: F:{currentNode.FCost}, G:{currentNode.GCost}, H:{currentNode.HCost}");
                     closedList.Add(currentNode);
                     openList.Remove(currentNode);
                     if(currentNode == endNode)
                     {
                         PulseDebug.Log($"Reached end...");
+                        closedList.Add(currentNode);
                         break;
                     }
-                    var ngb = currentNode.GetNeithbors(cell_Size, startNode, endNode).CheckWalkability(cell_Size, physicMask, 2);
+                    var ngb = currentNode.GetNeithbors(cell_Size, startNode, endNode)
+                        .CheckWalkability(cell_Size, physicMask, 2);
                     bool breakMade = false;
                     for(int j = 0; j < ngb.Length; j++)
                     {
                         var node = ngb[j];
-                        if (!grid.Contains(node))
+                        if (!grid.NodeList.Contains(node))
                             continue;
                         if (closedList.Contains(node))
                             continue;
                         if (!node.Walkable)
                             continue;
                         var newNode = node.CalculateCost(startNode, endNode, cell_Size);
-                        newNode.Parent = currentNode.NodeWorldCenter(cell_Size);
-                        if (node == endNode)
-                        {
-                            closedList.Add(newNode);
-                            PulseDebug.Log($"Reached end...");
-                            breakMade = true;
-                            break;
-                        }
+                        newNode.Parent = currentNode.GridPosition;
+                        //if (node == endNode)
+                        //{
+                        //    closedList.Add(newNode);
+                        //    PulseDebug.Log($"Reached end...");
+                        //    breakMade = true;
+                        //    break;
+                        //}
                         if (openList.Contains(node))
                         {
                             int nodeIndex = openList.FindIndex(n => { return n == node; });
@@ -413,19 +461,25 @@ public class Tester : MonoBehaviour, IMovable
                     if (breakMade)
                         break;
                     openList.Sort();
-                    await Task.Delay(500);
+                    //await Task.Delay(100);
+                    await Task.Yield();
                 }
             }
         }
         finally
         {
-            path = closedList.Select(n => { return new Vector3(n.NodeCenter(cell_Size).x, 0, n.NodeCenter(cell_Size).y); }).ToList();
+            var Ppath = closedList.TracePath();
+            for(int i = 0; i < Ppath.Length; i++)
+            {
+                path.Add(Ppath[i].NodeWorldCenter(cell_Size));
+            }
             searching = false;
             TestAsset target = null;
             if (characterAnim && characterAnim.TryGetComponent<TestAsset>(out target))
             {
-                await Task.Delay(1000);
-                var cpyPath = new List<PathNode>(closedList);
+                //await Task.Delay(500);
+                await Task.Yield();
+                var cpyPath = new List<PathNode>(Ppath);
                 var mover = ((IMovable)target);
                 characterAnim.Play("Walk", 0);
                 do
@@ -446,16 +500,7 @@ public class Tester : MonoBehaviour, IMovable
     {
         {
             int gridSize = 10;
-            float2 cellSize = new float2(1, 1) * cell_Size;
-            float gridSizeX = gridSize / cellSize.x;
-            float gridSizeY = gridSize / cellSize.y;
-            for(float i = 0; i < gridSizeX; i+= cellSize.x)
-            {
-                for (float j = 0; j < gridSizeY; j+= cellSize.y)
-                {
-                    grid.Add(new PathNode { GridPosition = new float2(i, j), WorldPosition = new float2(i - (gridSizeX * 0.5f), j - (gridSizeY * 0.5f)) });
-                }
-            }
+            grid.CreateQuad(cell_Size, new Vector2(gridSize, gridSize));
         }
         //var rootGameO = gameObject.scene.GetRootGameObjects();
         //for(int i = 0; i < rootGameO.Length; i++)
@@ -635,25 +680,27 @@ public static class Extensions
         PathNode[] retCol = new PathNode[collection.Length];
         collection.CopyTo(retCol, 0);
         //Create buffers
-        NativeArray<RaycastCommand> commands = new NativeArray<RaycastCommand>(collection.Length, Allocator.TempJob);
-        NativeArray<RaycastHit> resultsRaycasts = new NativeArray<RaycastHit>(commands.Length, Allocator.TempJob);
-        RaycastHit[] envHits;
+        NativeArray<SpherecastCommand> obstacleCommands = new NativeArray<SpherecastCommand>(collection.Length, Allocator.TempJob);
+        NativeArray<SpherecastCommand> groundCommands = new NativeArray<SpherecastCommand>(collection.Length, Allocator.TempJob);
+        NativeArray<RaycastHit> obstacleResult = new NativeArray<RaycastHit>(obstacleCommands.Length, Allocator.TempJob);
+        NativeArray<RaycastHit> groundResult = new NativeArray<RaycastHit>(groundCommands.Length, Allocator.TempJob);
         try
         {
-            //Fill the command buffer
-            for (int i = 0; i < commands.Length; i++)
+            //Fill the command buffers
+            for (int i = 0; i < collection.Length; i++)
             {
                 int k = i;
-                commands[i] = new RaycastCommand(collection[i].NodeWorldCenter(nodeSize) - Vector3.up * nodeSize, Vector3.up, checkDist, mask);
+                obstacleCommands[i] = new SpherecastCommand(collection[i].NodeWorldCenter(nodeSize) - Vector3.up * nodeSize, nodeSize * 0.5f, Vector3.up, checkDist, mask);
+                groundCommands[i] = new SpherecastCommand(collection[i].NodeWorldCenter(nodeSize) + Vector3.up * nodeSize, nodeSize * 0.45f, -Vector3.up, checkDist, mask);
             }
-            //Schedule job
-            JobHandle rayCastJob = RaycastCommand.ScheduleBatch(commands, resultsRaycasts, 1, handle);
-            rayCastJob.Complete();
-            envHits = resultsRaycasts.ToArray();
+            //Schedule jobs
+            JobHandle groundJob = SpherecastCommand.ScheduleBatch(groundCommands, groundResult, 1, handle);
+            JobHandle obstacleJob = SpherecastCommand.ScheduleBatch(obstacleCommands, obstacleResult, 1, groundJob);
+            obstacleJob.Complete();
             for(int i = 0; i< collection.Length; i++)
             {
                 var n = collection[i];
-                n.Walkable = envHits[i].collider == null;
+                n.Walkable = obstacleResult[i].collider == null && groundResult[i].collider != null;
                 //Debug.DrawRay(collection[i].NodeWorldCenter(nodeSize) - Vector3.up * nodeSize, Vector3.up * checkDist, envHits[i].collider ? Color.black : Color.white, 10000);
                 retCol[i] = n;
             }
@@ -661,15 +708,51 @@ public static class Extensions
         catch (Exception e)
         {
             PulseDebug.LogError("CheckWalkability Raycasts fail, cause : \n" + e);
-            envHits = new RaycastHit[0];
         }
         finally
         {
             //dispose
-            commands.Dispose();
-            resultsRaycasts.Dispose();
+            obstacleCommands.Dispose();
+            groundCommands.Dispose();
+            obstacleResult.Dispose();
+            groundResult.Dispose();
         }
         return retCol;
+    }
+
+    public static PathNode[] TracePath(this List<PathNode> closeList)
+    {
+        if (closeList.Count <= 0)
+            throw new Exception("Cannot trace path from empty Node list");
+        PathNode currentNode = closeList[closeList.Count - 1];
+        List<PathNode> path = new List<PathNode>();
+        path.Add(currentNode);
+        int index = 0;
+        int iterations = 0;
+        //for(int i = 0; i < closeList.Count; i++)
+        //{
+        //    if (currentNode.GCost > closeList[i].GCost)
+        //        continue;
+        //    currentNode = closeList[i];
+        //    path.Add(currentNode);
+        //}
+        do
+        {
+            if (iterations >= closeList.Count)
+                break;
+            index = closeList.FindIndex(n => { return n.GridPosition.Equals(currentNode.Parent); });
+            if (index >= 0)
+            {
+                currentNode = closeList[index];
+                path.Add(currentNode);
+            }
+            if (float.IsNaN(currentNode.Parent.x))
+                break;
+            iterations++;
+        }
+        while (index >= 0);
+        path.Reverse();
+        return path.ToArray();
     }
 }
 
@@ -678,14 +761,14 @@ public struct PathNode : IEquatable<PathNode>, IComparable<PathNode>
 {
     float2 worldPosition;
     float2 gridPosition;
-    float3 parent;
+    float2 parent;
     bool walkable;
     int gCost;
     int hCost;
 
     public float2 WorldPosition { get => worldPosition; set => worldPosition = value; }
     public float2 GridPosition { get => gridPosition; set => gridPosition = value; }
-    public float3 Parent { get => parent; set => parent = value; }
+    public float2 Parent { get => parent; set => parent = value; }
     public int GCost { get => gCost; set => gCost = value; }
     public int HCost { get => hCost; set => hCost = value; }
     public int FCost { get => hCost + gCost; }
@@ -751,7 +834,65 @@ public struct PathNode : IEquatable<PathNode>, IComparable<PathNode>
     }
 }
 
+public class PathGrid
+{
+    private Vector2 gridSize;
+    private Vector2 cellSize;
+    private List<PathNode> nodeList = new List<PathNode>();
 
+    public Vector2 GridSize { get => gridSize; set => gridSize = value; }
+    public Vector2 CellSize { get => cellSize; set => cellSize = value; }
+    public List<PathNode> NodeList { get => nodeList; set => nodeList = value; }
+    public void CreateQuad(float _cellSize, Vector2 _maxSize)
+    {
+        cellSize = new float2(1, 1) * _cellSize;
+        gridSize.x = _maxSize.x / cellSize.x;
+        gridSize.y = _maxSize.y / cellSize.y;
+        for (float i = 0; i < gridSize.x; i += cellSize.x)
+        {
+            for (float j = 0; j < gridSize.y; j += cellSize.y)
+            {
+                nodeList.Add(new PathNode { GridPosition = new float2(i, j), WorldPosition = new float2(i - (gridSize.x * 0.5f), j - (gridSize.y * 0.5f)) });
+            }
+        }
+    }
+
+    public PathNode WorldToNode(Vector3 _point)
+    {
+        float fromX = Mathf.RoundToInt(((_point.x - nodeList[0].WorldPosition.x) / cellSize.x) - cellSize.x * 0.5f);
+        float fromY = Mathf.RoundToInt(((_point.z - nodeList[0].WorldPosition.y) / cellSize.y) - cellSize.y * 0.5f);
+        float2 gridPos = new float2(fromX * cellSize.x, fromY * cellSize.y);
+        int index = nodeList.FindIndex(n => { return n.GridPosition.Equals(gridPos); });
+        if (index >= 0)
+        {
+            return nodeList[index];
+        }
+        return PathNode.NullNode;
+    }
+
+    public PathNode ClosestNode(Vector3 _point, bool checkWalkability = true, int physicmask = 0, float chkDist = 1)
+    {
+        PathNode n = WorldToNode(_point);
+        if (n != PathNode.NullNode)
+        {
+            if (!checkWalkability)
+                return n;
+            var nChk = new[] { n }.CheckWalkability(cellSize.x, physicmask, chkDist)[0];
+            if (nChk.Walkable)
+                return nChk;
+        }
+        List<PathNode> cpygrid;
+        if(checkWalkability)
+            cpygrid = new List<PathNode>(nodeList.ToArray().CheckWalkability(cellSize.x, physicmask, chkDist).ToList().Where(node=> { return node.Walkable; }));
+        else
+            cpygrid = new List<PathNode>(nodeList);
+        cpygrid.Sort((n1, n2) =>
+        {
+            return (_point - n1.NodeWorldCenter(cellSize.x)).sqrMagnitude.CompareTo((_point - n2.NodeWorldCenter(cellSize.x)).sqrMagnitude);
+        });
+        return cpygrid[0];
+    }
+}
 
 [Serializable]
 public struct Serial
