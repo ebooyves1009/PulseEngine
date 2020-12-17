@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.Reflection;
 using System.Threading;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Burst;
 
 
 //TODO: Les Valeurs et fonctions globales seront ajoutees au fur et a mesure.
@@ -57,6 +61,37 @@ namespace PulseEngine
         public static void OnDomainReload()
         {
 
+        }
+
+        #endregion
+
+        #region Jobs ###########################################################################
+
+        /// <summary>
+        /// A job to find items in an array
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        [BurstCompile]
+        public struct FindIndexJob : IJobParallelFor
+        {
+            [ReadOnly]
+            public NativeArray<PathNode> Collection;
+            [ReadOnly]
+            public NativeArray<PathNode> Items;
+            [WriteOnly]
+            public NativeArray<int2> Results;
+
+            public void Execute(int index)
+            {
+                for(int i = 0; i < Items.Length; i++)
+                {
+                    if (Items[i].Equals(Collection[index]))
+                    {
+                        Results[index] = new int2(i, index);
+                        break;
+                    }
+                }
+            }
         }
 
         #endregion
@@ -558,6 +593,196 @@ namespace PulseEngine
                     return dta.End;
                 default:
                     return dta.Title;
+            }
+        }
+
+        /// <summary>
+        /// Add an item to an native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static void Add<T>(this NativeArray<T> collection, T item, Allocator alloc) where T: struct
+        {
+            //NativeArray<T> newCollection = new NativeArray<T>(collection.Length + 1, Allocator.Temp);
+            //newCollection.
+            ////newCollection.CopyFrom(collection);
+            //newCollection[newCollection.Length - 1] = item;
+            //collection.Dispose();
+            ////collection = new NativeArray<T>(newCollection, alloc);
+            //newCollection.Dispose();
+        }
+
+        /// <summary>
+        /// Add an array of items that meet condition to an native array. null condition add all the array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static NativeArray<T> AddRangeWhere<T>(this NativeArray<T> collection, NativeArray<T> itemCollection, Func<T,bool> condition, Allocator alloc) where T: struct
+        {
+            NativeArray<int> iterations = new NativeArray<int>(itemCollection.Length, Allocator.None);
+            int k = 0;
+            for(int i = 0; i < itemCollection.Length; i++)
+            {
+                if (condition != null)
+                {
+                    if (condition(itemCollection[i]))
+                    {
+                        iterations[k] = i;
+                        k++;
+                    }
+                }
+            }
+            NativeArray<T> newCollection = new NativeArray<T>(collection.Length + k, alloc);
+            newCollection.CopyFrom(collection);
+            int j = 0;
+            for (int i = 0; i < k; i++)
+            {
+                if (condition != null)
+                {
+                    if (condition(itemCollection[iterations[i]]))
+                    {
+                        newCollection[newCollection.Length - 1 + i] = itemCollection[iterations[i]];
+                    }
+                }
+            }
+            iterations.Dispose();
+            collection.Dispose();
+            return newCollection;
+        }
+
+        /// <summary>
+        /// Remove an item to from native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static NativeArray<T> Remove<T>(this NativeArray<T> collection, T item, Allocator alloc) where T: struct, IEquatable<T>
+        {
+            bool found = false;
+            int k = 0;
+            NativeArray<T> newCollection = new NativeArray<T>(collection.Length - 1, alloc);
+            for(int i = 0; i < collection.Length; i++)
+            {
+                if (collection[i].Equals(item) && !found)
+                {
+                    found = true;
+                    continue;
+                }
+                if(newCollection.Length > k)
+                    newCollection[k] = collection[i];
+                k++;
+            }
+            if (!found)
+            {
+                newCollection.Dispose();
+                return collection;
+            }
+            collection.Dispose();
+            return newCollection;
+        }
+
+        /// <summary>
+        /// Remove an item to at index in an native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static NativeArray<T> RemoveAt<T>(this NativeArray<T> collection, int index, Allocator alloc) where T: struct
+        {
+            int k = 0;
+            NativeArray<T> newCollection = new NativeArray<T>(collection.Length - 1, alloc);
+            for (int i = 0; i < collection.Length; i++)
+            {
+                if (i == index)
+                {
+                    continue;
+                }
+                if (newCollection.Length > k)
+                    newCollection[k] = collection[i];
+                k++;
+            }
+            collection.Dispose();
+            return newCollection;
+        }
+
+        /// <summary>
+        /// Return an item's index in native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static int IndexOfNoAlloc<T>(this NativeArray<T> collection, T item) where T : struct, IEquatable<T>
+        {
+            int k = -1;
+            for (int i = 0; i < collection.Length; i++)
+            {
+                if (collection[i].Equals(item))
+                {
+                    k = i;
+                    break;
+                }
+            }
+            return k;
+        }
+
+
+        /// <summary>
+        /// Return an item's index in native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static int ArrayIndexOf<T>(this NativeArray<T> collection, T item) where T : struct, IEquatable<T>
+        {
+            int k = -1;
+            for (int i = 0; i < collection.Length; i++)
+            {
+                if (collection[i].Equals(item))
+                {
+                    k = i;
+                    break;
+                }
+            }
+            return k;
+        }
+
+        /// <summary>
+        /// Sort an native array.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection"></param>
+        /// <param name="item"></param>
+        /// <param name="alloc"></param>
+        /// <returns></returns>
+        public static void Sort<T>(this NativeArray<T> collection, Allocator alloc) where T : struct, IComparable<T>
+        {
+            T item;
+            for (int i = 0; i < collection.Length; i++)
+            {
+                item = collection[i];
+                for(int j = 0; j < collection.Length; j++)
+                {
+                    if(item.CompareTo(collection[j]) < 0)
+                    {
+                        collection[i] = collection[j];
+                        collection[j] = item;
+                        item = collection[i];
+                    }
+                }
             }
         }
 

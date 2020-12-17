@@ -96,6 +96,21 @@ namespace PulseEngine
         }
 
         /// <summary>
+        /// Display a colored path
+        /// </summary>
+        /// <param name="_text"></param>
+        public static void DrawPath(Vector3[] _path, Color _startColor = default, Color _endColor = default)
+        {
+            if (_path == null)
+                return;
+            for (int i = 0; i < _path.Length - 1; i++)
+            {
+                Color c = Color.Lerp(_startColor, _endColor, Mathf.InverseLerp(0, _path.Length - 1, i));
+                DrawRLine(_path[i], _path[i + 1], c);
+            }
+        }
+
+        /// <summary>
         /// Affiche du texte en debug
         /// </summary>
         /// <param name="_text"></param>

@@ -56,8 +56,13 @@ namespace PulseEngine
     {
         Task<CommandPath> MoveCommand(Command _cmd, CancellationToken ct);
         void MoveTo(Vector3 position);
+        Task FollowPath(Vector3[] _path, int priority, float weight);
         event EventHandler OnArrival;
+        PathMovingState MovingState { get; set; }
+        CancellationTokenSource PathCancellationSource { get; set; }
+        int CurrentPathPriority { get; set; }
         void ArrivedAt();
+        bool CancelCurrentPath();
     }
 
     public interface IConditionnable

@@ -388,6 +388,20 @@ namespace PulseEngine
 
     #endregion
 
+    #region PathFinding Enums >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    /// <summary>
+    /// The Moving state of an Character
+    /// </summary>
+    public enum PathMovingState
+    {
+        none,
+        searchingPath,
+        followingPath,
+    }
+
+    #endregion
+
 
     #endregion
 
