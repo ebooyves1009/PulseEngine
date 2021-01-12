@@ -232,6 +232,10 @@ public class Tester : MonoBehaviour, IMovable
     public float chkDist = 2;
     private float cell_Size = 0.5f;
 
+
+    /// <summary>
+    /// The Job made to check if a node is in a grid.
+    /// </summary>
     [BurstCompile]
     public struct CheckNodeJob : IJobParallelFor
     {
@@ -596,26 +600,26 @@ public class Tester : MonoBehaviour, IMovable
                     PulseDebug.Log($"{OpenList.Count} in Open list...");
                     PulseDebug.Log($"{ClosedList.Count} in close list...");
 
-                    //await Task.Delay(250);
-                    await Task.Yield();
+                    await Task.Delay(250);
+                    //await Task.Yield();
                     ct.ThrowIfCancellationRequested();
                 }
             }
-            //path = new PathNode[closedList.Length];
-            //closedList.AsArray().CopyTo(path);
+            path = new PathNode[closedList.Length];
+            closedList.AsArray().CopyTo(path);
 
-            //var Ppath = path.ToList().TracePath();
-            //for (int i = 0; i < Ppath.Length; i++)
-            //{
-            //    Pospath.Add(Ppath[i].NodeWorldCenter(cell_Size));
-            //}
+            var Ppath = path.ToList().TracePath();
+            for (int i = 0; i < Ppath.Length; i++)
+            {
+                Pospath.Add(Ppath[i].NodeWorldCenter(cell_Size));
+            }
 
-            //character.MovingState = PathMovingState.none;
-            //if (character != null)
-            //{
-            //    //SEnd path to target here
-            //    character.FollowPath(Pospath.ToArray(), 1, 0);
-            //}
+            character.MovingState = PathMovingState.none;
+            if (character != null)
+            {
+                //SEnd path to target here
+                character.FollowPath(Pospath.ToArray(), 1, 0);
+            }
         }
         catch (Exception e) { throw e; }
         finally
@@ -814,7 +818,7 @@ public static class Extensions
         float GY = (Mathf.Abs(n.GridPosition.y - from.GridPosition.y));
         //n.HCost = Mathf.RoundToInt((Mathf.Abs(to.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(to.GridPosition.y - n.GridPosition.y) / nodeSize) * 1000);
         n.GCost = from.GCost + ((GX <= 0 ^ GY <= 0) ? 100 : 140);
-        n.HCost = Mathf.RoundToInt(HX + HY);
+        n.HCost = Mathf.FloorToInt(Mathf.Sqrt(HX * HX + HY * HY));
         //n.GCost = Mathf.RoundToInt((Mathf.Abs(from.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(from.GridPosition.y - n.GridPosition.y) / nodeSize) * 1000);
         return n;
     }
@@ -1288,10 +1292,10 @@ public struct PathNode : IEquatable<PathNode>, IComparable<PathNode>
             var newNode = node.CalculateCost(currentNode, endNode, cellSize);
             //var newNode = node.CalculateCost(startNode, endNode, cellSize);
             newNode.Parent = currentNode.GridPosition;
-            if (OpenList.Contains(node))
+            if (OpenList.Contains(newNode))
             {
                 float2 nodeGridPlace = node.GridPosition;
-                int nodeIndex = openlistBuffer.IndexOfNoAlloc(node);
+                int nodeIndex = openlistBuffer.IndexOfNoAlloc(newNode);
                 if (newNode.FCost < node.FCost)
                 {
                     OpenList[nodeIndex] = newNode;
