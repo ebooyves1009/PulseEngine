@@ -83,7 +83,8 @@ namespace PulseEngine
 
             public void Execute(int index)
             {
-                for(int i = 0; i < Items.Length; i++)
+                Results[index] = new int2(-1, -1);
+                for (int i = 0; i < Items.Length; i++)
                 {
                     if (Items[i].Equals(Collection[index]))
                     {

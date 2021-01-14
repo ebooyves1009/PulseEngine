@@ -116,11 +116,11 @@ public class Tester : MonoBehaviour, IMovable
 
     private void OnDrawGizmos()
     {
-        //OpenList.ForEach(node =>
-        //{
-        //    Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
-        //    Handles.Label(new Vector3(node.WorldPosition.x, 0, pos.z), $"G:{node.GCost}; H:{node.HCost}; F:{node.FCost}");
-        //});
+        OpenList.ForEach(node =>
+        {
+            Vector3 pos = new Vector3(node.NodeCenter(cell_Size).x, 0, node.NodeCenter(cell_Size).y);
+            Handles.Label(new Vector3(node.WorldPosition.x, 0, pos.z), $"G:{node.GCost}; H:{node.HCost}; F:{node.FCost}");
+        });
     }
 
 
@@ -814,10 +814,10 @@ public static class Extensions
     {
         float HX = (Mathf.Abs(to.GridPosition.x - n.GridPosition.x) / nodeSize) * 100;
         float HY = (Mathf.Abs(to.GridPosition.y - n.GridPosition.y) / nodeSize) * 100;
-        float GX = (Mathf.Abs(n.GridPosition.x - from.GridPosition.x));
-        float GY = (Mathf.Abs(n.GridPosition.y - from.GridPosition.y));
+        float GX = (Mathf.Abs(n.GridPosition.x - from.GridPosition.x) / nodeSize) * 10;
+        float GY = (Mathf.Abs(n.GridPosition.y - from.GridPosition.y) / nodeSize) * 10;
         //n.HCost = Mathf.RoundToInt((Mathf.Abs(to.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(to.GridPosition.y - n.GridPosition.y) / nodeSize) * 1000);
-        n.GCost = from.GCost + ((GX <= 0 ^ GY <= 0) ? 100 : 140);
+        n.GCost = from.GCost + Mathf.FloorToInt(Mathf.Sqrt(GX * GX + GY * GY)); //((GX <= 0 ^ GY <= 0) ? 100 : 140);
         n.HCost = Mathf.FloorToInt(Mathf.Sqrt(HX * HX + HY * HY));
         //n.GCost = Mathf.RoundToInt((Mathf.Abs(from.GridPosition.x - n.GridPosition.x) / nodeSize + Mathf.Abs(from.GridPosition.y - n.GridPosition.y) / nodeSize) * 1000);
         return n;
@@ -830,10 +830,10 @@ public static class Extensions
             new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y)},
             new PathNode{GridPosition = new float2(n.GridPosition.x, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x, n.WorldPosition.y - nodeSize)},
             new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y)},
-            new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y + nodeSize)},
-            new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y - nodeSize)},
-            new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y + nodeSize)},
-            new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y - nodeSize)},
+            //new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y + nodeSize)},
+            //new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y - nodeSize)},
+            //new PathNode{GridPosition = new float2(n.GridPosition.x - nodeSize, n.GridPosition.y + nodeSize), WorldPosition = new float2(n.WorldPosition.x - nodeSize, n.WorldPosition.y + nodeSize)},
+            //new PathNode{GridPosition = new float2(n.GridPosition.x + nodeSize, n.GridPosition.y - nodeSize), WorldPosition = new float2(n.WorldPosition.x + nodeSize, n.WorldPosition.y - nodeSize)},
         };
         //for (int i = 0; i < surroundings.Length; i++)
         //    surroundings[i] = surroundings[i].CalculateCost(from, to, nodeSize);
