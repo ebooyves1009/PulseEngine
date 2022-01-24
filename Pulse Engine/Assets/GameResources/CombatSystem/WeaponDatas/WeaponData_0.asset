@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef1ebf634d5b6da47944f54ca27584d3, type: 3}
+  m_Name: WeaponData_0
+  m_EditorClassIdentifier: 
+  _id: 0
+  _name: GreatSword
+  _description: Mighty Great Sword
+  _weapon: {fileID: 0}
+  _restBone: 8
+  _restParams:
+    position: {x: 0.05, y: 0.4, z: -0.11}
+    rotation: {x: 366.6, y: 75.2, z: 101.6}
+    scale: {x: 1, y: 1, z: 1}
+  _equipBone: 18
+  _equipParams:
+    position: {x: 0.07, y: -0.01, z: 0}
+    rotation: {x: 0, y: 97.02, z: 0.8}
+    scale: {x: 1, y: 1, z: 1}
+  _animatorOverrideController: {fileID: 22100000, guid: 15dd971b95a70764786160fd7d1956e3,
+    type: 2}
+  _attacks:
+  - _overrideAnimName: Attack_Hand_1R_Root (1)
+    _physicSpace: 2
+    _chainsPhases:
+    - <TriggerTime>k__BackingField: 0.42497137
+      <EndTime>k__BackingField: 0.6002296
+      <NextStateName>k__BackingField: Attack_2
+      <NextStateTransition>k__BackingField: 0.164
+    _hitFrames:
+    - <ImpactTime>k__BackingField: 0.2703322
+      <EndTime>k__BackingField: 0.30240554
+      <HitEveryXFrames>k__BackingField: 0
+      <ImpactDirection>k__BackingField: 4
+      <ImpactIntensity>k__BackingField: 0
+      <SourceBone>k__BackingField: 0
+      <ImpactDamagesmultiplier>k__BackingField: 1
+      <BoxOffset>k__BackingField: {x: 0, y: 0, z: 0}
+      <BoxSize>k__BackingField: {x: 1, y: 1, z: 1}
+      <UseWeaponCollider>k__BackingField: 1
+  - _overrideAnimName: Attack_Hand_PwR_Root (1)
+    _physicSpace: 2
+    _chainsPhases: []
+    _hitFrames:
+    - <ImpactTime>k__BackingField: 0.3024055
+      <EndTime>k__BackingField: 0.3482245
+      <HitEveryXFrames>k__BackingField: 0
+      <ImpactDirection>k__BackingField: 1
+      <ImpactIntensity>k__BackingField: 5
+      <SourceBone>k__BackingField: 0
+      <ImpactDamagesmultiplier>k__BackingField: 1
+      <BoxOffset>k__BackingField: {x: 0, y: 0, z: 0}
+      <BoxSize>k__BackingField: {x: 1, y: 1, z: 1}
+      <UseWeaponCollider>k__BackingField: 1
+  - _overrideAnimName: Attack_Hand_2L_Root (1)
+    _physicSpace: 2
+    _chainsPhases:
+    - <TriggerTime>k__BackingField: 0.35051546
+      <EndTime>k__BackingField: 0.5475372
+      <NextStateName>k__BackingField: Attack_3
+      <NextStateTransition>k__BackingField: 0.1024
+    _hitFrames:
+    - <ImpactTime>k__BackingField: 0.20389462
+      <EndTime>k__BackingField: 0.22909495
+      <HitEveryXFrames>k__BackingField: 0
+      <ImpactDirection>k__BackingField: 3
+      <ImpactIntensity>k__BackingField: 0
+      <SourceBone>k__BackingField: 0
+      <ImpactDamagesmultiplier>k__BackingField: 1
+      <BoxOffset>k__BackingField: {x: 0, y: 0, z: 0}
+      <BoxSize>k__BackingField: {x: 1, y: 1, z: 1}
+      <UseWeaponCollider>k__BackingField: 1
+  - _overrideAnimName: JAttack_AirFront_Root
+    _physicSpace: 1
+    _chainsPhases: []
+    _hitFrames:
+    - <ImpactTime>k__BackingField: 0.303551
+      <EndTime>k__BackingField: 0.37800688
+      <HitEveryXFrames>k__BackingField: 0
+      <ImpactDirection>k__BackingField: 1
+      <ImpactIntensity>k__BackingField: 1
+      <SourceBone>k__BackingField: 0
+      <ImpactDamagesmultiplier>k__BackingField: 1
+      <BoxOffset>k__BackingField: {x: 0, y: 0, z: 0}
+      <BoxSize>k__BackingField: {x: 1, y: 1, z: 1}
+      <UseWeaponCollider>k__BackingField: 1
+  _damage: {x: 0, y: 0}

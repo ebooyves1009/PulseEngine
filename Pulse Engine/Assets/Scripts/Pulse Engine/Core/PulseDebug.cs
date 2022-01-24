@@ -23,7 +23,7 @@ namespace PulseEngine
         {
             if (!Core.DebugMode)
                 return;
-            Debug.Log(_message);
+            global::PulseDebug.Log(_message);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace PulseEngine
         {
             if (!Core.DebugMode)
                 return;
-            Debug.LogWarning(_message);
+            global::PulseDebug.LogWarning(_message);
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace PulseEngine
         {
             if (!Core.DebugMode)
                 return;
-            Debug.LogError(_message);
+            global::PulseDebug.LogError(_message);
         }
 
         #endregion

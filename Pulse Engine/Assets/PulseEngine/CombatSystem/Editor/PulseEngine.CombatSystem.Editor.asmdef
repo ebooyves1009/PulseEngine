@@ -1,0 +1,20 @@
+{
+    "name": "PulseEngine.CombatSystem.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:589e65d53731471489f02a2853bd405d",
+        "GUID:51855133d20deae44b705898653bb163",
+        "GUID:f9b39da140cb7c248be20cfa9a635f53"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

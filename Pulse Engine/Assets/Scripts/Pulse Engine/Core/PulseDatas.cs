@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.Mathematics;
+using Unity.Jobs;
+using Unity.Collections;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
@@ -11,6 +14,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
+using Unity.Burst;
 
 namespace PulseEngine
 {
@@ -1239,6 +1243,210 @@ namespace PulseEngine
 #endif
 
         #endregion
+    }
+
+    #endregion
+
+    #region Navigation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    /// <summary>
+    /// Represent a node on a path
+    /// </summary>
+    public struct PathNode : IEquatable<PathNode>, IComparable<PathNode>
+    {
+        float2 worldPosition;
+        float2 gridPosition;
+        float2 parent;
+        bool walkable;
+        int gCost;
+        int hCost;
+
+        public float2 WorldPosition { get => worldPosition; set => worldPosition = value; }
+        public float2 GridPosition { get => gridPosition; set => gridPosition = value; }
+        public float2 Parent { get => parent; set => parent = value; }
+        public int GCost { get => gCost; set => gCost = value; }
+        public int HCost { get => hCost; set => hCost = value; }
+        public int FCost { get => hCost + gCost; }
+        public bool Walkable { get => walkable; set => walkable = value; }
+
+        public float2 NodeCenter(float nodeSize)
+        {
+            return worldPosition + new float2(1, 1) * 0.5f * nodeSize;
+        }
+        public Vector3 NodeWorldCenter(float nodeSize)
+        {
+            var grPos = worldPosition + new float2(1, 1) * 0.5f * nodeSize;
+            return new Vector3(grPos.x, 0, grPos.y);
+        }
+
+        public bool CheckPositionOverlap(float nodeSize, Vector3 point)
+        {
+            bool rangeX = point.x >= worldPosition.x && point.x < worldPosition.x + nodeSize;
+            bool rangeY = point.z >= worldPosition.y && point.z < worldPosition.y + nodeSize;
+            return rangeX && rangeY;
+        }
+
+        public int CompareTo(PathNode other)
+        {
+            bool fcostChk = FCost.CompareTo(other.FCost) == 0;
+            if (fcostChk)
+                return HCost.CompareTo(other.HCost);
+            return FCost.CompareTo(other.FCost);
+        }
+
+        public bool Equals(PathNode other)
+        {
+            return gridPosition.Equals(other.gridPosition);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return base.ToString();
+        }
+
+        public static bool operator ==(PathNode a, PathNode b)
+        {
+            return a.Equals(b);
+        }
+        public static bool operator !=(PathNode a, PathNode b)
+        {
+            return !a.Equals(b);
+        }
+
+        public static PathNode NullNode
+        {
+            get => new PathNode { gridPosition = new int2(-1, -1) };
+        }
+
+        public static void NeighborNodesWork(PathNode node, PathNode start, PathNode end,
+            NativeArray<PathNode> neighbors, NativeList<PathNode> closedList, NativeArray<PathNode> grid, NativeList<PathNode> openlist,
+            float cellSize, JobHandle dependence = default(JobHandle))
+        {
+            NativeArray<PathNode> retList = new NativeArray<PathNode>(neighbors.Length, Allocator.TempJob);
+            NativeArray<PathNode> ret = new NativeArray<PathNode>(0, Allocator.Temp);
+
+            try
+            {
+                //PulseDebug.Log("Job schedule");
+                JobHandle handle = new NeighborNodesJob
+                {
+                    startNode = start,
+                    currentNode = node,
+                    endNode = end,
+                    cellSize = cellSize,
+                    GridNodes = grid,
+                    OpenList = openlist.AsArray(),
+                    CloseList = closedList.AsArray(),
+                    neigborList = neighbors,
+                    ReturnList = retList
+                }.Schedule(neighbors.Length, 4, dependence);
+                handle.Complete();
+                for (int i = 0; i < retList.Length; i++)
+                {
+                    if (retList[i] != PathNode.NullNode)
+                        openlist.Add(retList[i]);
+                }
+                PulseDebug.Log($"Job finnished with {openlist.Length} in result OpenList , and {retList.Length} in results");
+            }
+            finally
+            {
+                ret.Dispose();
+                retList.Dispose();
+            }
+        }
+
+        [BurstCompile]
+        private struct NeighborNodesJob : IJobParallelFor
+        {
+            [ReadOnly]
+            public PathNode startNode;
+            [ReadOnly]
+            public PathNode endNode;
+            [ReadOnly]
+            public float cellSize;
+            [ReadOnly]
+            public PathNode currentNode;
+            [ReadOnly]
+            public NativeArray<PathNode> GridNodes;
+            [ReadOnly]
+            public NativeArray<PathNode> CloseList;
+
+            public NativeArray<PathNode> OpenList;
+
+            public NativeArray<PathNode> neigborList;
+            [WriteOnly]
+            public NativeArray<PathNode> ReturnList;
+
+            private PathNode node;
+
+            public void Execute(int index)
+            {
+                node = neigborList[index];
+                NativeArray<PathNode> openlistBuffer = new NativeArray<PathNode>(OpenList, Allocator.Temp);
+                ReturnList[index] = PathNode.NullNode;
+                if (!GridNodes.Contains(node))
+                {
+                    //PulseDebug.Log($"job{index} stop cause node is not in the grid");
+                    return;
+                }
+                if (CloseList.Contains(node))
+                {
+                    //PulseDebug.Log($"job{index} stop cause node is already in the close list");
+                    return;
+                }
+                if (!node.Walkable)
+                {
+                    //PulseDebug.Log($"job{index} stop cause node is not walkable");
+                    return;
+                }
+                var newNode = node.CalculateCost(currentNode, endNode, cellSize);
+                //var newNode = node.CalculateCost(startNode, endNode, cellSize);
+                newNode.Parent = currentNode.GridPosition;
+                if (OpenList.Contains(newNode))
+                {
+                    float2 nodeGridPlace = node.GridPosition;
+                    int nodeIndex = openlistBuffer.IndexOfNoAlloc(newNode);
+                    if (newNode.FCost < node.FCost)
+                    {
+                        OpenList[nodeIndex] = newNode;
+                    }
+                }
+                else
+                {
+                    ReturnList[index] = newNode;
+                }
+                openlistBuffer.Dispose();
+            }
+        }
+
+        [BurstCompile]
+        public struct GridPhysicRefresh : IJobParallelFor
+        {
+            public NativeArray<PathNode> GridList;
+            [ReadOnly]
+            public NativeArray<RaycastHit> GroundChks;
+            [ReadOnly]
+            public NativeArray<RaycastHit> ObstaclesChks;
+
+            private PathNode n;
+
+            public void Execute(int index)
+            {
+                n = GridList[index];
+                n.Walkable = ObstaclesChks[index].point == Vector3.zero && GroundChks[index].point != Vector3.zero;
+                GridList[index] = n;
+            }
+        }
     }
 
     #endregion

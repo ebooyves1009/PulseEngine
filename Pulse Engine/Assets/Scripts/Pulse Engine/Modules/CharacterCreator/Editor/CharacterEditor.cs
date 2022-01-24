@@ -266,7 +266,7 @@ namespace PulseEditor.Modules
                 if (GUILayout.Button("S", new[] { GUILayout.Width(25) }))
                 {
                     var locEditorType = TypeInfo.GetType("LocalisationEditor");
-                    LocalisationEditor.OpenSelector((obj, arg) =>
+                    LocalisationEditor.OpenSelector((object obj, EditorEventArgs arg) =>
                     {
                         var a = arg as EditorEventArgs;
                         if (a == null)
@@ -295,7 +295,7 @@ namespace PulseEditor.Modules
                             MindStat rSt = (MindStat)obj;
                             data.Stats = rSt;
                         }
-                        catch (Exception e) { PulseDebug.Log(e.Message); }
+                        catch (Exception e) { PulseEngine.PulseDebug.Log(e.Message); }
                     });
                 }
                 GUILayout.EndHorizontal();

@@ -382,7 +382,7 @@ namespace PulseEditor
                 }
             }
             catch(Exception e) {
-                PulseDebug.LogError("Exeption thrown " + e.Message);
+                PulseEngine.PulseDebug.LogError("Exeption thrown " + e.Message);
                 CloseWindow();
             }
             ScrollablePanel(() =>
